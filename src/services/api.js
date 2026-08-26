@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 // Base URLs microservices
-const AUTH_URL = 'http://localhost:8001/api/auth';
-const ADMIN_URL = 'http://localhost:8002/api/admin';
-const MANAGER_URL = 'http://localhost:8003/api/manager';
+const AUTH_URL = process.env.AUTH_URL;
+const ADMIN_URL = process.env.ADMIN_URL;
+const MANAGER_URL =  process.env.MANAGER_URL;
 
 // Helper membuat Axios Client dengan JWT Interceptor (#6 Enforce server side auth)
 const createClient = (baseURL) => {
