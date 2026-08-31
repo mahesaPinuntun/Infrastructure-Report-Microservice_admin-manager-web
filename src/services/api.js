@@ -40,3 +40,13 @@ export const loginManager = async (email, password) => {
   const response = await authApi.post('/api/auth/login/manager', { email, password });
   return response.data;
 };
+// src/services/api.js
+
+export const logout = () => {
+  // 1. Hapus token dan data user dari localStorage
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+
+  // 2. Redirect langsung ke halaman login
+  window.location.href = '/login';
+};
