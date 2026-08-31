@@ -56,7 +56,12 @@ const fetchStats = async () => {
   errorMessage.value = '';
   try {
     const res = await adminApi.get('/api/admin/stats');
-    stats.value = res?.data?.stats || res?.data || { totalReports: 0, activeTechnicians: 0, systemHealth: 'GOOD' };
+    const rawData = res?.data?.stats || res?.data || {};
+    stats.value = {
+      totalReports: rawData.totalReports ?? 0,
+      activeTechnicians: rawData.activeTechnicians ?? 0,
+      systemHealth: rawData.systemHealth || 'GOOD'
+    };
   } catch (err) {
     console.error('Gagal memuat statistik admin:', err);
     errorMessage.value = 'Gagal memuat data statistik dari server.';
