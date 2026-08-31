@@ -87,7 +87,7 @@ const handleLogin = async () => {
       throw new Error('Respon server tidak mengandung token atau data user yang valid.');
     }
 
-    // 3. Simpan Token & User ke localStorage
+    // 3. Simpan Token & User ke localStorage SEBELUM memicu navigasi
     const effectiveRole = (userData.role || selectedRole.value).toUpperCase();
     
     localStorage.setItem('token', token);
@@ -98,9 +98,9 @@ const handleLogin = async () => {
       role: effectiveRole
     }));
 
-    // 4. Hard Redirect langsung ke Dashboard sesuai Role
+    // 4. Mulus: Gunakan Vue Router push (Bukan window.location.href)
     const targetPath = effectiveRole === 'ADMIN' ? '/admin' : '/manager';
-    window.location.href = '';//targetPath;
+    await router.push(targetPath);
 
   } catch (err) {
     console.error('Login Error:', err);
