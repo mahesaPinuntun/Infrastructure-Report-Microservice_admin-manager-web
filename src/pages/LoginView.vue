@@ -100,7 +100,7 @@ const handleLogin = async () => {
 
     // 4. Hard Redirect langsung ke Dashboard sesuai Role
     const targetPath = effectiveRole === 'ADMIN' ? '/admin' : '/manager';
-    window.location.href = targetPath;
+    window.location.href = '';//targetPath;
 
   } catch (err) {
     console.error('Login Error:', err);
