@@ -10,7 +10,7 @@
           <label for="role">Pilih Role Access</label>
           <select id="role" v-model="selectedRole">
             <option value="ADMIN">Administrator</option>
-            <option value="MANAGER">Manager Field</option>
+            <option value="INFRASTRUCTURE_MANAGER">Infrastructure Manager</option>
           </select>
         </div>
 
@@ -87,9 +87,13 @@ const handleLogin = async () => {
       throw new Error('Respon server tidak mengandung token atau data user yang valid.');
     }
 
-    // 3. Simpan Token & User ke localStorage SEBELUM memicu navigasi
-    const effectiveRole = (userData.role || selectedRole.value).toUpperCase();
-    
+    // 3. Normalisasi Role string
+    const rawRole = (userData.role || selectedRole.value).toUpperCase();
+    const effectiveRole = (rawRole === 'MANAGER' || rawRole === 'INFRASTRUCTURE_MANAGER') 
+      ? 'INFRASTRUCTURE_MANAGER' 
+      : 'ADMIN';
+
+    // 4. Simpan ke localStorage
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify({
       id: userData.id || userData._id,
@@ -98,7 +102,7 @@ const handleLogin = async () => {
       role: effectiveRole
     }));
 
-    // 4. Mulus: Gunakan Vue Router push (Bukan window.location.href)
+    // 5. Navigasi Router
     const targetPath = effectiveRole === 'ADMIN' ? '/admin' : '/manager';
     await router.push(targetPath);
 
