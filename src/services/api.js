@@ -51,7 +51,28 @@ export const loginManager = async (email, password) => {
   const response = await authApi.post('/api/auth/login/manager', { email, password });
   return response.data;
 };
+// Tambahkan di bagian bawah src/services/api.js
 
+export const createUser = async (userData) => {
+  // userData berisi: { name, email, password, role }
+  const response = await adminApi.post('/api/admin/users', userData);
+  return response.data;
+};
+
+export const getAllUsers = async () => {
+  const response = await adminApi.get('/api/admin/users');
+  return response.data;
+};
+
+export const updateUserStatus = async (userId, status) => {
+  const response = await adminApi.patch(`/api/admin/users/${userId}/status`, { status });
+  return response.data;
+};
+
+export const deleteUser = async (userId) => {
+  const response = await adminApi.delete(`/api/admin/users/${userId}`);
+  return response.data;
+};
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
