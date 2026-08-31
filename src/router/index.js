@@ -65,26 +65,29 @@ router.beforeEach((to, from, next) => {
   }
 
   const userRole = user?.role?.toUpperCase();
+  const isAllowedRole = ['ADMIN', 'MANAGER'].includes(userRole);
 
-  // 1. Jika rute membutuhkan auth tetapi token/user tidak valid
-  if (to.meta.requiresAuth && (!token || !userRole)) {
+  // 1. Jika rute membutuhkan auth tetapi token/user tidak valid atau role tidak diizinkan di portal ini
+  if (to.meta.requiresAuth && (!token || !userRole || !isAllowedRole)) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     return next('/login');
   }
 
-  // 2. Jika rute memiliki batasan role tertentu dan role user tidak sesuai
+  // Helper menentukan dashboard tujuan berdasarkan role
+  const getDashboardPath = (role) => (role === 'ADMIN' ? '/admin' : '/manager');
+
+  // 2. Jika rute memiliki batasan role khusus (ADMIN/MANAGER) dan role user tidak sesuai
   if (to.meta.requiresAuth && to.meta.role && userRole !== to.meta.role) {
-    const targetPath = userRole === 'ADMIN' ? '/admin' : '/manager';
-    // Cegah infinite loop jika tujuan rute saat ini sudah sama dengan targetPath
+    const targetPath = getDashboardPath(userRole);
     if (to.path !== targetPath) {
       return next(targetPath);
     }
   }
 
   // 3. Jika user sudah login dan mencoba mengakses halaman /login secara manual
-  if (to.path === '/login' && token && userRole) {
-    const targetPath = userRole === 'ADMIN' ? '/admin' : '/manager';
+  if (to.path === '/login' && token && isAllowedRole) {
+    const targetPath = getDashboardPath(userRole);
     return next(targetPath);
   }
 
