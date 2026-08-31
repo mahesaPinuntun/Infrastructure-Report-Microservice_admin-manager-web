@@ -104,11 +104,18 @@ const newUser = ref({
 
 const fetchUsers = async () => {
   loading.value = true;
+  errorMessage.value = '';
   try {
     const res = await getAllUsers();
-    users.value = res?.users || res?.data || [];
+    
+    // Ekstrak array dari res.users, res.data.users, res.data, atau fallback ke []
+    const userList = res?.users || res?.data?.users || res?.data || [];
+    
+    // Pastikan data yang dimasukkan benar-benar bertipe Array
+    users.value = Array.isArray(userList) ? userList : [];
   } catch (err) {
     console.error('Gagal memuat pengguna:', err);
+    errorMessage.value = err.response?.data?.error || 'Gagal mengambil daftar pengguna dari server.';
   } finally {
     loading.value = false;
   }
