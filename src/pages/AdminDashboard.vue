@@ -44,10 +44,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { adminApi, logout } from '../services/api';
 
-const router = useRouter();
 const stats = ref({ totalReports: 0, activeTechnicians: 0, systemHealth: 'GOOD' });
 const user = ref(null);
 const loading = ref(true);
@@ -58,7 +56,6 @@ const fetchStats = async () => {
   errorMessage.value = '';
   try {
     const res = await adminApi.get('/api/admin/stats');
-    // Fleksibel mendukung format res.data.stats atau res.data langsung
     stats.value = res?.data?.stats || res?.data || { totalReports: 0, activeTechnicians: 0, systemHealth: 'GOOD' };
   } catch (err) {
     console.error('Gagal memuat statistik admin:', err);
@@ -69,7 +66,13 @@ const fetchStats = async () => {
 };
 
 const handleLogout = () => {
-  logout();
+  if (typeof logout === 'function') {
+    logout();
+  } else {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  }
 };
 
 onMounted(() => {
