@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Menggunakan Dynamic Import (Lazy Loading) untuk optimasi bundle size
 const routes = [
   { 
     path: '/', 
@@ -47,7 +46,6 @@ const routes = [
     component: () => import('../pages/UsersManagement.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   },
-  // Catch-all route untuk path 404 / tidak dikenal
   { 
     path: '/:pathMatch(.*)*', 
     redirect: '/login' 
@@ -59,7 +57,7 @@ const router = createRouter({
   routes
 });
 
-// Navigation Guard (Proteksi Halaman & Akses Role)
+// Navigation Guard (Tahan pergerakan berulang/glitch)
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   
@@ -76,33 +74,35 @@ router.beforeEach((to, from, next) => {
   const isAllowedRole = ['ADMIN', 'MANAGER'].includes(userRole);
   const getDashboardPath = (role) => (role === 'ADMIN' ? '/admin' : '/manager');
 
-  // 1. Jika rute butuh autentikasi, tetapi token/user tidak ada atau role tidak valid
+  // 1. Jika pengguna belum login dan mencoba mengakses rute terproteksi
   if (to.meta.requiresAuth && (!token || !userRole || !isAllowedRole)) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    return next('/login');
+    return next({ path: '/login', replace: true });
   }
 
-  // 2. Jika rute khusus single role (misal: /admin atau /users khusus ADMIN)
+  // 2. Jika rute khusus single role (ADMIN/MANAGER) dan role tidak sesuai
   if (to.meta.requiresAuth && to.meta.role && userRole !== to.meta.role) {
     const targetPath = getDashboardPath(userRole);
     if (to.path !== targetPath) {
-      return next(targetPath);
+      return next({ path: targetPath, replace: true });
     }
   }
 
-  // 3. Jika rute mendukung multiple roles (misal: /reports atau /work-orders)
+  // 3. Jika rute mendukung multiple roles
   if (to.meta.requiresAuth && to.meta.roles && !to.meta.roles.includes(userRole)) {
     const targetPath = getDashboardPath(userRole);
     if (to.path !== targetPath) {
-      return next(targetPath);
+      return next({ path: targetPath, replace: true });
     }
   }
 
-  // 4. Jika user sudah login dan mencoba membuka /login secara manual
+  // 4. Jika pengguna sudah login dan mencoba mengakses /login secara manual
   if (to.path === '/login' && token && isAllowedRole) {
     const targetPath = getDashboardPath(userRole);
-    return next(targetPath);
+    if (from.path !== targetPath) {
+      return next({ path: targetPath, replace: true });
+    }
   }
 
   next();
