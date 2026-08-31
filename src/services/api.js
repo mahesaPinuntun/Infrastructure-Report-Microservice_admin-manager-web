@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Base URLs microservices (diambil dari environment variables dengan fallback URL Vercel)
-const AUTH_URL = process.env.REACT_APP_AUTH_URL || 'https://infrastructure-repor-auth-service.vercel.app';
-const ADMIN_URL = process.env.REACT_APP_ADMIN_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
-const MANAGER_URL = process.env.REACT_APP_MANAGER_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
+// Base URLs microservices langsung menunjuk ke domain Vercel yang valid
+const AUTH_URL = 'https://infrastructure-report-microservice-auth.vercel.app';
+const ADMIN_URL = 'https://infrastructure-report-microservice-admin-service.vercel.app';
+const MANAGER_URL = 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
 // Helper untuk membuat Axios Client Instance dengan Request Interceptor (JWT Token)
 const createClient = (baseURL) => {
