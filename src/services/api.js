@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const AUTH_URL = 'https://infrastructure-report-microservice-auth.vercel.app';
+// URL Microservices (Hardcoded ke domain Vercel yang aktif)
+const AUTH_URL = 'https://infrastructure-report-microservice-auth-service.vercel.app';
 const ADMIN_URL = 'https://infrastructure-report-microservice-admin-service.vercel.app';
 const MANAGER_URL = 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
@@ -8,17 +9,20 @@ const createClient = (baseURL) => {
   const instance = axios.create({
     baseURL,
     headers: {
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+    },
   });
 
-  instance.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
+  instance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
 
   return instance;
 };
