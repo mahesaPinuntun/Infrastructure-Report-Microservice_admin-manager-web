@@ -1,0 +1,155 @@
+<template>
+  <div class="page-container">
+    <div class="header-bar">
+      <h2>Manajemen Surat Tugas (Work Orders)</h2>
+      <button @click="showCreateModal = true" class="btn-create">+ Buat Work Order Baru</button>
+    </div>
+
+    <div v-if="loading" class="loading-state">Memuat daftar Work Orders...</div>
+
+    <table v-else class="data-table">
+      <thead>
+        <tr>
+          <th>WO Code</th>
+          <th>Judul Tugas</th>
+          <th>Teknisi</th>
+          <th>Status</th>
+          <th>Tanggal Penugasan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="orders.length === 0">
+          <td colSpan="5" class="empty-cell">Belum ada Work Order aktif.</td>
+        </tr>
+        <tr v-for="item in orders" :key="item._id || item.id">
+          <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
+          <td>{{ item.title }}</td>
+          <td>{{ item.technicianName || item.technicianEmail || 'Belum ditugaskan' }}</td>
+          <td>
+            <span :class="['status-badge', item.status?.toLowerCase()]">
+              {{ item.status || 'ASSIGNED' }}
+            </span>
+          </td>
+          <td>{{ formatDate(item.createdAt) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Modal Simple Create Work Order -->
+    <div v-if="showCreateModal" class="modal-overlay">
+      <div class="modal-card">
+        <h3>Buat Work Order Baru</h3>
+        <form @submit.prevent="handleCreateWO">
+          <div class="form-group">
+            <label>Judul Tugas / Deskripsi:</label>
+            <input type="text" v-model="newWO.title" required placeholder="Contoh: Perbaikan Router Lantai 2" class="input-control" />
+          </div>
+
+          <div class="form-group">
+            <label>ID / Email Teknisi:</label>
+            <input type="text" v-model="newWO.technicianId" required placeholder="teknisi@domain.com" class="input-control" />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="showCreateModal = false" class="btn-cancel">Batal</button>
+            <button type="submit" :disabled="creating" class="btn-primary">
+              {{ creating ? 'Menyimpan...' : 'Terbitkan WO' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { adminApi, managerApi } from '../services/api';
+
+const orders = ref([]);
+const loading = ref(true);
+const showCreateModal = ref(false);
+const creating = ref(false);
+
+const newWO = ref({
+  title: '',
+  technicianId: ''
+});
+
+const getApiClient = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  return user.role === 'ADMIN' ? adminApi : managerApi;
+};
+
+const fetchWorkOrders = async () => {
+  try {
+    const api = getApiClient();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
+    const res = await api.get(endpoint);
+    orders.value = res.data.workOrders || res.data || [];
+  } catch (err) {
+    console.error('Gagal memuat Work Orders:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchWorkOrders();
+});
+
+const handleCreateWO = async () => {
+  creating.value = true;
+  try {
+    const api = getApiClient();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
+
+    await api.post(endpoint, newWO.value);
+    alert('Work Order berhasil dibuat!');
+    showCreateModal.value = false;
+    newWO.value = { title: '', technicianId: '' };
+    fetchWorkOrders();
+  } catch (err) {
+    alert(err.response?.data?.error || 'Gagal membuat Work Order baru.');
+  } finally {
+    creating.value = false;
+  }
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+};
+</script>
+
+<style scoped>
+.page-container { padding: 24px; }
+.header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.btn-create { padding: 10px 16px; background-color: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+.data-table th, .data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+.data-table th { background-color: #f8fafc; font-weight: 600; color: #475569; }
+.code-cell { font-family: monospace; font-weight: bold; color: #475569; }
+.empty-cell { text-align: center; color: #94a3b8; padding: 24px; }
+.status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+.status-badge.assigned { background-color: #e0f2fe; color: #0284c7; }
+.status-badge.completed { background-color: #dcfce7; color: #15803d; }
+.status-badge.in_progress { background-color: #fef3c7; color: #d97706; }
+
+/* Modal Styles */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+.modal-card { background: #fff; width: 100%; max-width: 450px; padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.modal-card h3 { margin-top: 0; margin-bottom: 16px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+.input-control { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+.btn-cancel { padding: 8px 16px; background: transparent; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; }
+.btn-primary { padding: 8px 16px; background-color: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+</style>
