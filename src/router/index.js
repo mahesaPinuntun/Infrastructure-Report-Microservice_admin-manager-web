@@ -1,49 +1,57 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Impor halaman dari folder pages/
-import LoginView from '../pages/LoginView.vue';
-import AdminDashboard from '../pages/AdminDashboard.vue';
-import ManagerDashboard from '../pages/ManagerDashboard.vue';
-import ReportsList from '../pages/ReportsList.vue';
-import ReportDetail from '../pages/ReportDetail.vue';
-import WorkOrders from '../pages/WorkOrders.vue';
-import UsersManagement from '../pages/UsersManagement.vue';
-
+// Menggunakan Dynamic Import (Lazy Loading) untuk optimasi bundle size
 const routes = [
-  { path: '/', redirect: '/login' },
-  { path: '/login', component: LoginView },
+  { 
+    path: '/', 
+    redirect: '/login' 
+  },
+  { 
+    path: '/login', 
+    name: 'Login',
+    component: () => import('../pages/LoginView.vue') 
+  },
   { 
     path: '/admin', 
-    component: AdminDashboard,
+    name: 'AdminDashboard',
+    component: () => import('../pages/AdminDashboard.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   },
   { 
     path: '/manager', 
-    component: ManagerDashboard,
+    name: 'ManagerDashboard',
+    component: () => import('../pages/ManagerDashboard.vue'),
     meta: { requiresAuth: true, role: 'MANAGER' }
   },
   { 
     path: '/reports', 
-    component: ReportsList,
-    meta: { requiresAuth: true }
+    name: 'ReportsList',
+    component: () => import('../pages/ReportsList.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
   },
   { 
     path: '/reports/:id', 
-    component: ReportDetail,
-    meta: { requiresAuth: true }
+    name: 'ReportDetail',
+    component: () => import('../pages/ReportDetail.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
   },
   { 
     path: '/work-orders', 
-    component: WorkOrders,
-    meta: { requiresAuth: true }
+    name: 'WorkOrders',
+    component: () => import('../pages/WorkOrders.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
   },
   { 
     path: '/users', 
-    component: UsersManagement,
+    name: 'UsersManagement',
+    component: () => import('../pages/UsersManagement.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   },
-  // Catch-all route untuk 404 / path yang tidak dikenal
-  { path: '/:pathMatch(.*)*', redirect: '/login' }
+  // Catch-all route untuk path 404 / tidak dikenal
+  { 
+    path: '/:pathMatch(.*)*', 
+    redirect: '/login' 
+  }
 ];
 
 const router = createRouter({
@@ -51,7 +59,7 @@ const router = createRouter({
   routes
 });
 
-// Navigation Guard (Proteksi Halaman & Role)
+// Navigation Guard (Proteksi Halaman & Akses Role)
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   
@@ -60,24 +68,22 @@ router.beforeEach((to, from, next) => {
     const storedUser = localStorage.getItem('user');
     user = storedUser ? JSON.parse(storedUser) : null;
   } catch (err) {
-    console.error('Failed to parse stored user:', err);
+    console.error('Gagal membaca data user dari storage:', err);
     user = null;
   }
 
   const userRole = user?.role?.toUpperCase();
   const isAllowedRole = ['ADMIN', 'MANAGER'].includes(userRole);
+  const getDashboardPath = (role) => (role === 'ADMIN' ? '/admin' : '/manager');
 
-  // 1. Jika rute membutuhkan auth tetapi token/user tidak valid atau role tidak diizinkan di portal ini
+  // 1. Jika rute butuh autentikasi, tetapi token/user tidak ada atau role tidak valid
   if (to.meta.requiresAuth && (!token || !userRole || !isAllowedRole)) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     return next('/login');
   }
 
-  // Helper menentukan dashboard tujuan berdasarkan role
-  const getDashboardPath = (role) => (role === 'ADMIN' ? '/admin' : '/manager');
-
-  // 2. Jika rute memiliki batasan role khusus (ADMIN/MANAGER) dan role user tidak sesuai
+  // 2. Jika rute khusus single role (misal: /admin atau /users khusus ADMIN)
   if (to.meta.requiresAuth && to.meta.role && userRole !== to.meta.role) {
     const targetPath = getDashboardPath(userRole);
     if (to.path !== targetPath) {
@@ -85,7 +91,15 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-  // 3. Jika user sudah login dan mencoba mengakses halaman /login secara manual
+  // 3. Jika rute mendukung multiple roles (misal: /reports atau /work-orders)
+  if (to.meta.requiresAuth && to.meta.roles && !to.meta.roles.includes(userRole)) {
+    const targetPath = getDashboardPath(userRole);
+    if (to.path !== targetPath) {
+      return next(targetPath);
+    }
+  }
+
+  // 4. Jika user sudah login dan mencoba membuka /login secara manual
   if (to.path === '/login' && token && isAllowedRole) {
     const targetPath = getDashboardPath(userRole);
     return next(targetPath);
