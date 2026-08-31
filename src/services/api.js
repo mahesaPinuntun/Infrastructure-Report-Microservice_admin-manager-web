@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// URL Microservices (Hardcoded ke domain Vercel yang aktif)
 const AUTH_URL = 'https://infrastructure-report-microservice-auth-service.vercel.app';
 const ADMIN_URL = 'https://infrastructure-report-microservice-admin-service.vercel.app';
 const MANAGER_URL = 'https://infrastructure-report-microservice-manager-service.vercel.app';
@@ -8,11 +7,10 @@ const MANAGER_URL = 'https://infrastructure-report-microservice-manager-service.
 const createClient = (baseURL) => {
   const instance = axios.create({
     baseURL,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   });
 
+  // Request Interceptor: Inject Token
   instance.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem('token');
@@ -22,6 +20,19 @@ const createClient = (baseURL) => {
       return config;
     },
     (error) => Promise.reject(error)
+  );
+
+  // Response Interceptor: Auto-Logout saat 401/403 (Token Expired)
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    }
   );
 
   return instance;
@@ -40,13 +51,9 @@ export const loginManager = async (email, password) => {
   const response = await authApi.post('/api/auth/login/manager', { email, password });
   return response.data;
 };
-// src/services/api.js
 
 export const logout = () => {
-  // 1. Hapus token dan data user dari localStorage
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-
-  // 2. Redirect langsung ke halaman login
   window.location.href = '/login';
 };
