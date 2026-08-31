@@ -57,6 +57,17 @@ const router = createRouter({
   routes
 });
 
+// Helper untuk normalisasi role dari backend/storage
+const normalizeRole = (role) => {
+  if (!role) return null;
+  const upper = role.toUpperCase();
+  if (upper === 'INFRASTRUCTURE_MANAGER' || upper === 'MANAGER') return 'MANAGER';
+  if (upper === 'ADMIN') return 'ADMIN';
+  return upper;
+};
+
+const getDashboardPath = (normalizedRole) => (normalizedRole === 'ADMIN' ? '/admin' : '/manager');
+
 // Navigation Guard (Tahan pergerakan berulang/glitch)
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
@@ -70,11 +81,12 @@ router.beforeEach((to, from, next) => {
     user = null;
   }
 
-  const userRole = user?.role?.toUpperCase();
+  // Normalisasi role agar INFRASTRUCTURE_MANAGER dan MANAGER dianggap setara
+  const rawRole = user?.role;
+  const userRole = normalizeRole(rawRole);
   const isAllowedRole = ['ADMIN', 'MANAGER'].includes(userRole);
-  const getDashboardPath = (role) => (role === 'ADMIN' ? '/admin' : '/manager');
 
-  // 1. Jika pengguna belum login dan mencoba mengakses rute terproteksi
+  // 1. Jika pengguna belum login atau role tidak valid
   if (to.meta.requiresAuth && (!token || !userRole || !isAllowedRole)) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -82,18 +94,24 @@ router.beforeEach((to, from, next) => {
   }
 
   // 2. Jika rute khusus single role (ADMIN/MANAGER) dan role tidak sesuai
-  if (to.meta.requiresAuth && to.meta.role && userRole !== to.meta.role) {
-    const targetPath = getDashboardPath(userRole);
-    if (to.path !== targetPath) {
-      return next({ path: targetPath, replace: true });
+  if (to.meta.requiresAuth && to.meta.role) {
+    const requiredRole = normalizeRole(to.meta.role);
+    if (userRole !== requiredRole) {
+      const targetPath = getDashboardPath(userRole);
+      if (to.path !== targetPath) {
+        return next({ path: targetPath, replace: true });
+      }
     }
   }
 
   // 3. Jika rute mendukung multiple roles
-  if (to.meta.requiresAuth && to.meta.roles && !to.meta.roles.includes(userRole)) {
-    const targetPath = getDashboardPath(userRole);
-    if (to.path !== targetPath) {
-      return next({ path: targetPath, replace: true });
+  if (to.meta.requiresAuth && to.meta.roles) {
+    const allowedRoles = to.meta.roles.map(r => normalizeRole(r));
+    if (!allowedRoles.includes(userRole)) {
+      const targetPath = getDashboardPath(userRole);
+      if (to.path !== targetPath) {
+        return next({ path: targetPath, replace: true });
+      }
     }
   }
 
