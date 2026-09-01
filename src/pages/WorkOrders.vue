@@ -26,53 +26,33 @@
       <p>Memuat daftar Surat Tugas (Work Orders)...</p>
     </div>
 
-    <!-- Table preview Section -->
+    <!-- Table Preview Section -->
     <div v-else class="table-container">
       <div class="table-responsive">
         <table class="minimal-table">
           <thead>
             <tr>
-              <th>WO Code</th>
-              <th>Judul Tugas</th>
-              <th>Laporan Terkait</th>
-              <th>Teknisi Penanggung Jawab</th>
-              <th>Status</th>
-              <th>Tanggal Penugasan</th>
+              <th>Surat ID</th>
+              <th>Nama Perusahaan</th>
+              <th>Pembuat Surat</th>
+              <th>Lokasi Perbaikan</th>
+              <th>Total Biaya</th>
+              <th>Path Bukti Surat</th>
+              <th>Tanggal Buat</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="orders.length === 0">
-              <td colspan="6" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
+              <td colspan="7" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
             </tr>
             <tr v-for="item in orders" :key="item._id || item.id">
-              <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
-              <td class="title-cell">{{ item.title }}</td>
+              <td class="code-cell">{{ item.woCode || item._id?.substring(0, 8) }}</td>
+              <td class="title-cell">{{ item.companyName || 'Infrastructure_Report' }}</td>
+              <td>{{ item.createdBy || '-' }}</td>
+              <td>{{ item.locationName || '-' }}</td>
+              <td class="price-cell">Rp {{ formatCurrency(item.grandTotal) }}</td>
               <td>
-                <span v-if="item.reportId" class="badge-report">{{ item.reportId }}</span>
-                <span v-else class="text-muted">Mandiri (Tanpa Laporan)</span>
-              </td>
-              <td>
-                <!-- Pengecekan Dinamis Penanganan Array / Object Teknisi -->
-                <span v-if="item.assignedTechnicianIds && item.assignedTechnicianIds.length > 0">
-                  <template v-if="typeof item.assignedTechnicianIds[0] === 'object'">
-                    {{ item.assignedTechnicianIds.map(t => t.name || t.email).join(', ') }}
-                  </template>
-                  <template v-else-if="item.technicianName || item.technicianEmail">
-                    {{ item.technicianName || item.technicianEmail }}
-                  </template>
-                  <template v-else>
-                    {{ item.assignedTechnicianIds.length }} Teknisi Ditugaskan
-                  </template>
-                </span>
-                <span v-else-if="item.technicianName || item.technicianEmail">
-                  {{ item.technicianName || item.technicianEmail }}
-                </span>
-                <span v-else class="text-muted">Belum ditugaskan</span>
-              </td>
-              <td>
-                <span :class="['badge-status', item.status?.toLowerCase()]">
-                  {{ item.status || 'ASSIGNED' }}
-                </span>
+                <span class="badge-url" :title="item.proofDocumentUrl">{{ item.proofDocumentUrl || '-' }}</span>
               </td>
               <td>{{ formatDate(item.createdAt) }}</td>
             </tr>
@@ -81,145 +61,276 @@
       </div>
     </div>
 
-    <!-- Modal Create Work Order -->
+    <!-- Modal Form Create Work Order -->
     <Transition name="fade">
       <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
-        <div class="modal-card">
+        <div class="modal-card wide-modal">
           <div class="modal-header">
             <h3>Buat Work Order Baru</h3>
             <button @click="showCreateModal = false" class="btn-close">&times;</button>
           </div>
           
           <form @submit.prevent="handleCreateWO">
-            <!-- 1. Dropdown Pilih Laporan (OPSIONAL) -->
-            <div class="form-group">
-              <label>Pilih Laporan Terkait (Opsional):</label>
-              <select v-model="newWO.reportId" class="input-control" :disabled="loadingReports">
-                <option value="">-- Tanpa Laporan (Tugas Mandiri / Pemeliharaan) --</option>
-                <option 
-                  v-for="rep in reportsList" 
-                  :key="rep._id || rep.reportId" 
-                  :value="rep.reportId || rep._id"
-                >
-                  {{ rep.reportId ? rep.reportId : (rep.title || 'Laporan Tanpa ID') }}
-                </option>
-              </select>
-            </div>
-
-            <!-- 2. Input Judul Tugas (WAJIB) -->
-            <div class="form-group">
-              <label>Judul Tugas / Deskripsi Pekerjaan:</label>
-              <input 
-                type="text" 
-                v-model="newWO.title" 
-                required 
-                placeholder="Contoh: Pemeliharaan Rutin Server Lantai 2" 
-                class="input-control" 
-              />
-            </div>
-
-            <!-- 3. Unggah Dokumen PDF (WAJIB) -->
-            <div class="form-group">
-              <label>Dokumen PDF (Wajib: Awalan "Infrastructure_Report_"):</label>
-              <input 
-                type="file" 
-                accept=".pdf,application/pdf"
-                @change="handleFileChange"
-                required
-                class="file-control"
-              />
-              <span v-if="fileError" class="error-text">{{ fileError }}</span>
-              <span v-else-if="selectedFile" class="file-info-text">
-                File terpilih: <strong>{{ selectedFile.name }}</strong>
-              </span>
-            </div>
-
-            <!-- 4. Pilihan Teknisi Dropdown (WAJIB) -->
-            <div class="form-group">
-              <label>Pilih Teknisi Penanggung Jawab:</label>
-              <select v-model="newWO.technicianId" required class="input-control" :disabled="loadingTechs">
-                <option value="" disabled>-- {{ loadingTechs ? 'Memuat Teknisi...' : 'Pilih Teknisi' }} --</option>
-                <option 
-                  v-for="tech in technicians" 
-                  :key="tech.id || tech._id" 
-                  :value="tech.id || tech._id"
-                >
-                  {{ tech.name }} ({{ tech.specialization || 'Umum' }}) - {{ tech.email }}
-                </option>
-              </select>
-
-              <!-- Pagination Teknisi -->
-              <div class="pagination-controls" v-if="pagination.totalPages > 1">
-                <button 
-                  type="button" 
-                  class="btn-page" 
-                  :disabled="!pagination.hasPrevPage || loadingTechs" 
-                  @click="changeTechPage(pagination.currentPage - 1)"
-                >
-                  &laquo; Prev
-                </button>
-                <span class="page-info">Hal {{ pagination.currentPage }} / {{ pagination.totalPages }}</span>
-                <button 
-                  type="button" 
-                  class="btn-page" 
-                  :disabled="!pagination.hasNextPage || loadingTechs" 
-                  @click="changeTechPage(pagination.currentPage + 1)"
-                >
-                  Next &raquo;
-                </button>
+            <!-- Header Grid: Company, Creator, Date -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nama Perusahaan:</label>
+                <input type="text" v-model="form.companyName" class="input-control" />
+              </div>
+              <div class="form-group">
+                <label>Nama Pembuat Surat (Terisi Otomatis):</label>
+                <input type="text" :value="creatorName" readonly class="input-control readonly" />
+              </div>
+              <div class="form-group full-width">
+                <label>Tanggal Pembuatan Surat:</label>
+                <input type="text" :value="formattedTodayDate" readonly class="input-control readonly" />
               </div>
             </div>
 
+            <!-- Pendahuluan & Lokasi -->
+            <div class="form-group">
+              <label>Pendahuluan / Deskripsi Pekerjaan:</label>
+              <textarea v-model="form.introduction" required placeholder="Tuliskan pendahuluan atau deskripsi perbaikan..." class="input-control textarea"></textarea>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Lokasi Perbaikan (Nama Tempat):</label>
+                <input type="text" v-model="form.locationName" required placeholder="Contoh: Gedung Server Lantai 2" class="input-control" />
+              </div>
+              <div class="form-group">
+                <label>Google Maps URL (Opsional):</label>
+                <input type="url" v-model="form.mapsUrl" placeholder="https://maps.google.com/..." class="input-control" />
+              </div>
+            </div>
+
+            <!-- SECTION 1: List Teknisi -->
+            <div class="section-box">
+              <div class="section-header">
+                <h4>List Teknisi yang Dipekerjakan</h4>
+                <button type="button" @click="addTechnician" class="btn-sm-add">+ Tambah Teknisi</button>
+              </div>
+              <div class="table-responsive">
+                <table class="form-table">
+                  <thead>
+                    <tr>
+                      <th>Nama Teknisi</th>
+                      <th>Email Teknisi</th>
+                      <th>Nomor Handphone</th>
+                      <th>Bayaran (Rp)</th>
+                      <th class="text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(tech, index) in form.technicians" :key="index">
+                      <td><input type="text" v-model="tech.name" required placeholder="Nama Teknisi" class="input-table" /></td>
+                      <td><input type="email" v-model="tech.email" required placeholder="email@domain.com" class="input-table" /></td>
+                      <td><input type="tel" v-model="tech.phone" placeholder="0812..." class="input-table" /></td>
+                      <td><input type="number" v-model.number="tech.fee" min="0" required class="input-table" /></td>
+                      <td class="text-center">
+                        <button type="button" @click="removeTechnician(index)" class="btn-remove" title="Hapus">&times;</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="total-summary">Total Bayaran Teknisi: <strong>Rp {{ formatCurrency(totalTechFee) }}</strong></div>
+            </div>
+
+            <!-- SECTION 2: List Biaya Resource -->
+            <div class="section-box">
+              <div class="section-header">
+                <h4>List Biaya Resource (Bahan & Peralatan)</h4>
+                <button type="button" @click="addResource" class="btn-sm-add">+ Tambah Resource</button>
+              </div>
+              <div class="table-responsive">
+                <table class="form-table">
+                  <thead>
+                    <tr>
+                      <th>Nama Sumber Daya</th>
+                      <th>Jumlah</th>
+                      <th>Satuan</th>
+                      <th>Harga Satuan (Rp)</th>
+                      <th>Subtotal (Rp)</th>
+                      <th class="text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(res, index) in form.resources" :key="index">
+                      <td><input type="text" v-model="res.name" required placeholder="Nama Barang" class="input-table" /></td>
+                      <td><input type="number" v-model.number="res.quantity" min="1" required class="input-table" /></td>
+                      <td>
+                        <select v-model="res.unit" class="input-table select-table">
+                          <option value="pcs">pcs</option>
+                          <option value="box">box</option>
+                          <option value="KG">KG</option>
+                          <option value="liter">liter</option>
+                          <option value="meter">meter</option>
+                        </select>
+                      </td>
+                      <td><input type="number" v-model.number="res.price" min="0" required class="input-table" /></td>
+                      <td class="font-bold">Rp {{ formatCurrency((res.quantity || 0) * (res.price || 0)) }}</td>
+                      <td class="text-center">
+                        <button type="button" @click="removeResource(index)" class="btn-remove" title="Hapus">&times;</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="total-summary">Total Biaya Resource: <strong>Rp {{ formatCurrency(totalResourceCost) }}</strong></div>
+            </div>
+
+            <!-- Grand Total Summary -->
+            <div class="grand-total-box">
+              GRAND TOTAL KESELURUHAN BIAYA: <span>Rp {{ formatCurrency(grandTotal) }}</span>
+            </div>
+
             <div class="modal-actions">
+              <button type="button" @click="downloadPDF" class="btn-download">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Download PDF</span>
+              </button>
               <button type="button" @click="showCreateModal = false" class="btn-cancel">Batal</button>
-              <button 
-                type="submit" 
-                :disabled="creating || !newWO.technicianId || !newWO.title || !selectedFile || !!fileError" 
-                class="btn-primary"
-              >
-                {{ creating ? 'Menyimpan...' : 'Terbitkan WO' }}
+              <button type="submit" :disabled="creating" class="btn-primary">
+                {{ creating ? 'Menyimpan...' : 'Simpan Work Order' }}
               </button>
             </div>
           </form>
         </div>
       </div>
     </Transition>
+
+    <!-- HIDDEN CONTAINER FOR HTML2PDF CONVERSION -->
+    <div style="display: none;">
+      <div id="pdf-printable-area" class="pdf-document">
+        <div class="pdf-header">
+          <h2>SURAT TUGAS WORK ORDER</h2>
+          <h3>{{ form.companyName }}</h3>
+        </div>
+        <hr class="pdf-divider" />
+        <div class="pdf-meta">
+          <div><strong>Nama Pembuat Surat:</strong> {{ creatorName }}</div>
+          <div><strong>Tanggal Pembuatan:</strong> {{ formattedTodayDate }}</div>
+        </div>
+
+        <div class="pdf-section">
+          <h4>1. Pendahuluan</h4>
+          <p>{{ form.introduction || '-' }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>2. Lokasi Perbaikan</h4>
+          <p><strong>Nama Tempat:</strong> {{ form.locationName || '-' }}</p>
+          <p v-if="form.mapsUrl"><strong>Google Maps URL:</strong> {{ form.mapsUrl }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>3. List Teknisi yang Dipekerjakan</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Teknisi</th>
+                <th>Email Teknisi</th>
+                <th>Nomor Handphone</th>
+                <th>Bayaran</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(t, idx) in form.technicians" :key="idx">
+                <td>{{ t.name }}</td>
+                <td>{{ t.email }}</td>
+                <td>{{ t.phone || '-' }}</td>
+                <td>Rp {{ formatCurrency(t.fee) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>Rp {{ formatCurrency(totalTechFee) }}</strong></p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>4. List Biaya Resource</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Sumber Daya</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Harga Satuan</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in form.resources" :key="idx">
+                <td>{{ r.name }}</td>
+                <td>{{ r.quantity }}</td>
+                <td>{{ r.unit }}</td>
+                <td>Rp {{ formatCurrency(r.price) }}</td>
+                <td>Rp {{ formatCurrency(r.quantity * r.price) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Biaya Resource: <strong>Rp {{ formatCurrency(totalResourceCost) }}</strong></p>
+        </div>
+
+        <div class="pdf-footer-summary">
+          GRAND TOTAL BIAYA: Rp {{ formatCurrency(grandTotal) }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { adminApi, managerApi, getTechnicians } from '../services/api';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import html2pdf from 'html2pdf.js';
+import { adminApi, managerApi } from '../services/api';
 
 const router = useRouter();
-const route = useRoute();
 
 const orders = ref([]);
 const loading = ref(true);
 const showCreateModal = ref(false);
 const creating = ref(false);
 
-const reportsList = ref([]);
-const loadingReports = ref(false);
+const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
-const technicians = ref([]);
-const loadingTechs = ref(false);
-const pagination = ref({
-  currentPage: 1,
-  totalPages: 1,
-  hasNextPage: false,
-  hasPrevPage: false
+const creatorName = computed(() => {
+  return currentUser.value.name || currentUser.value.email || 'Mahesa Putra Pinuntun';
 });
 
-const newWO = ref({
-  reportId: '',
-  title: '',
-  technicianId: ''
+const formattedTodayDate = computed(() => {
+  return new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
 });
 
-const selectedFile = ref(null);
-const fileError = ref('');
+const form = ref({
+  companyName: 'Infrastructure_Report',
+  introduction: '',
+  locationName: '',
+  mapsUrl: '',
+  technicians: [
+    { name: '', email: '', phone: '', fee: 0 }
+  ],
+  resources: [
+    { name: '', quantity: 1, unit: 'pcs', price: 0 }
+  ]
+});
+
+const totalTechFee = computed(() => {
+  return form.value.technicians.reduce((acc, curr) => acc + (Number(curr.fee) || 0), 0);
+});
+
+const totalResourceCost = computed(() => {
+  return form.value.resources.reduce((acc, curr) => acc + ((Number(curr.quantity) || 0) * (Number(curr.price) || 0)), 0);
+});
+
+const grandTotal = computed(() => totalTechFee.value + totalResourceCost.value);
 
 const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -250,108 +361,73 @@ const fetchWorkOrders = async () => {
   }
 };
 
-const fetchReportsList = async () => {
-  loadingReports.value = true;
-  try {
-    const api = getApiClient();
-    const endpoint = getUserData().role === 'ADMIN' ? '/api/admin/reports' : '/api/manager/reports';
-    const res = await api.get(endpoint);
-    reportsList.value = res.data.reports || res.data.data || res.data || [];
-  } catch (err) {
-    console.error('Gagal mengambil daftar laporan:', err);
-  } finally {
-    loadingReports.value = false;
+const addTechnician = () => {
+  form.value.technicians.push({ name: '', email: '', phone: '', fee: 0 });
+};
+
+const removeTechnician = (index) => {
+  if (form.value.technicians.length > 1) {
+    form.value.technicians.splice(index, 1);
   }
 };
 
-const fetchTechniciansList = async (page = 1) => {
-  loadingTechs.value = true;
-  try {
-    const res = await getTechnicians(page, 5);
-    technicians.value = res.data || [];
-    if (res.pagination) {
-      pagination.value = res.pagination;
-    }
-  } catch (err) {
-    console.error('Gagal mengambil daftar teknisi:', err);
-  } finally {
-    loadingTechs.value = false;
-  }
+const addResource = () => {
+  form.value.resources.push({ name: '', quantity: 1, unit: 'pcs', price: 0 });
 };
 
-const handleFileChange = (event) => {
-  const file = event.target.files[0];
-  fileError.value = '';
-  selectedFile.value = null;
-
-  if (!file) return;
-
-  // 1. Validasi Tipe Harus PDF
-  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-    fileError.value = 'File harus berformat PDF.';
-    return;
+const removeResource = (index) => {
+  if (form.value.resources.length > 1) {
+    form.value.resources.splice(index, 1);
   }
-
-  // 2. Validasi Nama File Harus Diawali "Infrastructure_Report_"
-  if (!file.name.startsWith('Infrastructure_Report_')) {
-    fileError.value = 'Nama file wajib diawali dengan "Infrastructure_Report_" (Contoh: Infrastructure_Report_01.pdf)';
-    return;
-  }
-
-  selectedFile.value = file;
 };
 
 const openCreateModal = () => {
   showCreateModal.value = true;
-  selectedFile.value = null;
-  fileError.value = '';
-  fetchTechniciansList(1);
-  fetchReportsList();
-};
-
-const changeTechPage = (newPage) => {
-  fetchTechniciansList(newPage);
 };
 
 const handleCreateWO = async () => {
-  if (!selectedFile.value || fileError.value) {
-    alert('Silakan sertakan file PDF yang valid terlebih dahulu.');
-    return;
-  }
-
   creating.value = true;
   try {
     const api = getApiClient();
     const user = getUserData();
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
 
-    // Menyusun payload FormData untuk multipart/form-data (upload file)
-    const formData = new FormData();
-    formData.append('title', newWO.value.title);
-    if (newWO.value.reportId) {
-      formData.append('reportId', newWO.value.reportId);
-    }
-    formData.append('assignedTechnicianIds', JSON.stringify([newWO.value.technicianId]));
-    formData.append('pdfFile', selectedFile.value);
+    await api.post(endpoint, form.value);
 
-    await api.post(endpoint, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-
-    alert('Work Order berhasil dibuat!');
+    alert('Surat Work Order berhasil disimpan ke MongoDB!');
     showCreateModal.value = false;
-    newWO.value = { reportId: '', title: '', technicianId: '' };
-    selectedFile.value = null;
-    fileError.value = '';
+    form.value = {
+      companyName: 'Infrastructure_Report',
+      introduction: '',
+      locationName: '',
+      mapsUrl: '',
+      technicians: [{ name: '', email: '', phone: '', fee: 0 }],
+      resources: [{ name: '', quantity: 1, unit: 'pcs', price: 0 }]
+    };
     fetchWorkOrders();
   } catch (err) {
-    alert(err.response?.data?.error || 'Gagal membuat Work Order baru.');
+    alert(err.response?.data?.error || 'Gagal menyimpan Work Order baru.');
   } finally {
     creating.value = false;
   }
 };
+
+const downloadPDF = () => {
+  const element = document.getElementById('pdf-printable-area');
+  const pdfName = `${form.value.companyName}_${Date.now()}.pdf`;
+
+  const opt = {
+    margin: 10,
+    filename: pdfName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save();
+};
+
+const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
@@ -364,32 +440,22 @@ const formatDate = (dateStr) => {
 
 onMounted(() => {
   fetchWorkOrders();
-
-  if (route.query.reportId) {
-    newWO.value.reportId = route.query.reportId;
-    newWO.value.title = route.query.title || '';
-    openCreateModal();
-  }
 });
 </script>
 
 <style scoped>
-/* Palette CSS Variables Dynamic Integration */
 :global(:root),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --text-main: #0f172a;
   --text-muted: #64748b;
-  --border-color: transparent;
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --amber-color: #d97706;
   --emerald-color: #059669;
   --danger-color: #ef4444;
   --icon-bg-blue: #eff6ff;
-  --icon-bg-amber: #fffbeb;
-  --icon-bg-emerald: #ecfdf5;
 }
 
 :global([data-theme="dark"]) {
@@ -397,26 +463,12 @@ onMounted(() => {
   --bg-card: #1e293b;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --border-color: transparent;
   --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
   --amber-color: #f59e0b;
   --emerald-color: #10b981;
   --danger-color: #f87171;
   --icon-bg-blue: #1e3a8a;
-  --icon-bg-amber: #78350f;
-  --icon-bg-emerald: #064e3b;
-}
-
-:global(html),
-:global(body),
-:global(#app) {
-  background-color: var(--bg-main) !important;
-  color: var(--text-main) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
 }
 
 .page-wrapper {
@@ -426,10 +478,8 @@ onMounted(() => {
   background-color: var(--bg-main);
   color: var(--text-main);
   padding: 24px 32px;
-  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Header Section */
 .header-bar {
   display: flex;
   justify-content: space-between;
@@ -437,36 +487,24 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .header-left h2 {
   margin: 0;
   font-size: 26px;
   font-weight: 800;
-  color: var(--text-main) !important;
-  letter-spacing: -0.5px;
 }
 
 .btn-back {
   background: transparent;
-  border: none !important;
-  outline: none !important;
-  color: var(--primary-color) !important;
+  border: none;
+  color: var(--primary-color);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: opacity 0.2s;
+  padding: 0;
 }
-
-.btn-back:hover { opacity: 0.8; }
 
 .btn-create {
   display: flex;
@@ -474,19 +512,14 @@ onMounted(() => {
   gap: 8px;
   padding: 10px 18px;
   background-color: var(--primary-color);
-  color: #ffffff !important;
-  border: none !important;
+  color: #fff;
+  border: none;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: background-color 0.2s ease;
 }
 
-.btn-create:hover { background-color: var(--primary-hover); }
-
-/* Table Container - Clean Flat Styling */
 .table-container {
   background-color: var(--bg-card);
   border-radius: 16px;
@@ -494,13 +527,10 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
-.table-responsive { overflow-x: auto; }
-
 .minimal-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  color: var(--text-main) !important;
 }
 
 .minimal-table th, .minimal-table td {
@@ -511,23 +541,16 @@ onMounted(() => {
 
 .minimal-table th {
   font-weight: 600;
-  color: var(--text-muted) !important;
+  color: var(--text-muted);
   font-size: 11px;
   text-transform: uppercase;
 }
 
-.code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color) !important; }
-.title-cell { font-weight: 600; color: var(--text-main) !important; }
-.badge-report { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 3px 8px; border-radius: 6px; color: var(--text-main) !important; }
-.text-muted { color: var(--text-muted) !important; font-size: 12px; font-style: italic; }
-.empty-cell { text-align: center; color: var(--text-muted) !important; padding: 24px; }
+.code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
+.title-cell { font-weight: 600; }
+.price-cell { font-weight: 700; color: var(--emerald-color); }
+.badge-url { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 4px 8px; border-radius: 6px; }
 
-.badge-status { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
-.badge-status.assigned { background-color: var(--icon-bg-blue); color: var(--primary-color); }
-.badge-status.in_progress { background-color: var(--icon-bg-amber); color: var(--amber-color); }
-.badge-status.completed { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
-
-/* Modal Design */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -539,14 +562,18 @@ onMounted(() => {
   z-index: 1000;
 }
 
+.wide-modal {
+  max-width: 860px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 .modal-card {
   background: var(--bg-card);
-  color: var(--text-main) !important;
-  width: 100%;
-  max-width: 480px;
+  color: var(--text-main);
   padding: 24px;
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
@@ -556,66 +583,106 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.modal-header h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main) !important; }
-.btn-close { background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
 
 .form-group { margin-bottom: 16px; }
-.form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-main) !important; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
 
 .input-control {
   width: 100%;
   padding: 10px 14px;
   background-color: var(--bg-main);
-  border: none !important;
-  outline: none !important;
+  border: none;
   border-radius: 8px;
-  color: var(--text-main) !important;
+  color: var(--text-main);
   font-size: 13px;
   box-sizing: border-box;
 }
 
-.file-control {
-  width: 100%;
-  padding: 8px 12px;
+.readonly { opacity: 0.7; cursor: not-allowed; }
+.textarea { height: 70px; resize: vertical; }
+
+.section-box {
   background-color: var(--bg-main);
-  border: 1px dashed rgba(148, 163, 184, 0.3);
-  border-radius: 8px;
-  color: var(--text-main) !important;
-  font-size: 13px;
-  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h4 { margin: 0; font-size: 14px; font-weight: 700; }
+
+.btn-sm-add {
+  padding: 6px 12px;
+  background-color: var(--emerald-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.error-text {
-  display: block;
-  font-size: 12px;
-  color: var(--danger-color);
-  margin-top: 4px;
+.form-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.file-info-text {
-  display: block;
+.form-table th, .form-table td {
+  padding: 8px;
   font-size: 12px;
-  color: var(--emerald-color);
-  margin-top: 4px;
 }
 
-.pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-.btn-page { background: var(--bg-main); border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; color: var(--text-main); cursor: pointer; }
-.btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-info { font-size: 12px; color: var(--text-muted) !important; }
+.input-table {
+  width: 100%;
+  padding: 6px 10px;
+  background-color: var(--bg-card);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 12px;
+  box-sizing: border-box;
+}
 
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.btn-cancel { padding: 10px 18px; background: transparent; border: none !important; color: var(--text-muted) !important; font-weight: 600; cursor: pointer; }
-.btn-primary { padding: 10px 18px; background-color: var(--primary-color); color: #ffffff !important; border: none !important; border-radius: 8px; font-weight: 600; cursor: pointer; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.select-table { cursor: pointer; }
+.btn-remove { background: var(--danger-color); color: #fff; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.total-summary { text-align: right; margin-top: 10px; font-size: 13px; }
 
-/* Icons & Spinners */
-.icon-sm { width: 16px; height: 16px; }
-.state-card { background-color: var(--bg-card); border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted) !important; }
-.spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid rgba(148, 163, 184, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.grand-total-box {
+  background-color: var(--icon-bg-blue);
+  color: var(--primary-color);
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 15px;
+  text-align: right;
+  margin-bottom: 20px;
+}
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.btn-download { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background-color: var(--amber-color); color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-cancel { padding: 10px 18px; background: transparent; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer; }
+.btn-primary { padding: 10px 18px; background-color: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+/* PDF printable area styling */
+.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+.pdf-header { text-align: center; }
+.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
+.pdf-section { margin-bottom: 16px; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 14px; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; }
+.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; }
 </style>
