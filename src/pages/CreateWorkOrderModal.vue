@@ -164,7 +164,10 @@
         </div>
         <hr class="pdf-divider" />
         <div class="pdf-meta">
-          <div><strong>Nama Pembuat Surat:</strong> {{ creatorName }}</div>
+          <div>
+            <strong>Nama Pembuat Surat:</strong> {{ creatorName }}
+            <span v-if="creatorEmail"> ({{ creatorEmail }})</span>
+          </div>
           <div><strong>Tanggal Pembuatan:</strong> {{ formattedTodayDate }}</div>
         </div>
 
@@ -253,7 +256,11 @@ const availableTechnicians = ref([]);
 const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
 const creatorName = computed(() => {
-  return currentUser.value.name || currentUser.value.email || 'Mahesa Putra Pinuntun';
+  return currentUser.value.name || 'Mahesa Putra Pinuntun';
+});
+
+const creatorEmail = computed(() => {
+  return currentUser.value.email || '';
 });
 
 const formattedTodayDate = computed(() => {
@@ -342,6 +349,8 @@ const handleSubmit = async () => {
   try {
     await createWorkOrder({
       reportId: props.reportId || null,
+      creatorName: creatorName.value,
+      creatorEmail: creatorEmail.value,
       ...form.value
     });
     alert('Work Order berhasil diterbitkan!');
@@ -541,7 +550,7 @@ onMounted(() => {
 .btn-cancel { padding: 10px 18px; background: transparent; border: 1px solid var(--input-border); color: var(--text-label); font-weight: 600; border-radius: 8px; cursor: pointer; }
 .btn-submit { padding: 10px 18px; background-color: #2563eb; color: #ffffff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
-/* PDF printable area styling - Tetap Putih untuk Cetak Dokumentasi PDF */
+/* PDF printable area styling */
 .pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
 .pdf-header { text-align: center; }
 .pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
