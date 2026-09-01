@@ -51,6 +51,14 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+  // Navigasi dari ReportsList.vue ke WorkOrders.vue
+const createWorkOrderForReport = (reportId, reportTitle) => {
+  router.push({
+    path: '/work-orders',
+    query: { reportId, title: reportTitle }
+  });
+};
 </script>
 
 <style scoped>
