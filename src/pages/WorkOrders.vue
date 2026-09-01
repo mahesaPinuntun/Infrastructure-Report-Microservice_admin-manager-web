@@ -48,16 +48,19 @@
         <h3>Buat Work Order Baru</h3>
         <form @submit.prevent="handleCreateWO">
           
-          <!-- 1. Input ID Laporan (Wajib untuk validasi backend manager-service) -->
+          <!-- 1. Dropdown Pilih Laporan Terkait (reportId string kustom / _id) -->
           <div class="form-group">
-            <label>ID Laporan (Report ID):</label>
-            <input 
-              type="text" 
-              v-model="newWO.reportId" 
-              required 
-              placeholder="Masukkan ID Laporan (contoh: 64f1a2...)" 
-              class="input-control" 
-            />
+            <label>Pilih Laporan Terkait:</label>
+            <select v-model="newWO.reportId" required class="input-control" :disabled="loadingReports">
+              <option value="" disabled>-- {{ loadingReports ? 'Memuat Laporan...' : 'Pilih Laporan' }} --</option>
+              <option 
+                v-for="rep in reportsList" 
+                :key="rep._id || rep.reportId" 
+                :value="rep.reportId || rep._id"
+              >
+                {{ rep.reportId ? rep.reportId : (rep.title || 'Laporan Tanpa ID') }}
+              </option>
+            </select>
           </div>
 
           <!-- 2. Input Judul Tugas -->
@@ -122,14 +125,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { adminApi, managerApi, getTechnicians } from '../services/api';
 
 const router = useRouter();
+const route = useRoute();
+
 const orders = ref([]);
 const loading = ref(true);
 const showCreateModal = ref(false);
 const creating = ref(false);
+
+// State Laporan Dropdown
+const reportsList = ref([]);
+const loadingReports = ref(false);
 
 // State Teknisi & Pagination
 const technicians = ref([]);
@@ -176,6 +185,21 @@ const fetchWorkOrders = async () => {
   }
 };
 
+// Fetch Daftar Laporan untuk Dropdown Select
+const fetchReportsList = async () => {
+  loadingReports.value = true;
+  try {
+    const api = getApiClient();
+    const endpoint = getUserData().role === 'ADMIN' ? '/api/admin/reports' : '/api/manager/reports';
+    const res = await api.get(endpoint);
+    reportsList.value = res.data.reports || res.data.data || res.data || [];
+  } catch (err) {
+    console.error('Gagal mengambil daftar laporan:', err);
+  } finally {
+    loadingReports.value = false;
+  }
+};
+
 // Fetch Daftar Teknisi Berpaginasi
 const fetchTechniciansList = async (page = 1) => {
   loadingTechs.value = true;
@@ -195,6 +219,7 @@ const fetchTechniciansList = async (page = 1) => {
 const openCreateModal = () => {
   showCreateModal.value = true;
   fetchTechniciansList(1);
+  fetchReportsList();
 };
 
 const changeTechPage = (newPage) => {
@@ -203,6 +228,13 @@ const changeTechPage = (newPage) => {
 
 onMounted(() => {
   fetchWorkOrders();
+
+  // Auto-fill dan buka modal jika diarahkan dari query rute lain
+  if (route.query.reportId) {
+    newWO.value.reportId = route.query.reportId;
+    newWO.value.title = route.query.title || '';
+    openCreateModal();
+  }
 });
 
 const handleCreateWO = async () => {
