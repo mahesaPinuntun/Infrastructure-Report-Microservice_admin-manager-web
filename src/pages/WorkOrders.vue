@@ -42,11 +42,25 @@
       </tbody>
     </table>
 
-    <!-- Modal Create Work Order dengan Dropdown Teknisi Berpaginasi -->
+    <!-- Modal Create Work Order -->
     <div v-if="showCreateModal" class="modal-overlay">
       <div class="modal-card">
         <h3>Buat Work Order Baru</h3>
         <form @submit.prevent="handleCreateWO">
+          
+          <!-- 1. Input ID Laporan (Wajib untuk validasi backend manager-service) -->
+          <div class="form-group">
+            <label>ID Laporan (Report ID):</label>
+            <input 
+              type="text" 
+              v-model="newWO.reportId" 
+              required 
+              placeholder="Masukkan ID Laporan (contoh: 64f1a2...)" 
+              class="input-control" 
+            />
+          </div>
+
+          <!-- 2. Input Judul Tugas -->
           <div class="form-group">
             <label>Judul Tugas / Deskripsi:</label>
             <input 
@@ -58,7 +72,7 @@
             />
           </div>
 
-          <!-- Pilihan Teknisi Dropdown -->
+          <!-- 3. Pilihan Teknisi Dropdown -->
           <div class="form-group">
             <label>Pilih Teknisi Penanggung Jawab:</label>
             <select v-model="newWO.technicianId" required class="input-control" :disabled="loadingTechs">
@@ -96,7 +110,7 @@
 
           <div class="modal-actions">
             <button type="button" @click="showCreateModal = false" class="btn-cancel">Batal</button>
-            <button type="submit" :disabled="creating || !newWO.technicianId" class="btn-primary">
+            <button type="submit" :disabled="creating || !newWO.technicianId || !newWO.reportId || !newWO.title" class="btn-primary">
               {{ creating ? 'Menyimpan...' : 'Terbitkan WO' }}
             </button>
           </div>
@@ -128,6 +142,7 @@ const pagination = ref({
 });
 
 const newWO = ref({
+  reportId: '',
   title: '',
   technicianId: ''
 });
@@ -197,14 +212,16 @@ const handleCreateWO = async () => {
     const user = getUserData();
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
 
+    // Kirimkan reportId, title, dan array assignedTechnicianIds
     await api.post(endpoint, {
+      reportId: newWO.value.reportId,
       title: newWO.value.title,
       assignedTechnicianIds: [newWO.value.technicianId]
     });
 
     alert('Work Order berhasil dibuat!');
     showCreateModal.value = false;
-    newWO.value = { title: '', technicianId: '' };
+    newWO.value = { reportId: '', title: '', technicianId: '' };
     fetchWorkOrders();
   } catch (err) {
     alert(err.response?.data?.error || 'Gagal membuat Work Order baru.');
