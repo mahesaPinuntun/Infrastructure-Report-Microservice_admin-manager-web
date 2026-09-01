@@ -136,6 +136,9 @@ onMounted(() => {
   --text-muted: #64748b;
   --primary-color: #2563eb;
   --emerald-color: #059669;
+  --border-color: rgba(148, 163, 184, 0.15);
+  --badge-bg: #f1f5f9;
+  --badge-text: #334155;
 }
 
 :global([data-theme="dark"]) {
@@ -145,6 +148,9 @@ onMounted(() => {
   --text-muted: #94a3b8;
   --primary-color: #3b82f6;
   --emerald-color: #10b981;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --badge-bg: #334155;
+  --badge-text: #cbd5e1;
 }
 
 .page-wrapper {
@@ -167,6 +173,7 @@ onMounted(() => {
   margin: 0;
   font-size: 26px;
   font-weight: 800;
+  color: var(--text-main);
 }
 
 .btn-back {
@@ -188,7 +195,7 @@ onMounted(() => {
   gap: 8px;
   padding: 10px 18px;
   background-color: var(--primary-color);
-  color: #fff;
+  color: #ffffff;
   border: none;
   border-radius: 10px;
   font-size: 13px;
@@ -212,7 +219,8 @@ onMounted(() => {
 .minimal-table th, .minimal-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
 }
 
 .minimal-table th {
@@ -222,13 +230,26 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
+.empty-cell {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px !important;
+}
+
 .code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
 .title-cell { font-weight: 600; }
 .price-cell { font-weight: 700; color: var(--emerald-color); }
-.badge-url { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 4px 8px; border-radius: 6px; }
+.badge-url { 
+  font-family: monospace; 
+  font-size: 11px; 
+  background-color: var(--badge-bg); 
+  color: var(--badge-text);
+  padding: 4px 8px; 
+  border-radius: 6px; 
+}
 
 .icon-sm { width: 16px; height: 16px; }
 .state-card { background-color: var(--bg-card); border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted); }
-.spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid rgba(148, 163, 184, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
