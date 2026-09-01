@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="header-bar">
       <h2>Manajemen Surat Tugas (Work Orders)</h2>
-      <button @click="showCreateModal = true" class="btn-create">+ Buat Work Order Baru</button>
+      <button @click="openCreateModal" class="btn-create">+ Buat Work Order Baru</button>
     </div>
 
     <div v-if="loading" class="loading-state">Memuat daftar Work Orders...</div>
@@ -35,24 +35,61 @@
       </tbody>
     </table>
 
-    <!-- Modal Simple Create Work Order -->
+    <!-- Modal Create Work Order dengan Dropdown Teknisi Berpaginasi -->
     <div v-if="showCreateModal" class="modal-overlay">
       <div class="modal-card">
         <h3>Buat Work Order Baru</h3>
         <form @submit.prevent="handleCreateWO">
           <div class="form-group">
             <label>Judul Tugas / Deskripsi:</label>
-            <input type="text" v-model="newWO.title" required placeholder="Contoh: Perbaikan Router Lantai 2" class="input-control" />
+            <input 
+              type="text" 
+              v-model="newWO.title" 
+              required 
+              placeholder="Contoh: Perbaikan Router Lantai 2" 
+              class="input-control" 
+            />
           </div>
 
+          <!-- Pilihan Teknisi Dropdown -->
           <div class="form-group">
-            <label>ID / Email Teknisi:</label>
-            <input type="text" v-model="newWO.technicianId" required placeholder="teknisi@domain.com" class="input-control" />
+            <label>Pilih Teknisi Penanggung Jawab:</label>
+            <select v-model="newWO.technicianId" required class="input-control" :disabled="loadingTechs">
+              <option value="" disabled>-- {{ loadingTechs ? 'Memuat Teknisi...' : 'Pilih Teknisi' }} --</option>
+              <option 
+                v-for="tech in technicians" 
+                :key="tech.id" 
+                :value="tech.id"
+              >
+                {{ tech.name }} ({{ tech.specialization || 'Umum' }}) - {{ tech.email }}
+              </option>
+            </select>
+
+            <!-- Kontrol Pagination Dropdown -->
+            <div class="pagination-controls" v-if="pagination.totalPages > 1">
+              <button 
+                type="button" 
+                class="btn-page" 
+                :disabled="!pagination.hasPrevPage || loadingTechs" 
+                @click="changeTechPage(pagination.currentPage - 1)"
+              >
+                &laquo; Prev
+              </button>
+              <span class="page-info">Hal {{ pagination.currentPage }} / {{ pagination.totalPages }}</span>
+              <button 
+                type="button" 
+                class="btn-page" 
+                :disabled="!pagination.hasNextPage || loadingTechs" 
+                @click="changeTechPage(pagination.currentPage + 1)"
+              >
+                Next &raquo;
+              </button>
+            </div>
           </div>
 
           <div class="modal-actions">
             <button type="button" @click="showCreateModal = false" class="btn-cancel">Batal</button>
-            <button type="submit" :disabled="creating" class="btn-primary">
+            <button type="submit" :disabled="creating || !newWO.technicianId" class="btn-primary">
               {{ creating ? 'Menyimpan...' : 'Terbitkan WO' }}
             </button>
           </div>
@@ -64,12 +101,22 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { adminApi, managerApi } from '../services/api';
+import { adminApi, managerApi, getTechnicians } from '../services/api';
 
 const orders = ref([]);
 const loading = ref(true);
 const showCreateModal = ref(false);
 const creating = ref(false);
+
+// State Teknisi & Pagination
+const technicians = ref([]);
+const loadingTechs = ref(false);
+const pagination = ref({
+  currentPage: 1,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPrevPage: false
+});
 
 const newWO = ref({
   title: '',
@@ -95,6 +142,31 @@ const fetchWorkOrders = async () => {
   }
 };
 
+// Fetch Daftar Teknisi Berpaginasi
+const fetchTechniciansList = async (page = 1) => {
+  loadingTechs.value = true;
+  try {
+    const res = await getTechnicians(page, 5); // Ambil 5 teknisi per halaman
+    technicians.value = res.data || [];
+    if (res.pagination) {
+      pagination.value = res.pagination;
+    }
+  } catch (err) {
+    console.error('Gagal mengambil daftar teknisi:', err);
+  } finally {
+    loadingTechs.value = false;
+  }
+};
+
+const openCreateModal = () => {
+  showCreateModal.value = true;
+  fetchTechniciansList(1);
+};
+
+const changeTechPage = (newPage) => {
+  fetchTechniciansList(newPage);
+};
+
 onMounted(() => {
   fetchWorkOrders();
 });
@@ -106,7 +178,12 @@ const handleCreateWO = async () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
 
-    await api.post(endpoint, newWO.value);
+    // Sesuaikan payload agar berisi assignedTechnicianIds
+    await api.post(endpoint, {
+      title: newWO.value.title,
+      assignedTechnicianIds: [newWO.value.technicianId]
+    });
+
     alert('Work Order berhasil dibuat!');
     showCreateModal.value = false;
     newWO.value = { title: '', technicianId: '' };
@@ -143,13 +220,21 @@ const formatDate = (dateStr) => {
 .status-badge.in_progress { background-color: #fef3c7; color: #d97706; }
 
 /* Modal Styles */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-card { background: #fff; width: 100%; max-width: 450px; padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
 .modal-card h3 { margin-top: 0; margin-bottom: 16px; }
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
 .input-control { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+
+/* Pagination Controls Style */
+.pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.btn-page { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-info { font-size: 12px; color: #64748b; }
+
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 .btn-cancel { padding: 8px 16px; background: transparent; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; }
 .btn-primary { padding: 8px 16px; background-color: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
