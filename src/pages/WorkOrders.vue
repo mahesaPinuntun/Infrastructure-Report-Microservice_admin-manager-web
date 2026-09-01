@@ -118,7 +118,23 @@
               />
             </div>
 
-            <!-- 3. Pilihan Teknisi Dropdown (WAJIB) -->
+            <!-- 3. Unggah Dokumen PDF (WAJIB) -->
+            <div class="form-group">
+              <label>Dokumen PDF (Wajib: Awalan "Infrastructure_Report_"):</label>
+              <input 
+                type="file" 
+                accept=".pdf,application/pdf"
+                @change="handleFileChange"
+                required
+                class="file-control"
+              />
+              <span v-if="fileError" class="error-text">{{ fileError }}</span>
+              <span v-else-if="selectedFile" class="file-info-text">
+                File terpilih: <strong>{{ selectedFile.name }}</strong>
+              </span>
+            </div>
+
+            <!-- 4. Pilihan Teknisi Dropdown (WAJIB) -->
             <div class="form-group">
               <label>Pilih Teknisi Penanggung Jawab:</label>
               <select v-model="newWO.technicianId" required class="input-control" :disabled="loadingTechs">
@@ -156,7 +172,11 @@
 
             <div class="modal-actions">
               <button type="button" @click="showCreateModal = false" class="btn-cancel">Batal</button>
-              <button type="submit" :disabled="creating || !newWO.technicianId || !newWO.title" class="btn-primary">
+              <button 
+                type="submit" 
+                :disabled="creating || !newWO.technicianId || !newWO.title || !selectedFile || !!fileError" 
+                class="btn-primary"
+              >
                 {{ creating ? 'Menyimpan...' : 'Terbitkan WO' }}
               </button>
             </div>
@@ -197,6 +217,9 @@ const newWO = ref({
   title: '',
   technicianId: ''
 });
+
+const selectedFile = ref(null);
+const fileError = ref('');
 
 const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -256,8 +279,32 @@ const fetchTechniciansList = async (page = 1) => {
   }
 };
 
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  fileError.value = '';
+  selectedFile.value = null;
+
+  if (!file) return;
+
+  // 1. Validasi Tipe Harus PDF
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    fileError.value = 'File harus berformat PDF.';
+    return;
+  }
+
+  // 2. Validasi Nama File Harus Diawali "Infrastructure_Report_"
+  if (!file.name.startsWith('Infrastructure_Report_')) {
+    fileError.value = 'Nama file wajib diawali dengan "Infrastructure_Report_" (Contoh: Infrastructure_Report_01.pdf)';
+    return;
+  }
+
+  selectedFile.value = file;
+};
+
 const openCreateModal = () => {
   showCreateModal.value = true;
+  selectedFile.value = null;
+  fileError.value = '';
   fetchTechniciansList(1);
   fetchReportsList();
 };
@@ -267,21 +314,37 @@ const changeTechPage = (newPage) => {
 };
 
 const handleCreateWO = async () => {
+  if (!selectedFile.value || fileError.value) {
+    alert('Silakan sertakan file PDF yang valid terlebih dahulu.');
+    return;
+  }
+
   creating.value = true;
   try {
     const api = getApiClient();
     const user = getUserData();
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
 
-    await api.post(endpoint, {
-      reportId: newWO.value.reportId || null,
-      title: newWO.value.title,
-      assignedTechnicianIds: [newWO.value.technicianId]
+    // Menyusun payload FormData untuk multipart/form-data (upload file)
+    const formData = new FormData();
+    formData.append('title', newWO.value.title);
+    if (newWO.value.reportId) {
+      formData.append('reportId', newWO.value.reportId);
+    }
+    formData.append('assignedTechnicianIds', JSON.stringify([newWO.value.technicianId]));
+    formData.append('pdfFile', selectedFile.value);
+
+    await api.post(endpoint, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     });
 
     alert('Work Order berhasil dibuat!');
     showCreateModal.value = false;
     newWO.value = { reportId: '', title: '', technicianId: '' };
+    selectedFile.value = null;
+    fileError.value = '';
     fetchWorkOrders();
   } catch (err) {
     alert(err.response?.data?.error || 'Gagal membuat Work Order baru.');
@@ -509,6 +572,32 @@ onMounted(() => {
   color: var(--text-main) !important;
   font-size: 13px;
   box-sizing: border-box;
+}
+
+.file-control {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--bg-main);
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  color: var(--text-main) !important;
+  font-size: 13px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.error-text {
+  display: block;
+  font-size: 12px;
+  color: var(--danger-color);
+  margin-top: 4px;
+}
+
+.file-info-text {
+  display: block;
+  font-size: 12px;
+  color: var(--emerald-color);
+  margin-top: 4px;
 }
 
 .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
