@@ -74,7 +74,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { adminApi, managerApi } from '../services/api';
-import CreateWorkOrderModal from '../components/CreateWorkOrderModal.vue';
+import CreateWorkOrderModal from './CreateWorkOrderModal.vue';
 
 const router = useRouter();
 
