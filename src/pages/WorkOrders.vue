@@ -48,7 +48,12 @@
             <tr v-for="item in orders" :key="item._id || item.id">
               <td class="code-cell">{{ item.woCode || item._id?.substring(0, 8) }}</td>
               <td class="title-cell">{{ item.companyName || 'Infrastructure_Report' }}</td>
-              <td>{{ item.createdBy || '-' }}</td>
+              <td>
+                <div class="creator-cell">
+                  <span class="creator-name">{{ item.createdBy || '-' }}</span>
+                  <span v-if="item.createdByEmail" class="creator-email">{{ item.createdByEmail }}</span>
+                </div>
+              </td>
               <td>{{ item.locationName || '-' }}</td>
               <td class="price-cell">Rp {{ formatCurrency(item.grandTotal) }}</td>
               <td>
@@ -85,7 +90,10 @@
         </div>
         <hr class="pdf-divider" />
         <div class="pdf-meta">
-          <div><strong>Nama Pembuat Surat:</strong> {{ activePdfItem.createdBy }}</div>
+          <div>
+            <strong>Nama Pembuat Surat:</strong> {{ activePdfItem.createdBy }}
+            <span v-if="activePdfItem.createdByEmail"> ({{ activePdfItem.createdByEmail }})</span>
+          </div>
           <div><strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}</div>
         </div>
 
@@ -353,6 +361,20 @@ onMounted(() => {
 .code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
 .title-cell { font-weight: 600; }
 .price-cell { font-weight: 700; color: var(--emerald-color); }
+
+.creator-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.creator-name {
+  font-weight: 600;
+}
+
+.creator-email {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 
 .btn-pdf-action {
   display: inline-flex;
