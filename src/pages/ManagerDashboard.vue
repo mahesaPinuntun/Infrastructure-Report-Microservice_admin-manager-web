@@ -14,7 +14,7 @@
       </div>
 
       <div class="header-actions">
-        <!-- Button Switch Theme (System Default + Manual Toggle) -->
+        <!-- Button Switch Theme -->
         <button @click="toggleTheme" class="theme-toggle-btn" :title="`Mode saat ini: ${activeTheme}`">
           <svg v-if="activeTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"/>
@@ -240,11 +240,10 @@ const initTheme = () => {
   if (savedTheme) {
     applyTheme(savedTheme);
   } else {
-    // Membaca pengaturan Dark Mode dari OS/Browser secara otomatis
+    // Default mengikuti preferensi OS/Browser
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     applyTheme(systemPrefersDark ? 'dark' : 'light');
 
-    // Mendengarkan perubahan tema sistem secara real-time
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       if (!localStorage.getItem('user-theme')) {
         applyTheme(e.matches ? 'dark' : 'light');
@@ -319,83 +318,63 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Base Variables: Root Default Light */
-:root {
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --amber-color: #d97706;
-  --emerald-color: #059669;
-  --danger-color: #ef4444;
-  --icon-bg-blue: #eff6ff;
-  --icon-bg-amber: #fffbeb;
-  --icon-bg-emerald: #ecfdf5;
-}
-
-/* System Dark Mode (Automatic Override) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-main: #0f172a;
-    --bg-card: #1e293b;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --border-color: #334155;
-    --primary-color: #3b82f6;
-    --primary-hover: #60a5fa;
-    --amber-color: #f59e0b;
-    --emerald-color: #10b981;
-    --danger-color: #f87171;
-    --icon-bg-blue: #1e3a8a;
-    --icon-bg-amber: #78350f;
-    --icon-bg-emerald: #064e3b;
-  }
-}
-
-/* Manual Dark Mode Override */
-[data-theme="dark"] {
-  --bg-main: #0f172a;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: #334155;
-  --primary-color: #3b82f6;
-  --primary-hover: #60a5fa;
-  --amber-color: #f59e0b;
-  --emerald-color: #10b981;
-  --danger-color: #f87171;
-  --icon-bg-blue: #1e3a8a;
-  --icon-bg-amber: #78350f;
-  --icon-bg-emerald: #064e3b;
-}
-
-/* Manual Light Mode Override */
-[data-theme="light"] {
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --amber-color: #d97706;
-  --emerald-color: #059669;
-  --danger-color: #ef4444;
-  --icon-bg-blue: #eff6ff;
-  --icon-bg-amber: #fffbeb;
-  --icon-bg-emerald: #ecfdf5;
-}
-
+/* 1. Definisi Variabel Default (Fallback/Root Component) */
 .dashboard-wrapper {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --amber-color: #d97706;
+  --emerald-color: #059669;
+  --danger-color: #ef4444;
+  --icon-bg-blue: #eff6ff;
+  --icon-bg-amber: #fffbeb;
+  --icon-bg-emerald: #ecfdf5;
+
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
   padding: 32px 24px;
   font-family: system-ui, -apple-system, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* 2. Overriding Variabel Global via :global() Tanpa Terpengaruh Media Query OS */
+:global(:root[data-theme="dark"]),
+:global([data-theme="dark"]) {
+  --bg-main: #0f172a !important;
+  --bg-card: #1e293b !important;
+  --text-main: #f8fafc !important;
+  --text-muted: #94a3b8 !important;
+  --border-color: #334155 !important;
+  --primary-color: #3b82f6 !important;
+  --primary-hover: #60a5fa !important;
+  --amber-color: #f59e0b !important;
+  --emerald-color: #10b981 !important;
+  --danger-color: #f87171 !important;
+  --icon-bg-blue: #1e3a8a !important;
+  --icon-bg-amber: #78350f !important;
+  --icon-bg-emerald: #064e3b !important;
+}
+
+:global(:root[data-theme="light"]),
+:global([data-theme="light"]) {
+  --bg-main: #f8fafc !important;
+  --bg-card: #ffffff !important;
+  --text-main: #0f172a !important;
+  --text-muted: #64748b !important;
+  --border-color: #e2e8f0 !important;
+  --primary-color: #2563eb !important;
+  --primary-hover: #1d4ed8 !important;
+  --amber-color: #d97706 !important;
+  --emerald-color: #059669 !important;
+  --danger-color: #ef4444 !important;
+  --icon-bg-blue: #eff6ff !important;
+  --icon-bg-amber: #fffbeb !important;
+  --icon-bg-emerald: #ecfdf5 !important;
 }
 
 /* Header Section */
