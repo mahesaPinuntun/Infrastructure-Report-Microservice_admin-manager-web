@@ -1,127 +1,296 @@
 <template>
-  <div class="modal-overlay">
-    <div class="modal-card">
-      <h3>Buat Work Order Baru</h3>
+  <div class="modal-overlay" @click.self="$emit('close')">
+    <div class="modal-card wide-modal">
+      <div class="modal-header">
+        <h3>Buat Work Order Baru</h3>
+        <button type="button" class="btn-close" @click="$emit('close')">&times;</button>
+      </div>
 
       <form @submit.prevent="handleSubmit">
-        <!-- Title Input -->
-        <div class="form-group">
-          <label>Judul Tugas / Deskripsi:</label>
-          <input
-            v-model="title"
-            type="text"
-            placeholder="Contoh: Perbaikan Router Lantai 2"
-            required
-          />
+        <!-- Header Grid -->
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nama Perusahaan:</label>
+            <input type="text" v-model="form.companyName" class="input-control" />
+          </div>
+          <div class="form-group">
+            <label>Nama Pembuat Surat (Auto):</label>
+            <input type="text" :value="creatorName" readonly class="input-control readonly" />
+          </div>
+          <div class="form-group full-width">
+            <label>Tanggal Pembuatan Surat:</label>
+            <input type="text" :value="formattedTodayDate" readonly class="input-control readonly" />
+          </div>
         </div>
 
-        <!-- Technician Dropdown Select -->
+        <!-- Pendahuluan & Lokasi -->
         <div class="form-group">
-          <label>Pilih Teknisi Penanggung Jawab:</label>
-          <div class="select-wrapper">
-            <select v-model="selectedTechnicianId" required :disabled="loadingTechs">
-              <option value="" disabled>-- Pilih Teknisi --</option>
-              <option
-                v-for="tech in technicians"
-                :key="tech.id"
-                :value="tech.id"
-              >
-                {{ tech.name }} ({{ tech.specialization }}) - {{ tech.email }}
-              </option>
-            </select>
+          <label>Pendahuluan / Deskripsi Pekerjaan:</label>
+          <textarea v-model="form.introduction" required placeholder="Tuliskan pendahuluan atau deskripsi perbaikan..." class="input-control textarea"></textarea>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Lokasi Perbaikan (Nama Tempat):</label>
+            <input type="text" v-model="form.locationName" required placeholder="Contoh: Gedung Server Lantai 2" class="input-control" />
           </div>
-
-          <!-- Pagination Controls for Dropdown -->
-          <div class="pagination-controls" v-if="pagination.totalPages > 1">
-            <button
-              type="button"
-              class="btn-page"
-              :disabled="!pagination.hasPrevPage || loadingTechs"
-              @click="changePage(pagination.currentPage - 1)"
-            >
-              &laquo; Prev
-            </button>
-
-            <span class="page-info">
-              Halaman {{ pagination.currentPage }} dari {{ pagination.totalPages }}
-            </span>
-
-            <button
-              type="button"
-              class="btn-page"
-              :disabled="!pagination.hasNextPage || loadingTechs"
-              @click="changePage(pagination.currentPage + 1)"
-            >
-              Next &raquo;
-            </button>
+          <div class="form-group">
+            <label>Google Maps URL (Opsional):</label>
+            <input type="url" v-model="form.mapsUrl" placeholder="https://maps.google.com/..." class="input-control" />
           </div>
+        </div>
+
+        <!-- SECTION 1: Dynamic List Teknisi -->
+        <div class="section-box">
+          <div class="section-header">
+            <h4>List Teknisi yang Dipekerjakan</h4>
+            <button type="button" @click="addTechnician" class="btn-sm-add">+ Tambah Teknisi</button>
+          </div>
+          <div class="table-responsive">
+            <table class="form-table">
+              <thead>
+                <tr>
+                  <th>Nama Teknisi</th>
+                  <th>Email Teknisi</th>
+                  <th>Nomor Handphone</th>
+                  <th>Bayaran (Rp)</th>
+                  <th class="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(tech, index) in form.technicians" :key="index">
+                  <td><input type="text" v-model="tech.name" required placeholder="Nama Teknisi" class="input-table" /></td>
+                  <td><input type="email" v-model="tech.email" required placeholder="email@domain.com" class="input-table" /></td>
+                  <td><input type="tel" v-model="tech.phone" placeholder="0812..." class="input-table" /></td>
+                  <td><input type="number" v-model.number="tech.fee" min="0" required class="input-table" /></td>
+                  <td class="text-center">
+                    <button type="button" @click="removeTechnician(index)" class="btn-remove" title="Hapus">&times;</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="total-summary">Total Bayaran Teknisi: <strong>Rp {{ formatCurrency(totalTechFee) }}</strong></div>
+        </div>
+
+        <!-- SECTION 2: Dynamic List Biaya Resource -->
+        <div class="section-box">
+          <div class="section-header">
+            <h4>List Biaya Resource (Bahan & Peralatan)</h4>
+            <button type="button" @click="addResource" class="btn-sm-add">+ Tambah Resource</button>
+          </div>
+          <div class="table-responsive">
+            <table class="form-table">
+              <thead>
+                <tr>
+                  <th>Nama Sumber Daya</th>
+                  <th>Jumlah</th>
+                  <th>Satuan</th>
+                  <th>Harga Satuan (Rp)</th>
+                  <th>Subtotal (Rp)</th>
+                  <th class="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(res, index) in form.resources" :key="index">
+                  <td><input type="text" v-model="res.name" required placeholder="Nama Barang" class="input-table" /></td>
+                  <td><input type="number" v-model.number="res.quantity" min="1" required class="input-table" /></td>
+                  <td>
+                    <select v-model="res.unit" class="input-table select-table">
+                      <option value="pcs">pcs</option>
+                      <option value="box">box</option>
+                      <option value="KG">KG</option>
+                      <option value="liter">liter</option>
+                      <option value="meter">meter</option>
+                    </select>
+                  </td>
+                  <td><input type="number" v-model.number="res.price" min="0" required class="input-table" /></td>
+                  <td class="font-bold">Rp {{ formatCurrency((res.quantity || 0) * (res.price || 0)) }}</td>
+                  <td class="text-center">
+                    <button type="button" @click="removeResource(index)" class="btn-remove" title="Hapus">&times;</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="total-summary">Total Biaya Resource: <strong>Rp {{ formatCurrency(totalResourceCost) }}</strong></div>
+        </div>
+
+        <!-- Grand Total Summary -->
+        <div class="grand-total-box">
+          GRAND TOTAL KESELURUHAN BIAYA: <span>Rp {{ formatCurrency(grandTotal) }}</span>
         </div>
 
         <!-- Action Buttons -->
         <div class="modal-actions">
+          <button type="button" @click="downloadPDF" class="btn-download">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Download PDF</span>
+          </button>
           <button type="button" class="btn-cancel" @click="$emit('close')">Batal</button>
-          <button type="submit" class="btn-submit" :disabled="submitting || !selectedTechnicianId">
+          <button type="submit" class="btn-submit" :disabled="submitting">
             <span v-if="submitting">Memproses...</span>
             <span v-else>Terbitkan WO</span>
           </button>
         </div>
       </form>
     </div>
+
+    <!-- Hidden Printable Element untuk Konversi HTML2PDF -->
+    <div style="display: none;">
+      <div id="pdf-printable-modal-area" class="pdf-document">
+        <div class="pdf-header">
+          <h2>SURAT TUGAS WORK ORDER</h2>
+          <h3>{{ form.companyName }}</h3>
+        </div>
+        <hr class="pdf-divider" />
+        <div class="pdf-meta">
+          <div><strong>Nama Pembuat Surat:</strong> {{ creatorName }}</div>
+          <div><strong>Tanggal Pembuatan:</strong> {{ formattedTodayDate }}</div>
+        </div>
+
+        <div class="pdf-section">
+          <h4>1. Pendahuluan</h4>
+          <p>{{ form.introduction || '-' }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>2. Lokasi Perbaikan</h4>
+          <p><strong>Nama Tempat:</strong> {{ form.locationName || '-' }}</p>
+          <p v-if="form.mapsUrl"><strong>Google Maps URL:</strong> {{ form.mapsUrl }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>3. List Teknisi yang Dipekerjakan</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Teknisi</th>
+                <th>Email Teknisi</th>
+                <th>Nomor Handphone</th>
+                <th>Bayaran</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(t, idx) in form.technicians" :key="idx">
+                <td>{{ t.name }}</td>
+                <td>{{ t.email }}</td>
+                <td>{{ t.phone || '-' }}</td>
+                <td>Rp {{ formatCurrency(t.fee) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>Rp {{ formatCurrency(totalTechFee) }}</strong></p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>4. List Biaya Resource</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Sumber Daya</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Harga Satuan</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in form.resources" :key="idx">
+                <td>{{ r.name }}</td>
+                <td>{{ r.quantity }}</td>
+                <td>{{ r.unit }}</td>
+                <td>Rp {{ formatCurrency(r.price) }}</td>
+                <td>Rp {{ formatCurrency(r.quantity * r.price) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Biaya Resource: <strong>Rp {{ formatCurrency(totalResourceCost) }}</strong></p>
+        </div>
+
+        <div class="pdf-footer-summary">
+          GRAND TOTAL BIAYA: Rp {{ formatCurrency(grandTotal) }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getTechnicians, createWorkOrder } from '../services/api';
+import { ref, computed } from 'vue';
+import html2pdf from 'html2pdf.js';
+import { createWorkOrder } from '../services/api';
 
 const props = defineProps({
-  reportId: { type: String, required: true }
+  reportId: { type: String, default: '' }
 });
 
 const emit = defineEmits(['close', 'created']);
 
-const title = ref('');
-const selectedTechnicianId = ref('');
-const technicians = ref([]);
-const loadingTechs = ref(false);
 const submitting = ref(false);
+const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
-const pagination = ref({
-  currentPage: 1,
-  totalPages: 1,
-  hasNextPage: false,
-  hasPrevPage: false
+const creatorName = computed(() => {
+  return currentUser.value.name || currentUser.value.email || 'Mahesa Putra Pinuntun';
 });
 
-const fetchTechniciansList = async (page = 1) => {
-  loadingTechs.value = true;
-  try {
-    const res = await getTechnicians(page, 5); // 5 teknisi per halaman
-    technicians.value = res.data || [];
-    if (res.pagination) {
-      pagination.value = res.pagination;
-    }
-  } catch (err) {
-    console.error('Gagal mengambil daftar teknisi:', err);
-  } finally {
-    loadingTechs.value = false;
+const formattedTodayDate = computed(() => {
+  return new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+});
+
+const form = ref({
+  companyName: 'Infrastructure_Report',
+  introduction: '',
+  locationName: '',
+  mapsUrl: '',
+  technicians: [{ name: '', email: '', phone: '', fee: 0 }],
+  resources: [{ name: '', quantity: 1, unit: 'pcs', price: 0 }]
+});
+
+const totalTechFee = computed(() => {
+  return form.value.technicians.reduce((acc, curr) => acc + (Number(curr.fee) || 0), 0);
+});
+
+const totalResourceCost = computed(() => {
+  return form.value.resources.reduce((acc, curr) => acc + ((Number(curr.quantity) || 0) * (Number(curr.price) || 0)), 0);
+});
+
+const grandTotal = computed(() => totalTechFee.value + totalResourceCost.value);
+
+const addTechnician = () => {
+  form.value.technicians.push({ name: '', email: '', phone: '', fee: 0 });
+};
+
+const removeTechnician = (index) => {
+  if (form.value.technicians.length > 1) {
+    form.value.technicians.splice(index, 1);
   }
 };
 
-const changePage = (newPage) => {
-  fetchTechniciansList(newPage);
+const addResource = () => {
+  form.value.resources.push({ name: '', quantity: 1, unit: 'pcs', price: 0 });
+};
+
+const removeResource = (index) => {
+  if (form.value.resources.length > 1) {
+    form.value.resources.splice(index, 1);
+  }
 };
 
 const handleSubmit = async () => {
-  if (!selectedTechnicianId.value || !title.value) return;
   submitting.value = true;
-
   try {
     await createWorkOrder({
-      reportId: props.reportId,
-      title: title.value,
-      assignedTechnicianIds: [selectedTechnicianId.value]
+      reportId: props.reportId || null,
+      ...form.value
     });
+    alert('Work Order berhasil diterbitkan!');
     emit('created');
     emit('close');
   } catch (err) {
@@ -131,9 +300,22 @@ const handleSubmit = async () => {
   }
 };
 
-onMounted(() => {
-  fetchTechniciansList(1);
-});
+const downloadPDF = () => {
+  const element = document.getElementById('pdf-printable-modal-area');
+  const pdfName = `${form.value.companyName}_${Date.now()}.pdf`;
+
+  const opt = {
+    margin: 10,
+    filename: pdfName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save();
+};
+
+const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
 </script>
 
 <style scoped>
@@ -141,102 +323,148 @@ onMounted(() => {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
 }
 
+.wide-modal {
+  max-width: 860px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 .modal-card {
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 24px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  color: #0f172a;
 }
 
-h3 {
-  margin-top: 0;
-  color: #1e293b;
-  font-size: 20px;
-  text-align: center;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
-}
-
-input, select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.pagination-controls {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
+  margin-bottom: 20px;
 }
 
-.btn-page {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 24px;
   cursor: pointer;
-}
-
-.btn-page:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 12px;
   color: #64748b;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
-.btn-cancel {
-  background: transparent;
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #475569; }
+
+.input-control {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #f8fafc;
   border: 1px solid #cbd5e1;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
+  border-radius: 8px;
+  font-size: 13px;
+  box-sizing: border-box;
 }
 
-.btn-submit {
-  background: #2563eb;
-  color: white;
+.readonly { opacity: 0.7; cursor: not-allowed; }
+.textarea { height: 70px; resize: vertical; }
+
+.section-box {
+  background-color: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h4 { margin: 0; font-size: 14px; font-weight: 700; }
+
+.btn-sm-add {
+  padding: 6px 12px;
+  background-color: #059669;
+  color: #fff;
   border: none;
-  padding: 8px 16px;
   border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.form-table {
+  width: 100%;
+  border-collapse: collapse;
 }
+
+.form-table th, .form-table td {
+  padding: 8px;
+  font-size: 12px;
+}
+
+.input-table {
+  width: 100%;
+  padding: 6px 10px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.select-table { cursor: pointer; }
+.btn-remove { background: #ef4444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.total-summary { text-align: right; margin-top: 10px; font-size: 13px; }
+
+.grand-total-box {
+  background-color: #eff6ff;
+  color: #2563eb;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 15px;
+  text-align: right;
+  margin-bottom: 20px;
+}
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.btn-download { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background-color: #d97706; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-cancel { padding: 10px 18px; background: transparent; border: 1px solid #cbd5e1; color: #64748b; font-weight: 600; border-radius: 8px; cursor: pointer; }
+.btn-submit { padding: 10px 18px; background-color: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+/* PDF printable area styling */
+.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+.pdf-header { text-align: center; }
+.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
+.pdf-section { margin-bottom: 16px; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 14px; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; }
+.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; }
+.icon-sm { width: 16px; height: 16px; }
 </style>
