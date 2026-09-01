@@ -19,6 +19,7 @@
         <tr>
           <th>WO Code</th>
           <th>Judul Tugas</th>
+          <th>Laporan Terkait</th>
           <th>Teknisi</th>
           <th>Status</th>
           <th>Tanggal Penugasan</th>
@@ -26,11 +27,15 @@
       </thead>
       <tbody>
         <tr v-if="orders.length === 0">
-          <td colSpan="5" class="empty-cell">Belum ada Work Order aktif.</td>
+          <td colSpan="6" class="empty-cell">Belum ada Work Order aktif.</td>
         </tr>
         <tr v-for="item in orders" :key="item._id || item.id">
           <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
           <td>{{ item.title }}</td>
+          <td>
+            <span v-if="item.reportId" class="report-badge">{{ item.reportId }}</span>
+            <span v-else class="text-muted">Mandiri (Tanpa Laporan)</span>
+          </td>
           <td>{{ item.technicianName || item.technicianEmail || 'Belum ditugaskan' }}</td>
           <td>
             <span :class="['status-badge', item.status?.toLowerCase()]">
@@ -48,11 +53,11 @@
         <h3>Buat Work Order Baru</h3>
         <form @submit.prevent="handleCreateWO">
           
-          <!-- 1. Dropdown Pilih Laporan Terkait (reportId string kustom / _id) -->
+          <!-- 1. Dropdown Pilih Laporan (OPSIONAL) -->
           <div class="form-group">
-            <label>Pilih Laporan Terkait:</label>
-            <select v-model="newWO.reportId" required class="input-control" :disabled="loadingReports">
-              <option value="" disabled>-- {{ loadingReports ? 'Memuat Laporan...' : 'Pilih Laporan' }} --</option>
+            <label>Pilih Laporan Terkait (Opsional):</label>
+            <select v-model="newWO.reportId" class="input-control" :disabled="loadingReports">
+              <option value="">-- Tanpa Laporan (Tugas Mandiri / Pemeliharaan) --</option>
               <option 
                 v-for="rep in reportsList" 
                 :key="rep._id || rep.reportId" 
@@ -63,19 +68,19 @@
             </select>
           </div>
 
-          <!-- 2. Input Judul Tugas -->
+          <!-- 2. Input Judul Tugas (WAJIB) -->
           <div class="form-group">
-            <label>Judul Tugas / Deskripsi:</label>
+            <label>Judul Tugas / Deskripsi Pekerjaan:</label>
             <input 
               type="text" 
               v-model="newWO.title" 
               required 
-              placeholder="Contoh: Perbaikan Router Lantai 2" 
+              placeholder="Contoh: Pemeliharaan Rutin Server Lantai 2" 
               class="input-control" 
             />
           </div>
 
-          <!-- 3. Pilihan Teknisi Dropdown -->
+          <!-- 3. Pilihan Teknisi Dropdown (WAJIB) -->
           <div class="form-group">
             <label>Pilih Teknisi Penanggung Jawab:</label>
             <select v-model="newWO.technicianId" required class="input-control" :disabled="loadingTechs">
@@ -89,7 +94,7 @@
               </option>
             </select>
 
-            <!-- Kontrol Pagination Dropdown -->
+            <!-- Kontrol Pagination Dropdown Teknisi -->
             <div class="pagination-controls" v-if="pagination.totalPages > 1">
               <button 
                 type="button" 
@@ -113,7 +118,8 @@
 
           <div class="modal-actions">
             <button type="button" @click="showCreateModal = false" class="btn-cancel">Batal</button>
-            <button type="submit" :disabled="creating || !newWO.technicianId || !newWO.reportId || !newWO.title" class="btn-primary">
+            <!-- Tombol aktif walau reportId kosong -->
+            <button type="submit" :disabled="creating || !newWO.technicianId || !newWO.title" class="btn-primary">
               {{ creating ? 'Menyimpan...' : 'Terbitkan WO' }}
             </button>
           </div>
@@ -136,11 +142,9 @@ const loading = ref(true);
 const showCreateModal = ref(false);
 const creating = ref(false);
 
-// State Laporan Dropdown
 const reportsList = ref([]);
 const loadingReports = ref(false);
 
-// State Teknisi & Pagination
 const technicians = ref([]);
 const loadingTechs = ref(false);
 const pagination = ref({
@@ -151,7 +155,7 @@ const pagination = ref({
 });
 
 const newWO = ref({
-  reportId: '',
+  reportId: '', // Default kosong untuk tugas mandiri
   title: '',
   technicianId: ''
 });
@@ -163,7 +167,6 @@ const getApiClient = () => {
   return user.role === 'ADMIN' ? adminApi : managerApi;
 };
 
-// Navigasi Kembali ke Dashboard Sesuai Role
 const goToDashboard = () => {
   const user = getUserData();
   const rawRole = (user.role || '').toUpperCase();
@@ -185,7 +188,6 @@ const fetchWorkOrders = async () => {
   }
 };
 
-// Fetch Daftar Laporan untuk Dropdown Select
 const fetchReportsList = async () => {
   loadingReports.value = true;
   try {
@@ -200,7 +202,6 @@ const fetchReportsList = async () => {
   }
 };
 
-// Fetch Daftar Teknisi Berpaginasi
 const fetchTechniciansList = async (page = 1) => {
   loadingTechs.value = true;
   try {
@@ -229,7 +230,6 @@ const changeTechPage = (newPage) => {
 onMounted(() => {
   fetchWorkOrders();
 
-  // Auto-fill dan buka modal jika diarahkan dari query rute lain
   if (route.query.reportId) {
     newWO.value.reportId = route.query.reportId;
     newWO.value.title = route.query.title || '';
@@ -244,9 +244,8 @@ const handleCreateWO = async () => {
     const user = getUserData();
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
 
-    // Kirimkan reportId, title, dan array assignedTechnicianIds
     await api.post(endpoint, {
-      reportId: newWO.value.reportId,
+      reportId: newWO.value.reportId || null,
       title: newWO.value.title,
       assignedTechnicianIds: [newWO.value.technicianId]
     });
@@ -290,11 +289,7 @@ const formatDate = (dateStr) => {
   transition: color 0.2s;
 }
 
-.btn-back:hover {
-  color: #1d4ed8;
-  text-decoration: underline;
-}
-
+.btn-back:hover { color: #1d4ed8; text-decoration: underline; }
 .header-left h2 { margin: 0; }
 .btn-create { padding: 10px 16px; background-color: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
 .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
@@ -302,6 +297,8 @@ const formatDate = (dateStr) => {
 .data-table th { background-color: #f8fafc; font-weight: 600; color: #475569; }
 .code-cell { font-family: monospace; font-weight: bold; color: #475569; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 24px; }
+.report-badge { font-family: monospace; font-size: 12px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #334155; }
+.text-muted { color: #94a3b8; font-size: 13px; font-style: italic; }
 .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
 .status-badge.assigned { background-color: #e0f2fe; color: #0284c7; }
 .status-badge.completed { background-color: #dcfce7; color: #15803d; }
