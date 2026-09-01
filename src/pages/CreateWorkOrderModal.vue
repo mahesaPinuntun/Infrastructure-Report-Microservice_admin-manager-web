@@ -40,7 +40,7 @@
           </div>
         </div>
 
-        <!-- SECTION 1: Dynamic List Teknisi -->
+        <!-- SECTION 1: Dynamic List Teknisi (Dropdown dari Cluster Technicians) -->
         <div class="section-box">
           <div class="section-header">
             <h4>List Teknisi yang Dipekerjakan</h4>
@@ -50,7 +50,7 @@
             <table class="form-table">
               <thead>
                 <tr>
-                  <th>Nama Teknisi</th>
+                  <th>Pilih Teknisi (Cluster)</th>
                   <th>Email Teknisi</th>
                   <th>Nomor Handphone</th>
                   <th>Bayaran (Rp)</th>
@@ -59,10 +59,34 @@
               </thead>
               <tbody>
                 <tr v-for="(tech, index) in form.technicians" :key="index">
-                  <td><input type="text" v-model="tech.name" required placeholder="Nama Teknisi" class="input-table" /></td>
-                  <td><input type="email" v-model="tech.email" required placeholder="email@domain.com" class="input-table" /></td>
-                  <td><input type="tel" v-model="tech.phone" placeholder="0812..." class="input-table" /></td>
-                  <td><input type="number" v-model.number="tech.fee" min="0" required class="input-table" /></td>
+                  <td>
+                    <!-- Dropdown Teknisi -->
+                    <select 
+                      v-model="tech.technicianId" 
+                      @change="onTechnicianSelect(index)" 
+                      required 
+                      class="input-table select-table"
+                      :disabled="loadingTechs"
+                    >
+                      <option value="" disabled>-- {{ loadingTechs ? 'Memuat Teknisi...' : 'Pilih Teknisi' }} --</option>
+                      <option 
+                        v-for="t in availableTechnicians" 
+                        :key="t.id || t._id" 
+                        :value="t.id || t._id"
+                      >
+                        {{ t.name }} ({{ t.specialization || 'Umum' }})
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input type="email" v-model="tech.email" readonly placeholder="Otomatis terisi" class="input-table readonly" />
+                  </td>
+                  <td>
+                    <input type="tel" v-model="tech.phone" placeholder="0812..." class="input-table" />
+                  </td>
+                  <td>
+                    <input type="number" v-model.number="tech.fee" min="0" required class="input-table" />
+                  </td>
                   <td class="text-center">
                     <button type="button" @click="removeTechnician(index)" class="btn-remove" title="Hapus">&times;</button>
                   </td>
@@ -219,9 +243,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import html2pdf from 'html2pdf.js';
-import { createWorkOrder } from '../services/api';
+import { createWorkOrder, getTechnicians } from '../services/api';
 
 const props = defineProps({
   reportId: { type: String, default: '' }
@@ -230,6 +254,9 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created']);
 
 const submitting = ref(false);
+const loadingTechs = ref(false);
+const availableTechnicians = ref([]);
+
 const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
 const creatorName = computed(() => {
@@ -249,9 +276,35 @@ const form = ref({
   introduction: '',
   locationName: '',
   mapsUrl: '',
-  technicians: [{ name: '', email: '', phone: '', fee: 0 }],
+  technicians: [{ technicianId: '', name: '', email: '', phone: '', fee: 0 }],
   resources: [{ name: '', quantity: 1, unit: 'pcs', price: 0 }]
 });
+
+// Ambil list teknisi dari cluster backend saat modal di-load
+const fetchAvailableTechnicians = async () => {
+  loadingTechs.value = true;
+  try {
+    const res = await getTechnicians(1, 100);
+    availableTechnicians.value = res.data || [];
+  } catch (err) {
+    console.error('Gagal mengambil daftar teknisi:', err);
+  } finally {
+    loadingTechs.value = false;
+  }
+};
+
+// Event handler saat teknisi dipilih dari dropdown
+const onTechnicianSelect = (index) => {
+  const selectedRow = form.value.technicians[index];
+  const techObj = availableTechnicians.value.find(
+    t => (t.id || t._id) === selectedRow.technicianId
+  );
+  if (techObj) {
+    selectedRow.name = techObj.name;
+    selectedRow.email = techObj.email;
+    selectedRow.phone = techObj.phone || selectedRow.phone || '';
+  }
+};
 
 const totalTechFee = computed(() => {
   return form.value.technicians.reduce((acc, curr) => acc + (Number(curr.fee) || 0), 0);
@@ -264,7 +317,7 @@ const totalResourceCost = computed(() => {
 const grandTotal = computed(() => totalTechFee.value + totalResourceCost.value);
 
 const addTechnician = () => {
-  form.value.technicians.push({ name: '', email: '', phone: '', fee: 0 });
+  form.value.technicians.push({ technicianId: '', name: '', email: '', phone: '', fee: 0 });
 };
 
 const removeTechnician = (index) => {
@@ -316,6 +369,10 @@ const downloadPDF = () => {
 };
 
 const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
+
+onMounted(() => {
+  fetchAvailableTechnicians();
+});
 </script>
 
 <style scoped>
