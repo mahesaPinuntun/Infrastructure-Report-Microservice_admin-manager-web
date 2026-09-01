@@ -39,7 +39,12 @@ const createClient = (baseURL) => {
 
   return instance;
 };
-
+export const getTechnicians = async (page = 1, limit = 10, search = '') => {
+  const response = await managerApi.get('/api/manager/technicians', {
+    params: { page, limit, search }
+  });
+  return response.data;
+};
 export const authApi = createClient(AUTH_URL);
 export const adminApi = createClient(ADMIN_URL);
 export const managerApi = createClient(MANAGER_URL);
