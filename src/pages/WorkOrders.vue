@@ -1,7 +1,14 @@
 <template>
   <div class="page-container">
     <div class="header-bar">
-      <h2>Manajemen Surat Tugas (Work Orders)</h2>
+      <div class="header-left">
+        <!-- Tombol Kembali ke Dashboard Utama -->
+        <button @click="goToDashboard" class="btn-back">
+          &larr; Kembali ke Dashboard Utama
+        </button>
+        <h2>Manajemen Surat Tugas (Work Orders)</h2>
+      </div>
+
       <button @click="openCreateModal" class="btn-create">+ Buat Work Order Baru</button>
     </div>
 
@@ -101,8 +108,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { adminApi, managerApi, getTechnicians } from '../services/api';
 
+const router = useRouter();
 const orders = ref([]);
 const loading = ref(true);
 const showCreateModal = ref(false);
@@ -123,15 +132,25 @@ const newWO = ref({
   technicianId: ''
 });
 
+const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
+
 const getApiClient = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getUserData();
   return user.role === 'ADMIN' ? adminApi : managerApi;
+};
+
+// Navigasi Kembali ke Dashboard Sesuai Role
+const goToDashboard = () => {
+  const user = getUserData();
+  const rawRole = (user.role || '').toUpperCase();
+  const targetPath = (rawRole === 'MANAGER' || rawRole === 'INFRASTRUCTURE_MANAGER') ? '/manager' : '/admin';
+  router.push(targetPath);
 };
 
 const fetchWorkOrders = async () => {
   try {
     const api = getApiClient();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = getUserData();
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
     const res = await api.get(endpoint);
     orders.value = res.data.workOrders || res.data || [];
@@ -146,7 +165,7 @@ const fetchWorkOrders = async () => {
 const fetchTechniciansList = async (page = 1) => {
   loadingTechs.value = true;
   try {
-    const res = await getTechnicians(page, 5); // Ambil 5 teknisi per halaman
+    const res = await getTechnicians(page, 5);
     technicians.value = res.data || [];
     if (res.pagination) {
       pagination.value = res.pagination;
@@ -175,10 +194,9 @@ const handleCreateWO = async () => {
   creating.value = true;
   try {
     const api = getApiClient();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = getUserData();
     const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
 
-    // Sesuaikan payload agar berisi assignedTechnicianIds
     await api.post(endpoint, {
       title: newWO.value.title,
       assignedTechnicianIds: [newWO.value.technicianId]
@@ -207,7 +225,28 @@ const formatDate = (dateStr) => {
 
 <style scoped>
 .page-container { padding: 24px; }
-.header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.header-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.header-left { display: flex; flex-direction: column; gap: 8px; }
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.btn-back:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.header-left h2 { margin: 0; }
 .btn-create { padding: 10px 16px; background-color: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
 .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
 .data-table th, .data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
