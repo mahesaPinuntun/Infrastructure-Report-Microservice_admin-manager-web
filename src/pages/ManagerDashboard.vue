@@ -1,212 +1,210 @@
 <template>
   <div class="dashboard-wrapper">
-    <div class="dashboard-container">
-      <!-- Header Section -->
-      <header class="header-container">
-        <div class="header-title">
-          <div class="brand-badge">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-            <span>Manager Field System</span>
-          </div>
-          <h1>Dashboard Manager</h1>
-          <p class="subtitle">Selamat datang kembali, <strong>{{ user?.name || user?.email || 'Manager' }}</strong></p>
-        </div>
-
-        <div class="header-actions">
-          <!-- Button Switch Theme -->
-          <button @click="toggleTheme" class="theme-toggle-btn" :title="`Mode saat ini: ${activeTheme}`">
-            <svg v-if="activeTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-            <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-            <span>{{ activeTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
-          </button>
-
-          <button @click="handleLogout" class="btn-logout">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-            </svg>
-            <span>Keluar</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- Loading State -->
-      <Transition name="fade" mode="out-in">
-        <div v-if="loading" class="state-card loading-state">
-          <div class="spinner"></div>
-          <p>Memuat data statistik operasional...</p>
-        </div>
-
-        <!-- Error State -->
-        <div v-else-if="errorMessage" class="state-card error-state">
-          <svg class="icon-lg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    <!-- Header Section -->
+    <header class="header-container">
+      <div class="header-title">
+        <div class="brand-badge">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
-          <p>{{ errorMessage }}</p>
-          <button @click="fetchStats" class="btn-retry">Coba Memuat Ulang</button>
+          <span>Manager Field System</span>
         </div>
+        <h1>Dashboard Manager</h1>
+        <p class="subtitle">Selamat datang kembali, <strong>{{ user?.name || user?.email || 'Manager' }}</strong></p>
+      </div>
 
-        <!-- Bento Grid Content -->
-        <div v-else class="dashboard-content">
-          <div class="bento-grid">
-            <!-- Stat Card 1: Work Orders Active -->
-            <div class="bento-item stat-card primary">
-              <div class="card-header">
-                <div class="icon-box bg-blue">
-                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                  </svg>
-                </div>
-                <span class="card-tag">Aktif</span>
-              </div>
-              <div class="card-body">
-                <span class="stat-number">{{ stats.activeWorkOrders || 0 }}</span>
-                <span class="stat-label">Work Orders Berjalan</span>
-              </div>
-            </div>
+      <div class="header-actions">
+        <!-- Button Switch Theme -->
+        <button @click="toggleTheme" class="theme-toggle-btn" :title="`Mode saat ini: ${activeTheme}`">
+          <svg v-if="activeTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <span>{{ activeTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
+        </button>
 
-            <!-- Stat Card 2: Laporan Perlu Approval -->
-            <div class="bento-item stat-card warning">
-              <div class="card-header">
-                <div class="icon-box bg-amber">
-                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                  </svg>
-                </div>
-                <span class="card-tag warning">Perlu Review</span>
-              </div>
-              <div class="card-body">
-                <span class="stat-number text-amber">{{ stats.pendingApprovals || stats.pendingReports || 0 }}</span>
-                <span class="stat-label">Laporan Menunggu Approval</span>
-              </div>
-            </div>
+        <button @click="handleLogout" class="btn-logout">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          <span>Keluar</span>
+        </button>
+      </div>
+    </header>
 
-            <!-- Stat Card 3: Teknisi Ready -->
-            <div class="bento-item stat-card success">
-              <div class="card-header">
-                <div class="icon-box bg-emerald">
-                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                </div>
-                <span class="card-tag success">Siap Tugas</span>
-              </div>
-              <div class="card-body">
-                <span class="stat-number text-emerald">{{ stats.availableTechnicians || 0 }}</span>
-                <span class="stat-label">Teknisi Field Tersedia</span>
-              </div>
-            </div>
+    <!-- Loading State -->
+    <Transition name="fade" mode="out-in">
+      <div v-if="loading" class="state-card loading-state">
+        <div class="spinner"></div>
+        <p>Memuat data statistik operasional...</p>
+      </div>
 
-            <!-- Bento Action Card 1: Toggle Preview Table Work Orders -->
-            <div @click="toggleWorkOrdersTable" :class="['bento-item', 'action-card', 'group-blue', { 'active-card': showWorkOrdersTable }]">
-              <div class="action-icon-bg">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      <!-- Error State -->
+      <div v-else-if="errorMessage" class="state-card error-state">
+        <svg class="icon-lg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>{{ errorMessage }}</p>
+        <button @click="fetchStats" class="btn-retry">Coba Memuat Ulang</button>
+      </div>
+
+      <!-- Bento Grid Content -->
+      <div v-else class="dashboard-content">
+        <div class="bento-grid">
+          <!-- Stat Card 1: Work Orders Active -->
+          <div class="bento-item stat-card primary">
+            <div class="card-header">
+              <div class="icon-box bg-blue">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
                 </svg>
               </div>
-              <div class="action-content">
-                <div class="action-title">
-                  <h3>Kelola Work Orders</h3>
-                  <svg :class="['arrow-icon', { 'rotate-down': showWorkOrdersTable }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                  </svg>
-                </div>
-                <p>{{ showWorkOrdersTable ? 'Klik untuk menyembunyikan tabel preview.' : 'Tampilkan preview ringkas tabel Work Orders di bawah.' }}</p>
-              </div>
+              <span class="card-tag">Aktif</span>
             </div>
-
-            <!-- Bento Action Card 2: Review Laporan -->
-            <router-link to="/reports" class="bento-item action-card group-indigo">
-              <div class="action-icon-bg">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                </svg>
-              </div>
-              <div class="action-content">
-                <div class="action-title">
-                  <h3>Review Laporan Masuk</h3>
-                  <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                  </svg>
-                </div>
-                <p>Verifikasi laporan kerusakan dari pelapor sebelum diterbitkan menjadi Surat Tugas.</p>
-              </div>
-            </router-link>
-
-            <!-- Bento Action Small Card: Refresh Data -->
-            <button @click="fetchStats" class="bento-item quick-refresh-card">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-              <span>Refresh Data</span>
-            </button>
+            <div class="card-body">
+              <span class="stat-number">{{ stats.activeWorkOrders || 0 }}</span>
+              <span class="stat-label">Work Orders Berjalan</span>
+            </div>
           </div>
 
-          <!-- Section Work Orders Preview Table -->
-          <Transition name="expand">
-            <div v-if="showWorkOrdersTable" class="table-preview-section">
-              <div class="table-header">
-                <div class="table-title">
-                  <h3>Daftar Work Orders Terbaru</h3>
-                  <span class="count-badge">{{ workOrders.length }} Items</span>
-                </div>
-                
-                <button @click="navigateToWorkOrders" class="btn-reroute">
-                  <span>Buka Halaman Penuh (/work-orders)</span>
-                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                </button>
+          <!-- Stat Card 2: Laporan Perlu Approval -->
+          <div class="bento-item stat-card warning">
+            <div class="card-header">
+              <div class="icon-box bg-amber">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
               </div>
-
-              <div v-if="loadingOrders" class="table-loading">
-                <div class="spinner-sm"></div>
-                <span>Memuat daftar Surat Tugas...</span>
-              </div>
-
-              <div v-else class="table-responsive">
-                <table class="minimal-table">
-                  <thead>
-                    <tr>
-                      <th>WO Code</th>
-                      <th>Judul Tugas</th>
-                      <th>Laporan Terkait</th>
-                      <th>Status</th>
-                      <th>Tanggal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-if="workOrders.length === 0">
-                      <td colspan="5" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
-                    </tr>
-                    <tr v-for="item in workOrders.slice(0, 5)" :key="item._id || item.id">
-                      <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
-                      <td class="title-cell">{{ item.title }}</td>
-                      <td>
-                        <span v-if="item.reportId" class="badge-report">{{ item.reportId }}</span>
-                        <span v-else class="text-muted">Mandiri</span>
-                      </td>
-                      <td>
-                        <span :class="['badge-status', item.status?.toLowerCase()]">
-                          {{ item.status || 'ASSIGNED' }}
-                        </span>
-                      </td>
-                      <td>{{ formatDate(item.createdAt) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <span class="card-tag warning">Perlu Review</span>
             </div>
-          </Transition>
+            <div class="card-body">
+              <span class="stat-number text-amber">{{ stats.pendingApprovals || stats.pendingReports || 0 }}</span>
+              <span class="stat-label">Laporan Menunggu Approval</span>
+            </div>
+          </div>
+
+          <!-- Stat Card 3: Teknisi Ready -->
+          <div class="bento-item stat-card success">
+            <div class="card-header">
+              <div class="icon-box bg-emerald">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <span class="card-tag success">Siap Tugas</span>
+            </div>
+            <div class="card-body">
+              <span class="stat-number text-emerald">{{ stats.availableTechnicians || 0 }}</span>
+              <span class="stat-label">Teknisi Field Tersedia</span>
+            </div>
+          </div>
+
+          <!-- Bento Action Card 1: Toggle Preview Table Work Orders -->
+          <div @click="toggleWorkOrdersTable" :class="['bento-item', 'action-card', 'group-blue', { 'active-card': showWorkOrdersTable }]">
+            <div class="action-icon-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <div class="action-content">
+              <div class="action-title">
+                <h3>Kelola Work Orders</h3>
+                <svg :class="['arrow-icon', { 'rotate-down': showWorkOrdersTable }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+              <p>{{ showWorkOrdersTable ? 'Klik untuk menyembunyikan tabel preview.' : 'Tampilkan preview ringkas tabel Work Orders di bawah.' }}</p>
+            </div>
+          </div>
+
+          <!-- Bento Action Card 2: Review Laporan -->
+          <router-link to="/reports" class="bento-item action-card group-indigo">
+            <div class="action-icon-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+            <div class="action-content">
+              <div class="action-title">
+                <h3>Review Laporan Masuk</h3>
+                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+              <p>Verifikasi laporan kerusakan dari pelapor sebelum diterbitkan menjadi Surat Tugas.</p>
+            </div>
+          </router-link>
+
+          <!-- Bento Action Small Card: Refresh Data -->
+          <button @click="fetchStats" class="bento-item quick-refresh-card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span>Refresh Data</span>
+          </button>
         </div>
-      </Transition>
-    </div>
+
+        <!-- Section Work Orders Preview Table -->
+        <Transition name="expand">
+          <div v-if="showWorkOrdersTable" class="table-preview-section">
+            <div class="table-header">
+              <div class="table-title">
+                <h3>Daftar Work Orders Terbaru</h3>
+                <span class="count-badge">{{ workOrders.length }} Items</span>
+              </div>
+              
+              <button @click="navigateToWorkOrders" class="btn-reroute">
+                <span>Buka Halaman Penuh (/work-orders)</span>
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </button>
+            </div>
+
+            <div v-if="loadingOrders" class="table-loading">
+              <div class="spinner-sm"></div>
+              <span>Memuat daftar Surat Tugas...</span>
+            </div>
+
+            <div v-else class="table-responsive">
+              <table class="minimal-table">
+                <thead>
+                  <tr>
+                    <th>WO Code</th>
+                    <th>Judul Tugas</th>
+                    <th>Laporan Terkait</th>
+                    <th>Status</th>
+                    <th>Tanggal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="workOrders.length === 0">
+                    <td colspan="5" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
+                  </tr>
+                  <tr v-for="item in workOrders.slice(0, 5)" :key="item._id || item.id">
+                    <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
+                    <td class="title-cell">{{ item.title }}</td>
+                    <td>
+                      <span v-if="item.reportId" class="badge-report">{{ item.reportId }}</span>
+                      <span v-else class="text-muted">Mandiri</span>
+                    </td>
+                    <td>
+                      <span :class="['badge-status', item.status?.toLowerCase()]">
+                        {{ item.status || 'ASSIGNED' }}
+                      </span>
+                    </td>
+                    <td>{{ formatDate(item.createdAt) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -319,14 +317,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Base Light Palette (Default) */
+/* Palette CSS Variables */
 :global(:root),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --text-main: #0f172a;
   --text-muted: #64748b;
-  --border-color: transparent; /* Outline dihilangkan */
+  --border-color: transparent;
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --amber-color: #d97706;
@@ -337,13 +335,12 @@ onMounted(() => {
   --icon-bg-emerald: #ecfdf5;
 }
 
-/* Dark Palette Override */
 :global([data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --border-color: transparent; /* Outline dihilangkan */
+  --border-color: transparent;
   --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
   --amber-color: #f59e0b;
@@ -354,31 +351,34 @@ onMounted(() => {
   --icon-bg-emerald: #064e3b;
 }
 
+/* Reset Global HTML & Body */
 :global(html),
-:global(body) {
+:global(body),
+:global(#app) {
   background-color: var(--bg-main) !important;
   color: var(--text-main) !important;
-  margin: 0;
-  padding: 0;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-/* Memperlebar tampilan sampai dekat ke tepi layar */
+/* Memperlebar Wrapper sampai Ujung Layar */
 .dashboard-wrapper {
   min-height: 100vh;
-  width: 100%;
+  width: 100vw;
+  box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
-  box-sizing: border-box;
-  padding: 24px 12px;
+  padding: 24px 32px; /* Margin kiri-kanan dibuat pas & elegan */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-/* Mengisi seluruh lebar area (Near Full Width) */
-.dashboard-container {
-  width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
 }
 
 /* Header Section */
@@ -387,7 +387,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
-  padding: 0 4px;
+  width: 100%;
 }
 
 .brand-badge {
@@ -422,14 +422,14 @@ h1 {
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
 
-/* Hapus outline/border pada tombol */
 .theme-toggle-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
   background-color: var(--bg-card);
-  border: none;
+  border: none !important;
+  outline: none !important;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -448,7 +448,8 @@ h1 {
   padding: 10px 16px;
   background-color: var(--bg-card);
   color: var(--danger-color);
-  border: none;
+  border: none !important;
+  outline: none !important;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -459,16 +460,18 @@ h1 {
 
 .btn-logout:hover { background-color: var(--danger-color); color: #ffffff; }
 
-/* Bento Grid Layout - Tanpa Border / Outline */
+/* Bento Grid Layout - Tanpa Border & Melebar Penuh */
 .bento-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 20px;
+  width: 100%;
 }
 
 .bento-item {
   background-color: var(--bg-card);
-  border: none;
+  border: none !important;
+  outline: none !important;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
@@ -541,7 +544,8 @@ h1 {
   justify-content: center;
   gap: 8px;
   background-color: var(--bg-card);
-  border: none;
+  border: none !important;
+  outline: none !important;
   color: var(--text-muted);
   font-weight: 600;
   cursor: pointer;
@@ -550,11 +554,12 @@ h1 {
 
 .quick-refresh-card:hover { color: var(--primary-color); }
 
-/* Section Table Preview Work Orders - Tanpa Outline */
+/* Section Table Preview Work Orders */
 .table-preview-section {
   margin-top: 20px;
   background-color: var(--bg-card);
-  border: none;
+  border: none !important;
+  outline: none !important;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
@@ -572,7 +577,7 @@ h1 {
   padding: 8px 16px;
   background-color: var(--primary-color);
   color: #ffffff;
-  border: none;
+  border: none !important;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
@@ -587,7 +592,7 @@ h1 {
 .minimal-table th { font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
 .code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
 .title-cell { font-weight: 600; color: var(--text-main); }
-.badge-report { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 3px 8px; border-radius: 6px; border: none; color: var(--text-main); }
+.badge-report { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 3px 8px; border-radius: 6px; border: none !important; color: var(--text-main); }
 .text-muted { color: var(--text-muted); font-size: 12px; font-style: italic; }
 .empty-cell { text-align: center; color: var(--text-muted); padding: 20px; }
 
@@ -601,14 +606,14 @@ h1 {
 .icon { width: 20px; height: 20px; }
 .icon-lg { width: 36px; height: 36px; }
 
-.state-card { background-color: var(--bg-card); border: none; border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+.state-card { background-color: var(--bg-card); border: none !important; border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
 .spinner, .spinner-sm { border: 3px solid rgba(148, 163, 184, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .spinner { width: 28px; height: 28px; margin: 0 auto 14px; }
 .spinner-sm { width: 18px; height: 18px; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .table-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 24px; color: var(--text-muted); }
-.btn-retry { margin-top: 14px; padding: 8px 18px; background-color: var(--primary-color); color: #ffffff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-retry { margin-top: 14px; padding: 8px 18px; background-color: var(--primary-color); color: #ffffff; border: none !important; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
 /* Animations */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
