@@ -1,44 +1,148 @@
 <template>
-  <div class="dashboard-page">
-    <div class="header-container">
+  <div class="dashboard-wrapper">
+    <!-- Header Section -->
+    <header class="header-container">
       <div class="header-title">
-        <h1>Manager Field Dashboard</h1>
-        <p class="subtitle">Selamat datang kembali, Manager ({{ user?.email }})</p>
-      </div>
-      <button @click="handleLogout" class="btn-logout">Logout</button>
-    </div>
-
-    <div v-if="loading" class="loading-state">Memuat data operasional...</div>
-
-    <div v-else-if="errorMessage" class="error-state">
-      <p>{{ errorMessage }}</p>
-      <button @click="fetchStats" class="btn-retry">Coba Lagi</button>
-    </div>
-
-    <div v-else>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h3>Work Orders Active</h3>
-          <p class="stat-number">{{ stats.activeWorkOrders || 0 }}</p>
+        <div class="brand-badge">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <span>Manager Field System</span>
         </div>
-        <div class="stat-card">
-          <h3>Laporan Perlu Approval</h3>
-          <p class="stat-number warning">{{ stats.pendingApprovals || 0 }}</p>
-        </div>
-        <div class="stat-card">
-          <h3>Teknisi Field Ready</h3>
-          <p class="stat-number">{{ stats.availableTechnicians || 0 }}</p>
-        </div>
+        <h1>Dashboard Manager</h1>
+        <p class="subtitle">Selamat datang kembali, <strong>{{ user?.name || user?.email || 'Manager' }}</strong></p>
       </div>
 
-      <div class="quick-actions">
-        <h3>Manajemen Operasional</h3>
-        <div class="action-buttons">
-          <router-link to="/work-orders" class="btn-action">Kelola Work Orders</router-link>
-          <router-link to="/reports" class="btn-action outline">Review Laporan Masuk</router-link>
+      <div class="header-actions">
+        <!-- Theme Status Indicator -->
+        <div class="theme-indicator" title="Mengikuti Pengaturan Mode Sistem">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <span>System Mode</span>
         </div>
+
+        <button @click="handleLogout" class="btn-logout">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          <span>Keluar</span>
+        </button>
       </div>
-    </div>
+    </header>
+
+    <!-- Loading State -->
+    <Transition name="fade" mode="out-in">
+      <div v-if="loading" class="state-card loading-state">
+        <div class="spinner"></div>
+        <p>Memuat data statistik operasional...</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="errorMessage" class="state-card error-state">
+        <svg class="icon-lg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>{{ errorMessage }}</p>
+        <button @click="fetchStats" class="btn-retry">Coba Memuat Ulang</button>
+      </div>
+
+      <!-- Bento Grid Content -->
+      <div v-else class="bento-grid">
+        <!-- Stat Card 1: Work Orders Active -->
+        <div class="bento-item stat-card primary">
+          <div class="card-header">
+            <div class="icon-box bg-blue">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <span class="card-tag">Aktif</span>
+          </div>
+          <div class="card-body">
+            <span class="stat-number">{{ stats.activeWorkOrders || 0 }}</span>
+            <span class="stat-label">Work Orders Berjalan</span>
+          </div>
+        </div>
+
+        <!-- Stat Card 2: Laporan Perlu Approval -->
+        <div class="bento-item stat-card warning">
+          <div class="card-header">
+            <div class="icon-box bg-amber">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <span class="card-tag warning">Perlu Review</span>
+          </div>
+          <div class="card-body">
+            <span class="stat-number text-amber">{{ stats.pendingApprovals || stats.pendingReports || 0 }}</span>
+            <span class="stat-label">Laporan Menunggu Approval</span>
+          </div>
+        </div>
+
+        <!-- Stat Card 3: Teknisi Ready -->
+        <div class="bento-item stat-card success">
+          <div class="card-header">
+            <div class="icon-box bg-emerald">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <span class="card-tag success">Siap Tugas</span>
+          </div>
+          <div class="card-body">
+            <span class="stat-number text-emerald">{{ stats.availableTechnicians || 0 }}</span>
+            <span class="stat-label">Teknisi Field Tersedia</span>
+          </div>
+        </div>
+
+        <!-- Bento Action Large Card 1: Kelola Work Orders -->
+        <router-link to="/work-orders" class="bento-item action-card group-blue">
+          <div class="action-icon-bg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <div class="action-content">
+            <div class="action-title">
+              <h3>Kelola Work Orders</h3>
+              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+            <p>Terbitkan, pantau penugasan teknisi, dan ubah status pekerjaan lapangan.</p>
+          </div>
+        </router-link>
+
+        <!-- Bento Action Large Card 2: Review Laporan -->
+        <router-link to="/reports" class="bento-item action-card group-indigo">
+          <div class="action-icon-bg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <div class="action-content">
+            <div class="action-title">
+              <h3>Review Laporan Masuk</h3>
+              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+            <p>Verifikasi laporan kerusakan dari pelapor sebelum diterbitkan menjadi Surat Tugas.</p>
+          </div>
+        </router-link>
+
+        <!-- Bento Action Small Card: Quick Refresh Dashboard -->
+        <button @click="fetchStats" class="bento-item quick-refresh-card">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <span>Refresh Data</span>
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -58,11 +162,10 @@ const fetchStats = async () => {
   errorMessage.value = '';
   try {
     const res = await managerApi.get('/api/manager/stats');
-    // Fleksibel mendukung format res.data.stats atau res.data langsung
-    stats.value = res?.data?.stats || res?.data || { activeWorkOrders: 0, pendingApprovals: 0, availableTechnicians: 0 };
+    stats.value = res?.data?.stats || res?.data?.data || res?.data || { activeWorkOrders: 0, pendingApprovals: 0, availableTechnicians: 0 };
   } catch (err) {
     console.error('Gagal memuat statistik manager:', err);
-    errorMessage.value = 'Gagal memuat data statistik dari server.';
+    errorMessage.value = 'Gagal terhubung dengan server statistik Manager.';
   } finally {
     loading.value = false;
   }
@@ -86,19 +189,335 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-page { padding: 24px; }
-.header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-.subtitle { color: #64748b; margin-top: 4px; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
-.stat-card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
-.stat-number { font-size: 32px; font-weight: bold; color: #0284c7; margin-top: 8px; }
-.warning { color: #d97706; }
-.quick-actions { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
-.action-buttons { display: flex; gap: 12px; margin-top: 12px; }
-.btn-action { padding: 10px 16px; background-color: #0284c7; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; }
-.btn-action.outline { background-color: transparent; color: #0284c7; border: 1px solid #0284c7; }
-.btn-logout { padding: 8px 16px; background-color: #ef4444; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-.btn-logout:hover { background-color: #dc2626; }
-.loading-state, .error-state { padding: 24px; background: #f8fafc; border-radius: 8px; text-align: center; color: #64748b; }
-.btn-retry { margin-top: 12px; padding: 6px 12px; background: #0284c7; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+/* CSS Variables for Dynamic System Dark / Light Mode (Default System) */
+:root {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --amber-color: #d97706;
+  --emerald-color: #059669;
+  --danger-color: #ef4444;
+  --icon-bg-blue: #eff6ff;
+  --icon-bg-amber: #fffbeb;
+  --icon-bg-emerald: #ecfdf5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    --primary-color: #3b82f6;
+    --primary-hover: #60a5fa;
+    --amber-color: #f59e0b;
+    --emerald-color: #10b981;
+    --danger-color: #f87171;
+    --icon-bg-blue: #1e3a8a;
+    --icon-bg-amber: #78350f;
+    --icon-bg-emerald: #064e3b;
+  }
+}
+
+.dashboard-wrapper {
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  padding: 32px 24px;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Header Section */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary-color);
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background-color: transparent;
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+  background-color: var(--danger-color);
+  color: #ffffff;
+}
+
+/* Bento Grid Layout */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.bento-item {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.bento-item:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-color);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1);
+}
+
+/* Stat Cards */
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-blue { background-color: var(--icon-bg-blue); color: var(--primary-color); }
+.bg-amber { background-color: var(--icon-bg-amber); color: var(--amber-color); }
+.bg-emerald { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
+
+.card-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background-color: var(--icon-bg-blue);
+  color: var(--primary-color);
+}
+
+.card-tag.warning { background-color: var(--icon-bg-amber); color: var(--amber-color); }
+.card-tag.success { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
+
+.card-body {
+  margin-top: 20px;
+}
+
+.stat-number {
+  display: block;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-main);
+}
+
+.text-amber { color: var(--amber-color); }
+.text-emerald { color: var(--emerald-color); }
+
+.stat-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Action Large Bento Cards */
+.action-card {
+  grid-column: span 1;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.action-icon-bg {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  width: 120px;
+  height: 120px;
+  opacity: 0.06;
+  transition: transform 0.3s ease;
+}
+
+.action-card:hover .action-icon-bg {
+  transform: scale(1.15) rotate(-5deg);
+  opacity: 0.12;
+}
+
+.action-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-title h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.arrow-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-color);
+  transition: transform 0.2s ease;
+}
+
+.action-card:hover .arrow-icon {
+  transform: translateX(4px);
+}
+
+.action-content p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 8px;
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+/* Quick Refresh Button Bento Item */
+.quick-refresh-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 20px;
+}
+
+.quick-refresh-card:hover {
+  border-style: solid;
+  color: var(--primary-color);
+}
+
+/* Icons */
+.icon-sm { width: 16px; height: 16px; }
+.icon { width: 22px; height: 22px; }
+.icon-lg { width: 40px; height: 40px; }
+
+/* States */
+.state-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn-retry {
+  margin-top: 16px;
+  padding: 8px 18px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Transitions */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+/* Responsive Responsive Grid */
+@media (max-width: 900px) {
+  .bento-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
 </style>
