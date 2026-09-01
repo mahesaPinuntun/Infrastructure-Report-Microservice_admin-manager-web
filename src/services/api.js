@@ -39,16 +39,14 @@ const createClient = (baseURL) => {
 
   return instance;
 };
-export const getTechnicians = async (page = 1, limit = 10, search = '') => {
-  const response = await managerApi.get('/api/manager/technicians', {
-    params: { page, limit, search }
-  });
-  return response.data;
-};
+
 export const authApi = createClient(AUTH_URL);
 export const adminApi = createClient(ADMIN_URL);
 export const managerApi = createClient(MANAGER_URL);
 
+// =========================================================================
+// AUTHENTICATION APIs
+// =========================================================================
 export const loginAdmin = async (email, password) => {
   const response = await authApi.post('/api/auth/login/admin', { email, password });
   return response.data;
@@ -59,6 +57,15 @@ export const loginManager = async (email, password) => {
   return response.data;
 };
 
+export const logout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = '/login';
+};
+
+// =========================================================================
+// USER MANAGEMENT APIs (ADMIN)
+// =========================================================================
 export const createUser = async (userData) => {
   const response = await adminApi.post('/api/admin/users', userData);
   return response.data;
@@ -79,8 +86,25 @@ export const deleteUser = async (userId) => {
   return response.data;
 };
 
-export const logout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  window.location.href = '/login';
+// =========================================================================
+// WORK ORDER & TECHNICIAN APIs (DYNAMIC ROLE CLIENT)
+// =========================================================================
+export const createWorkOrder = async (payload) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const api = user.role === 'ADMIN' ? adminApi : managerApi;
+  const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
+  
+  const response = await api.post(endpoint, payload);
+  return response.data;
+};
+
+export const getTechnicians = async (page = 1, limit = 100, search = '') => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const api = user.role === 'ADMIN' ? adminApi : managerApi;
+  const endpoint = user.role === 'ADMIN' ? '/api/admin/technicians' : '/api/manager/technicians';
+
+  const response = await api.get(endpoint, {
+    params: { page, limit, search }
+  });
+  return response.data;
 };
