@@ -4,7 +4,7 @@
     <header class="header-container">
       <div class="header-title">
         <div class="brand-badge">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-sm icon-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
           <span>Manager Field System</span>
@@ -16,18 +16,18 @@
       <div class="header-actions">
         <!-- Button Switch Theme -->
         <button @click="toggleTheme" class="theme-toggle-btn" :title="`Mode saat ini: ${activeTheme}`">
-          <svg v-if="activeTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg v-if="activeTheme === 'dark'" class="icon-sm icon-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"/>
             <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
           </svg>
-          <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg v-else class="icon-sm icon-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
           <span>{{ activeTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
         </button>
 
         <button @click="handleLogout" class="btn-logout">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-sm icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
           </svg>
           <span>Keluar</span>
@@ -140,7 +140,7 @@
 
           <!-- Bento Action Small Card: Refresh Data -->
           <button @click="fetchStats" class="bento-item quick-refresh-card">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="icon icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
             </svg>
             <span>Refresh Data</span>
@@ -317,12 +317,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Palette CSS Variables - Menjamin Kontras Teks yang Kuat */
+/* Palette CSS Variables */
 :global(:root),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
-  --text-main: #0f172a; /* Teks Hitam Pekat di Light Mode */
+  --text-main: #0f172a;
   --text-muted: #64748b;
   --border-color: transparent;
   --primary-color: #2563eb;
@@ -333,12 +333,13 @@ onMounted(() => {
   --icon-bg-blue: #eff6ff;
   --icon-bg-amber: #fffbeb;
   --icon-bg-emerald: #ecfdf5;
+  --icon-muted: #64748b;
 }
 
 :global([data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
-  --text-main: #f8fafc; /* Teks Putih Terang di Dark Mode */
+  --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --border-color: transparent;
   --primary-color: #3b82f6;
@@ -349,6 +350,7 @@ onMounted(() => {
   --icon-bg-blue: #1e3a8a;
   --icon-bg-amber: #78350f;
   --icon-bg-emerald: #064e3b;
+  --icon-muted: #94a3b8;
 }
 
 /* Global Container Resets */
@@ -401,6 +403,10 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 
+.icon-brand {
+  color: var(--primary-color) !important;
+}
+
 h1 { 
   font-size: 26px; 
   font-weight: 800; 
@@ -438,7 +444,13 @@ h1 {
   transition: all 0.2s ease;
 }
 
+.icon-theme {
+  color: var(--text-main) !important;
+  transition: color 0.2s ease;
+}
+
 .theme-toggle-btn:hover { color: var(--primary-color) !important; }
+.theme-toggle-btn:hover .icon-theme { color: var(--primary-color) !important; }
 
 .btn-logout {
   display: flex;
@@ -457,7 +469,13 @@ h1 {
   transition: all 0.2s ease;
 }
 
+.icon-logout {
+  color: var(--danger-color) !important;
+  transition: color 0.2s ease;
+}
+
 .btn-logout:hover { background-color: var(--danger-color); color: #ffffff !important; }
+.btn-logout:hover .icon-logout { color: #ffffff !important; }
 
 /* Bento Grid Layout */
 .bento-grid {
@@ -496,6 +514,10 @@ h1 {
 .bg-amber { background-color: var(--icon-bg-amber); color: var(--amber-color); }
 .bg-emerald { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
 
+.bg-blue .icon { color: var(--primary-color) !important; }
+.bg-amber .icon { color: var(--amber-color) !important; }
+.bg-emerald .icon { color: var(--emerald-color) !important; }
+
 .card-tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background-color: var(--icon-bg-blue); color: var(--primary-color); }
 .card-tag.warning { background-color: var(--icon-bg-amber); color: var(--amber-color); }
 .card-tag.success { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
@@ -524,14 +546,15 @@ h1 {
   bottom: -10px;
   width: 110px;
   height: 110px;
-  opacity: 0.06;
+  opacity: 0.1;
+  color: var(--text-main) !important;
   transition: transform 0.3s ease;
 }
 
-.action-card:hover .action-icon-bg { transform: scale(1.15) rotate(-5deg); opacity: 0.12; }
+.action-card:hover .action-icon-bg { transform: scale(1.15) rotate(-5deg); opacity: 0.2; }
 .action-title { display: flex; justify-content: space-between; align-items: center; }
 .action-title h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main) !important; }
-.arrow-icon { width: 20px; height: 20px; color: var(--primary-color); transition: transform 0.25s ease; }
+.arrow-icon { width: 20px; height: 20px; color: var(--primary-color) !important; transition: transform 0.25s ease; }
 .arrow-icon.rotate-down { transform: rotate(90deg); }
 .action-card:hover .arrow-icon:not(.rotate-down) { transform: translateX(4px); }
 .action-content p { color: var(--text-muted) !important; font-size: 13px; margin-top: 6px; margin-bottom: 0; line-height: 1.4; }
@@ -552,7 +575,13 @@ h1 {
   padding: 20px;
 }
 
+.icon-refresh {
+  color: var(--icon-muted) !important;
+  transition: color 0.2s ease, transform 0.3s ease;
+}
+
 .quick-refresh-card:hover { color: var(--primary-color) !important; }
+.quick-refresh-card:hover .icon-refresh { color: var(--primary-color) !important; transform: rotate(180deg); }
 
 /* Section Table Preview Work Orders */
 .table-preview-section {
@@ -585,6 +614,8 @@ h1 {
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
+
+.btn-reroute .icon-sm { color: #ffffff !important; }
 
 .btn-reroute:hover { background-color: var(--primary-hover); }
 .table-responsive { overflow-x: auto; }
