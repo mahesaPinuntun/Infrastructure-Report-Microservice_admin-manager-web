@@ -1,178 +1,234 @@
+<template>
+  <div class="page-wrapper">
+    <!-- Header Bar -->
+    <header class="header-bar">
+      <div class="header-left">
+        <button @click="goToDashboard" class="btn-back">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+          <span>Kembali ke Dashboard Utama</span>
+        </button>
+        <h2>Manajemen Surat Tugas (Work Orders)</h2>
+      </div>
+
+      <button @click="showCreateModal = true" class="btn-create">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>Buat Work Order Baru</span>
+      </button>
+    </header>
+
+    <!-- State Card: Loading -->
+    <div v-if="loading" class="state-card">
+      <div class="spinner"></div>
+      <p>Memuat daftar Surat Tugas (Work Orders)...</p>
+    </div>
+
+    <!-- Table Preview Section -->
+    <div v-else class="table-container">
+      <div class="table-responsive">
+        <table class="minimal-table">
+          <thead>
+            <tr>
+              <th>Surat ID</th>
+              <th>Nama Perusahaan</th>
+              <th>Pembuat Surat</th>
+              <th>Lokasi Perbaikan</th>
+              <th>Total Biaya</th>
+              <th>Path Bukti Surat</th>
+              <th>Tanggal Buat</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="orders.length === 0">
+              <td colspan="7" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
+            </tr>
+            <tr v-for="item in orders" :key="item._id || item.id">
+              <td class="code-cell">{{ item.woCode || item._id?.substring(0, 8) }}</td>
+              <td class="title-cell">{{ item.companyName || 'Infrastructure_Report' }}</td>
+              <td>{{ item.createdBy || '-' }}</td>
+              <td>{{ item.locationName || '-' }}</td>
+              <td class="price-cell">Rp {{ formatCurrency(item.grandTotal) }}</td>
+              <td>
+                <span class="badge-url" :title="item.proofDocumentUrl">{{ item.proofDocumentUrl || '-' }}</span>
+              </td>
+              <td>{{ formatDate(item.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panggil Komponen Modal Terpisah -->
+    <CreateWorkOrderModal
+      v-if="showCreateModal"
+      @close="showCreateModal = false"
+      @created="fetchWorkOrders"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { adminApi, managerApi } from '../services/api';
+import CreateWorkOrderModal from '../components/CreateWorkOrderModal.vue';
+
+const router = useRouter();
+
+const orders = ref([]);
+const loading = ref(true);
+const showCreateModal = ref(false);
+
+const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
+
+const getApiClient = () => {
+  const user = getUserData();
+  return user.role === 'ADMIN' ? adminApi : managerApi;
+};
+
+const goToDashboard = () => {
+  const user = getUserData();
+  const rawRole = (user.role || '').toUpperCase();
+  const targetPath = (rawRole === 'MANAGER' || rawRole === 'INFRASTRUCTURE_MANAGER') ? '/manager' : '/admin';
+  router.push(targetPath);
+};
+
+const fetchWorkOrders = async () => {
+  loading.value = true;
+  try {
+    const api = getApiClient();
+    const user = getUserData();
+    const endpoint = user.role === 'ADMIN' ? '/api/admin/work-orders' : '/api/manager/work-orders';
+    const res = await api.get(endpoint);
+    orders.value = res.data.workOrders || res.data.data || res.data || [];
+  } catch (err) {
+    console.error('Gagal memuat Work Orders:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
+onMounted(() => {
+  fetchWorkOrders();
+});
+</script>
+
 <style scoped>
 :global(:root),
 :global([data-theme="light"]) {
-  --modal-bg: #ffffff;
-  --modal-text: #0f172a;
-  --section-bg: #f8fafc;
-  --input-bg: #ffffff;
-  --input-border: #cbd5e1;
-  --text-label: #475569;
-  --grand-total-bg: #eff6ff;
-  --grand-total-text: #2563eb;
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --primary-color: #2563eb;
+  --emerald-color: #059669;
 }
 
 :global([data-theme="dark"]) {
-  --modal-bg: #1e293b;
-  --modal-text: #f8fafc;
-  --section-bg: #0f172a;
-  --input-bg: #334155;
-  --input-border: #475569;
-  --text-label: #94a3b8;
-  --grand-total-bg: #1e3a8a;
-  --grand-total-text: #60a5fa;
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary-color: #3b82f6;
+  --emerald-color: #10b981;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.wide-modal {
-  max-width: 860px;
-  width: 95%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-card {
-  background: var(--modal-bg);
-  border-radius: 16px;
-  padding: 24px;
-  color: var(--modal-text);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--modal-text);
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--text-label);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-label); }
-
-.input-control {
-  width: 100%;
-  padding: 10px 14px;
-  background-color: var(--section-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--modal-text);
+.page-wrapper {
+  min-height: 100vh;
+  width: 100vw;
   box-sizing: border-box;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  padding: 24px 32px;
 }
 
-.readonly { opacity: 0.7; cursor: not-allowed; }
-.textarea { height: 70px; resize: vertical; }
-
-.section-box {
-  background-color: var(--section-bg);
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  border: 1px solid var(--input-border);
-}
-
-.section-header {
+.header-bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  margin-bottom: 24px;
 }
 
-.section-header h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--modal-text); }
+.header-left h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
 
-.btn-sm-add {
-  padding: 6px 12px;
-  background-color: #059669;
+.btn-back {
+  background: transparent;
+  border: none;
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+
+.btn-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background-color: var(--primary-color);
   color: #fff;
   border: none;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.form-table {
+.table-container {
+  background-color: var(--bg-card);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.minimal-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
 }
 
-.form-table th, .form-table td {
-  padding: 8px;
-  font-size: 12px;
-  color: var(--modal-text);
+.minimal-table th, .minimal-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
 }
 
-.input-table {
-  width: 100%;
-  padding: 6px 10px;
-  background-color: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--modal-text);
-  box-sizing: border-box;
+.minimal-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
 }
 
-.select-table { cursor: pointer; }
-.btn-remove { background: #ef4444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
-.total-summary { text-align: right; margin-top: 10px; font-size: 13px; color: var(--modal-text); }
+.code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
+.title-cell { font-weight: 600; }
+.price-cell { font-weight: 700; color: var(--emerald-color); }
+.badge-url { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 4px 8px; border-radius: 6px; }
 
-.grand-total-box {
-  background-color: var(--grand-total-bg);
-  color: var(--grand-total-text);
-  padding: 16px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 15px;
-  text-align: right;
-  margin-bottom: 20px;
-}
-
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-.btn-download { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background-color: #d97706; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
-.btn-cancel { padding: 10px 18px; background: transparent; border: 1px solid var(--input-border); color: var(--text-label); font-weight: 600; border-radius: 8px; cursor: pointer; }
-.btn-submit { padding: 10px 18px; background-color: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
-
-/* PDF printable area styling - Tetap Putih untuk Cetak Dokumentasi */
-.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
-.pdf-header { text-align: center; }
-.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
-.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
-.pdf-section { margin-bottom: 16px; }
-.pdf-section h4 { margin-bottom: 6px; font-size: 14px; }
-.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000; }
-.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; }
-.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000; }
 .icon-sm { width: 16px; height: 16px; }
+.state-card { background-color: var(--bg-card); border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted); }
+.spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid rgba(148, 163, 184, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
