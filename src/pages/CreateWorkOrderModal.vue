@@ -40,17 +40,17 @@
           </div>
         </div>
 
-        <!-- SECTION 1: Dynamic List Teknisi (Dropdown dari Cluster Technicians) -->
+        <!-- SECTION 1: Multiselect / Dynamic List Teknisi via Dropdown -->
         <div class="section-box">
           <div class="section-header">
-            <h4>List Teknisi yang Dipekerjakan</h4>
-            <button type="button" @click="addTechnician" class="btn-sm-add">+ Tambah Teknisi</button>
+            <h4>List Teknisi yang Dipekerjakan (Bisa > 1 Teknisi)</h4>
+            <button type="button" @click="addTechnicianRow" class="btn-sm-add">+ Tambah Teknisi Lagi</button>
           </div>
           <div class="table-responsive">
             <table class="form-table">
               <thead>
                 <tr>
-                  <th>Pilih Teknisi (Cluster)</th>
+                  <th>Pilih Teknisi (Dropdown)</th>
                   <th>Email Teknisi</th>
                   <th>Nomor Handphone</th>
                   <th>Bayaran (Rp)</th>
@@ -60,18 +60,20 @@
               <tbody>
                 <tr v-for="(tech, index) in form.technicians" :key="index">
                   <td>
-                    <!-- Dropdown Teknisi -->
-                    <select 
-                      v-model="tech.technicianId" 
-                      @change="onTechnicianSelect(index)" 
-                      required 
+                    <!-- Dropdown Pilih Teknisi -->
+                    <select
+                      v-model="tech.technicianId"
+                      @change="onTechnicianSelect(index)"
+                      required
                       class="input-table select-table"
                       :disabled="loadingTechs"
                     >
-                      <option value="" disabled>-- {{ loadingTechs ? 'Memuat Teknisi...' : 'Pilih Teknisi' }} --</option>
-                      <option 
-                        v-for="t in availableTechnicians" 
-                        :key="t.id || t._id" 
+                      <option value="" disabled>
+                        -- {{ loadingTechs ? 'Memuat Teknisi...' : 'Pilih Teknisi' }} --
+                      </option>
+                      <option
+                        v-for="t in getAvailableOptionsForIndex(index)"
+                        :key="t.id || t._id"
                         :value="t.id || t._id"
                       >
                         {{ t.name }} ({{ t.specialization || 'Umum' }})
@@ -88,7 +90,7 @@
                     <input type="number" v-model.number="tech.fee" min="0" required class="input-table" />
                   </td>
                   <td class="text-center">
-                    <button type="button" @click="removeTechnician(index)" class="btn-remove" title="Hapus">&times;</button>
+                    <button type="button" @click="removeTechnicianRow(index)" class="btn-remove" title="Hapus">&times;</button>
                   </td>
                 </tr>
               </tbody>
@@ -280,8 +282,8 @@ const form = ref({
   resources: [{ name: '', quantity: 1, unit: 'pcs', price: 0 }]
 });
 
-// Ambil list teknisi dari cluster backend saat modal di-load
-const fetchAvailableTechnicians = async () => {
+// Load daftar teknisi dari API saat modal dibuka
+const fetchTechnicians = async () => {
   loadingTechs.value = true;
   try {
     const res = await getTechnicians(1, 100);
@@ -293,16 +295,39 @@ const fetchAvailableTechnicians = async () => {
   }
 };
 
-// Event handler saat teknisi dipilih dari dropdown
-const onTechnicianSelect = (index) => {
-  const selectedRow = form.value.technicians[index];
-  const techObj = availableTechnicians.value.find(
-    t => (t.id || t._id) === selectedRow.technicianId
+// Filter agar teknisi yang sudah dipilih tidak muncul di baris lain
+const getAvailableOptionsForIndex = (currentIndex) => {
+  const selectedIds = form.value.technicians
+    .map((tech, idx) => (idx !== currentIndex ? tech.technicianId : null))
+    .filter(Boolean);
+
+  return availableTechnicians.value.filter(
+    (tech) => !selectedIds.includes(tech.id || tech._id)
   );
-  if (techObj) {
-    selectedRow.name = techObj.name;
-    selectedRow.email = techObj.email;
-    selectedRow.phone = techObj.phone || selectedRow.phone || '';
+};
+
+// Autofill email & phone saat dropdown berubah
+const onTechnicianSelect = (index) => {
+  const row = form.value.technicians[index];
+  const selectedTech = availableTechnicians.value.find(
+    (t) => (t.id || t._id) === row.technicianId
+  );
+  if (selectedTech) {
+    row.name = selectedTech.name;
+    row.email = selectedTech.email;
+    row.phone = selectedTech.phone || row.phone || '';
+  }
+};
+
+// Tambah baris teknisi baru
+const addTechnicianRow = () => {
+  form.value.technicians.push({ technicianId: '', name: '', email: '', phone: '', fee: 0 });
+};
+
+// Hapus baris teknisi
+const removeTechnicianRow = (index) => {
+  if (form.value.technicians.length > 1) {
+    form.value.technicians.splice(index, 1);
   }
 };
 
@@ -315,16 +340,6 @@ const totalResourceCost = computed(() => {
 });
 
 const grandTotal = computed(() => totalTechFee.value + totalResourceCost.value);
-
-const addTechnician = () => {
-  form.value.technicians.push({ technicianId: '', name: '', email: '', phone: '', fee: 0 });
-};
-
-const removeTechnician = (index) => {
-  if (form.value.technicians.length > 1) {
-    form.value.technicians.splice(index, 1);
-  }
-};
 
 const addResource = () => {
   form.value.resources.push({ name: '', quantity: 1, unit: 'pcs', price: 0 });
@@ -371,7 +386,7 @@ const downloadPDF = () => {
 const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
 
 onMounted(() => {
-  fetchAvailableTechnicians();
+  fetchTechnicians();
 });
 </script>
 
