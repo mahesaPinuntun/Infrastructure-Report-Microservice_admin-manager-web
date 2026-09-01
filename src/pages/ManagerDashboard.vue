@@ -14,14 +14,17 @@
       </div>
 
       <div class="header-actions">
-        <!-- Theme Status Indicator -->
-        <div class="theme-indicator" title="Mengikuti Pengaturan Mode Sistem">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- Button Switch Theme (Default System, Toggle Manual) -->
+        <button @click="toggleTheme" class="theme-toggle-btn" :title="`Mode saat ini: ${themeMode}`">
+          <svg v-if="activeTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"/>
             <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
           </svg>
-          <span>System Mode</span>
-        </div>
+          <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <span>{{ activeTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
+        </button>
 
         <button @click="handleLogout" class="btn-logout">
           <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -49,98 +52,158 @@
       </div>
 
       <!-- Bento Grid Content -->
-      <div v-else class="bento-grid">
-        <!-- Stat Card 1: Work Orders Active -->
-        <div class="bento-item stat-card primary">
-          <div class="card-header">
-            <div class="icon-box bg-blue">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+      <div v-else class="dashboard-content">
+        <div class="bento-grid">
+          <!-- Stat Card 1: Work Orders Active -->
+          <div class="bento-item stat-card primary">
+            <div class="card-header">
+              <div class="icon-box bg-blue">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <span class="card-tag">Aktif</span>
+            </div>
+            <div class="card-body">
+              <span class="stat-number">{{ stats.activeWorkOrders || 0 }}</span>
+              <span class="stat-label">Work Orders Berjalan</span>
+            </div>
+          </div>
+
+          <!-- Stat Card 2: Laporan Perlu Approval -->
+          <div class="bento-item stat-card warning">
+            <div class="card-header">
+              <div class="icon-box bg-amber">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <span class="card-tag warning">Perlu Review</span>
+            </div>
+            <div class="card-body">
+              <span class="stat-number text-amber">{{ stats.pendingApprovals || stats.pendingReports || 0 }}</span>
+              <span class="stat-label">Laporan Menunggu Approval</span>
+            </div>
+          </div>
+
+          <!-- Stat Card 3: Teknisi Ready -->
+          <div class="bento-item stat-card success">
+            <div class="card-header">
+              <div class="icon-box bg-emerald">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <span class="card-tag success">Siap Tugas</span>
+            </div>
+            <div class="card-body">
+              <span class="stat-number text-emerald">{{ stats.availableTechnicians || 0 }}</span>
+              <span class="stat-label">Teknisi Field Tersedia</span>
+            </div>
+          </div>
+
+          <!-- Bento Action Card 1: Toggle Preview Table Work Orders -->
+          <div @click="toggleWorkOrdersTable" :class="['bento-item', 'action-card', 'group-blue', { 'active-card': showWorkOrdersTable }]">
+            <div class="action-icon-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
               </svg>
             </div>
-            <span class="card-tag">Aktif</span>
+            <div class="action-content">
+              <div class="action-title">
+                <h3>Kelola Work Orders</h3>
+                <svg :class="['arrow-icon', { 'rotate-down': showWorkOrdersTable }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+              <p>{{ showWorkOrdersTable ? 'Klik untuk menyembunyikan tabel preview.' : 'Tampilkan preview ringkas tabel Work Orders di bawah.' }}</p>
+            </div>
           </div>
-          <div class="card-body">
-            <span class="stat-number">{{ stats.activeWorkOrders || 0 }}</span>
-            <span class="stat-label">Work Orders Berjalan</span>
-          </div>
-        </div>
 
-        <!-- Stat Card 2: Laporan Perlu Approval -->
-        <div class="bento-item stat-card warning">
-          <div class="card-header">
-            <div class="icon-box bg-amber">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          <!-- Bento Action Card 2: Review Laporan -->
+          <router-link to="/reports" class="bento-item action-card group-indigo">
+            <div class="action-icon-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
               </svg>
             </div>
-            <span class="card-tag warning">Perlu Review</span>
-          </div>
-          <div class="card-body">
-            <span class="stat-number text-amber">{{ stats.pendingApprovals || stats.pendingReports || 0 }}</span>
-            <span class="stat-label">Laporan Menunggu Approval</span>
-          </div>
-        </div>
-
-        <!-- Stat Card 3: Teknisi Ready -->
-        <div class="bento-item stat-card success">
-          <div class="card-header">
-            <div class="icon-box bg-emerald">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
+            <div class="action-content">
+              <div class="action-title">
+                <h3>Review Laporan Masuk</h3>
+                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+              <p>Verifikasi laporan kerusakan dari pelapor sebelum diterbitkan menjadi Surat Tugas.</p>
             </div>
-            <span class="card-tag success">Siap Tugas</span>
-          </div>
-          <div class="card-body">
-            <span class="stat-number text-emerald">{{ stats.availableTechnicians || 0 }}</span>
-            <span class="stat-label">Teknisi Field Tersedia</span>
-          </div>
-        </div>
+          </router-link>
 
-        <!-- Bento Action Large Card 1: Kelola Work Orders -->
-        <router-link to="/work-orders" class="bento-item action-card group-blue">
-          <div class="action-icon-bg">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          <!-- Bento Action Small Card: Refresh Data -->
+          <button @click="fetchStats" class="bento-item quick-refresh-card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
             </svg>
-          </div>
-          <div class="action-content">
-            <div class="action-title">
-              <h3>Kelola Work Orders</h3>
-              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-              </svg>
-            </div>
-            <p>Terbitkan, pantau penugasan teknisi, dan ubah status pekerjaan lapangan.</p>
-          </div>
-        </router-link>
+            <span>Refresh Data</span>
+          </button>
+        </div>
 
-        <!-- Bento Action Large Card 2: Review Laporan -->
-        <router-link to="/reports" class="bento-item action-card group-indigo">
-          <div class="action-icon-bg">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-            </svg>
-          </div>
-          <div class="action-content">
-            <div class="action-title">
-              <h3>Review Laporan Masuk</h3>
-              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-              </svg>
+        <!-- Section Work Orders Preview Table -->
+        <Transition name="expand">
+          <div v-if="showWorkOrdersTable" class="table-preview-section">
+            <div class="table-header">
+              <div class="table-title">
+                <h3>Daftar Work Orders Terbaru</h3>
+                <span class="count-badge">{{ workOrders.length }} Items</span>
+              </div>
+              
+              <!-- Tombol Reroute ke Halaman Penuh /work-orders -->
+              <button @click="navigateToWorkOrders" class="btn-reroute">
+                <span>Buka Halaman Penuh (/work-orders)</span>
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </button>
             </div>
-            <p>Verifikasi laporan kerusakan dari pelapor sebelum diterbitkan menjadi Surat Tugas.</p>
-          </div>
-        </router-link>
 
-        <!-- Bento Action Small Card: Quick Refresh Dashboard -->
-        <button @click="fetchStats" class="bento-item quick-refresh-card">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-          <span>Refresh Data</span>
-        </button>
+            <div v-if="loadingOrders" class="table-loading">
+              <div class="spinner-sm"></div>
+              <span>Memuat daftar Surat Tugas...</span>
+            </div>
+
+            <div v-else class="table-responsive">
+              <table class="minimal-table">
+                <thead>
+                  <tr>
+                    <th>WO Code</th>
+                    <th>Judul Tugas</th>
+                    <th>Laporan Terkait</th>
+                    <th>Status</th>
+                    <th>Tanggal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="workOrders.length === 0">
+                    <td colspan="5" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
+                  </tr>
+                  <tr v-for="item in workOrders.slice(0, 5)" :key="item._id || item.id">
+                    <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
+                    <td class="title-cell">{{ item.title }}</td>
+                    <td>
+                      <span v-if="item.reportId" class="badge-report">{{ item.reportId }}</span>
+                      <span v-else class="text-muted">Mandiri</span>
+                    </td>
+                    <td>
+                      <span :class="['badge-status', item.status?.toLowerCase()]">
+                        {{ item.status || 'ASSIGNED' }}
+                      </span>
+                    </td>
+                    <td>{{ formatDate(item.createdAt) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Transition>
       </div>
     </Transition>
   </div>
@@ -153,9 +216,47 @@ import { managerApi, logout } from '../services/api';
 
 const router = useRouter();
 const stats = ref({ activeWorkOrders: 0, pendingApprovals: 0, availableTechnicians: 0 });
+const workOrders = ref([]);
 const user = ref(null);
 const loading = ref(true);
+const loadingOrders = ref(false);
 const errorMessage = ref('');
+const showWorkOrdersTable = ref(false);
+
+// Theme State (Default = System)
+const activeTheme = ref('light');
+const themeMode = ref('system');
+
+const applyTheme = (theme) => {
+  activeTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+};
+
+const toggleTheme = () => {
+  const nextTheme = activeTheme.value === 'dark' ? 'light' : 'dark';
+  themeMode.value = 'manual';
+  localStorage.setItem('user-theme', nextTheme);
+  applyTheme(nextTheme);
+};
+
+const initTheme = () => {
+  const savedTheme = localStorage.getItem('user-theme');
+  if (savedTheme) {
+    themeMode.value = 'manual';
+    applyTheme(savedTheme);
+  } else {
+    themeMode.value = 'system';
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(systemPrefersDark ? 'dark' : 'light');
+
+    // Listener saat preferensi sistem OS berubah
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (!localStorage.getItem('user-theme')) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
+    });
+  }
+};
 
 const fetchStats = async () => {
   loading.value = true;
@@ -171,11 +272,45 @@ const fetchStats = async () => {
   }
 };
 
+const fetchWorkOrders = async () => {
+  loadingOrders.value = true;
+  try {
+    const res = await managerApi.get('/api/manager/work-orders');
+    const rawData = res.data?.data || res.data?.workOrders || res.data;
+    workOrders.value = Array.isArray(rawData) ? rawData : [];
+  } catch (err) {
+    console.error('Gagal memuat daftar Work Orders:', err);
+  } finally {
+    loadingOrders.value = false;
+  }
+};
+
+const toggleWorkOrdersTable = () => {
+  showWorkOrdersTable.value = !showWorkOrdersTable.value;
+  if (showWorkOrdersTable.value && workOrders.value.length === 0) {
+    fetchWorkOrders();
+  }
+};
+
+const navigateToWorkOrders = () => {
+  router.push('/work-orders');
+};
+
 const handleLogout = () => {
   logout();
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
 onMounted(() => {
+  initTheme();
   const storedUser = localStorage.getItem('user');
   if (storedUser) {
     try {
@@ -189,8 +324,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* CSS Variables for Dynamic System Dark / Light Mode (Default System) */
-:root {
+/* CSS Variables for Dynamic System Dark / Light Mode */
+:root, [data-theme="light"] {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --text-main: #0f172a;
@@ -206,22 +341,20 @@ onMounted(() => {
   --icon-bg-emerald: #ecfdf5;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-main: #0f172a;
-    --bg-card: #1e293b;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --border-color: #334155;
-    --primary-color: #3b82f6;
-    --primary-hover: #60a5fa;
-    --amber-color: #f59e0b;
-    --emerald-color: #10b981;
-    --danger-color: #f87171;
-    --icon-bg-blue: #1e3a8a;
-    --icon-bg-amber: #78350f;
-    --icon-bg-emerald: #064e3b;
-  }
+[data-theme="dark"] {
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --primary-color: #3b82f6;
+  --primary-hover: #60a5fa;
+  --amber-color: #f59e0b;
+  --emerald-color: #10b981;
+  --danger-color: #f87171;
+  --icon-bg-blue: #1e3a8a;
+  --icon-bg-amber: #78350f;
+  --icon-bg-emerald: #064e3b;
 }
 
 .dashboard-wrapper {
@@ -272,17 +405,24 @@ h1 {
   gap: 12px;
 }
 
-.theme-indicator {
+.theme-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px 14px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .btn-logout {
@@ -326,6 +466,11 @@ h1 {
   box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1);
 }
 
+.active-card {
+  border-color: var(--primary-color) !important;
+  background-color: var(--icon-bg-blue);
+}
+
 /* Stat Cards */
 .stat-card {
   display: flex;
@@ -364,9 +509,7 @@ h1 {
 .card-tag.warning { background-color: var(--icon-bg-amber); color: var(--amber-color); }
 .card-tag.success { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
 
-.card-body {
-  margin-top: 20px;
-}
+.card-body { margin-top: 20px; }
 
 .stat-number {
   display: block;
@@ -431,10 +574,14 @@ h1 {
   width: 20px;
   height: 20px;
   color: var(--primary-color);
-  transition: transform 0.2s ease;
+  transition: transform 0.25s ease;
 }
 
-.action-card:hover .arrow-icon {
+.arrow-icon.rotate-down {
+  transform: rotate(90deg);
+}
+
+.action-card:hover .arrow-icon:not(.rotate-down) {
   transform: translateX(4px);
 }
 
@@ -446,7 +593,7 @@ h1 {
   line-height: 1.5;
 }
 
-/* Quick Refresh Button Bento Item */
+/* Quick Refresh Button */
 .quick-refresh-card {
   display: flex;
   flex-direction: column;
@@ -466,12 +613,109 @@ h1 {
   color: var(--primary-color);
 }
 
-/* Icons */
+/* Section Table Preview Work Orders */
+.table-preview-section {
+  margin-top: 24px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.table-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-title h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.count-badge {
+  font-size: 12px;
+  font-weight: 700;
+  background-color: var(--icon-bg-blue);
+  color: var(--primary-color);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.btn-reroute {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-reroute:hover {
+  background-color: var(--primary-hover);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.minimal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.minimal-table th, .minimal-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.minimal-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
+.title-cell { font-weight: 600; }
+.badge-report { font-family: monospace; font-size: 11px; background: var(--bg-main); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); }
+.text-muted { color: var(--text-muted); font-size: 12px; font-style: italic; }
+.empty-cell { text-align: center; color: var(--text-muted); padding: 24px; }
+
+.badge-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.badge-status.assigned { background-color: var(--icon-bg-blue); color: var(--primary-color); }
+.badge-status.in_progress { background-color: var(--icon-bg-amber); color: var(--amber-color); }
+.badge-status.completed { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
+
+/* Icons & Spinners */
 .icon-sm { width: 16px; height: 16px; }
 .icon { width: 22px; height: 22px; }
 .icon-lg { width: 40px; height: 40px; }
 
-/* States */
 .state-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -481,18 +725,25 @@ h1 {
   color: var(--text-muted);
 }
 
-.spinner {
-  width: 32px;
-  height: 32px;
+.spinner, .spinner-sm {
   border: 3px solid var(--border-color);
   border-top-color: var(--primary-color);
   border-radius: 50%;
-  margin: 0 auto 16px;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.spinner { width: 32px; height: 32px; margin: 0 auto 16px; }
+.spinner-sm { width: 20px; height: 20px; display: inline-block; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.table-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  color: var(--text-muted);
 }
 
 .btn-retry {
@@ -506,18 +757,15 @@ h1 {
   cursor: pointer;
 }
 
-/* Transitions */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
+/* Animations */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* Responsive Responsive Grid */
+.expand-enter-active, .expand-leave-active { transition: all 0.3s ease-in-out; max-height: 500px; opacity: 1; overflow: hidden; }
+.expand-enter-from, .expand-leave-to { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; margin-top: 0; }
+
 @media (max-width: 900px) {
-  .bento-grid {
-    grid-template-columns: repeat(1, 1fr);
-  }
+  .bento-grid { grid-template-columns: repeat(1, 1fr); }
+  .table-header { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
 </style>
