@@ -37,7 +37,7 @@
               <th>Pembuat Surat</th>
               <th>Lokasi Perbaikan</th>
               <th>Total Biaya</th>
-              <th>Path Bukti Surat</th>
+              <th>Bukti Surat (Dokumen)</th>
               <th>Tanggal Buat</th>
             </tr>
           </thead>
@@ -52,7 +52,14 @@
               <td>{{ item.locationName || '-' }}</td>
               <td class="price-cell">Rp {{ formatCurrency(item.grandTotal) }}</td>
               <td>
-                <span class="badge-url" :title="item.proofDocumentUrl">{{ item.proofDocumentUrl || '-' }}</span>
+                <button @click="generateAndDownloadPDF(item)" class="btn-pdf-action">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span>Download PDF</span>
+                </button>
               </td>
               <td>{{ formatDate(item.createdAt) }}</td>
             </tr>
@@ -67,12 +74,92 @@
       @close="showCreateModal = false"
       @created="fetchWorkOrders"
     />
+
+    <!-- Hidden Template Rendering PDF untuk Item yang Diunduh -->
+    <div style="display: none;">
+      <div v-if="activePdfItem" id="dynamic-pdf-area" class="pdf-document">
+        <div class="pdf-header">
+          <h2>SURAT TUGAS WORK ORDER</h2>
+          <h3>{{ activePdfItem.companyName || 'Infrastructure_Report' }}</h3>
+          <p><strong>ID Surat:</strong> {{ activePdfItem.woCode }}</p>
+        </div>
+        <hr class="pdf-divider" />
+        <div class="pdf-meta">
+          <div><strong>Nama Pembuat Surat:</strong> {{ activePdfItem.createdBy }}</div>
+          <div><strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}</div>
+        </div>
+
+        <div class="pdf-section">
+          <h4>1. Pendahuluan</h4>
+          <p>{{ activePdfItem.introduction || '-' }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>2. Lokasi Perbaikan</h4>
+          <p><strong>Nama Tempat:</strong> {{ activePdfItem.locationName || '-' }}</p>
+          <p v-if="activePdfItem.mapsUrl"><strong>Google Maps URL:</strong> {{ activePdfItem.mapsUrl }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>3. List Teknisi yang Dipekerjakan</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Teknisi</th>
+                <th>Email Teknisi</th>
+                <th>Nomor Handphone</th>
+                <th>Bayaran</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(t, idx) in (activePdfItem.technicians || [])" :key="idx">
+                <td>{{ t.name }}</td>
+                <td>{{ t.email }}</td>
+                <td>{{ t.phone || '-' }}</td>
+                <td>Rp {{ formatCurrency(t.fee) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>Rp {{ formatCurrency(activePdfItem.totalTechnicianFee) }}</strong></p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>4. List Biaya Resource</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Sumber Daya</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Harga Satuan</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in (activePdfItem.resources || [])" :key="idx">
+                <td>{{ r.name }}</td>
+                <td>{{ r.quantity }}</td>
+                <td>{{ r.unit }}</td>
+                <td>Rp {{ formatCurrency(r.price) }}</td>
+                <td>Rp {{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Biaya Resource: <strong>Rp {{ formatCurrency(activePdfItem.totalResourceCost) }}</strong></p>
+        </div>
+
+        <div class="pdf-footer-summary">
+          GRAND TOTAL BIAYA: Rp {{ formatCurrency(activePdfItem.grandTotal) }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import html2pdf from 'html2pdf.js';
 import { adminApi, managerApi } from '../services/api';
 import CreateWorkOrderModal from './CreateWorkOrderModal.vue';
 
@@ -81,6 +168,7 @@ const router = useRouter();
 const orders = ref([]);
 const loading = ref(true);
 const showCreateModal = ref(false);
+const activePdfItem = ref(null);
 
 const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -111,6 +199,28 @@ const fetchWorkOrders = async () => {
   }
 };
 
+const generateAndDownloadPDF = async (item) => {
+  activePdfItem.value = item;
+  await nextTick();
+
+  const element = document.getElementById('dynamic-pdf-area');
+  if (!element) return;
+
+  const pdfName = `WorkOrder_${item.woCode || item._id}.pdf`;
+
+  const opt = {
+    margin: 10,
+    filename: pdfName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    activePdfItem.value = null;
+  });
+};
+
 const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
 
 const formatDate = (dateStr) => {
@@ -139,6 +249,8 @@ onMounted(() => {
   --border-color: rgba(148, 163, 184, 0.15);
   --badge-bg: #f1f5f9;
   --badge-text: #334155;
+  --btn-pdf-bg: #d97706;
+  --btn-pdf-hover: #b45309;
 }
 
 :global([data-theme="dark"]) {
@@ -151,6 +263,8 @@ onMounted(() => {
   --border-color: rgba(255, 255, 255, 0.08);
   --badge-bg: #334155;
   --badge-text: #cbd5e1;
+  --btn-pdf-bg: #f59e0b;
+  --btn-pdf-hover: #d97706;
 }
 
 .page-wrapper {
@@ -239,17 +353,44 @@ onMounted(() => {
 .code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
 .title-cell { font-weight: 600; }
 .price-cell { font-weight: 700; color: var(--emerald-color); }
-.badge-url { 
-  font-family: monospace; 
-  font-size: 11px; 
-  background-color: var(--badge-bg); 
-  color: var(--badge-text);
-  padding: 4px 8px; 
-  border-radius: 6px; 
+
+.btn-pdf-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--btn-pdf-bg);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-pdf-action:hover {
+  background-color: var(--btn-pdf-hover);
 }
 
 .icon-sm { width: 16px; height: 16px; }
+.icon-xs { width: 14px; height: 14px; }
+
 .state-card { background-color: var(--bg-card); border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted); }
 .spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* CSS Khusus PDF Download */
+.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+.pdf-header { text-align: center; }
+.pdf-header h2 { margin: 0; font-size: 18px; }
+.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333; }
+.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
+.pdf-section { margin-bottom: 16px; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 14px; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; }
+.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
 </style>
