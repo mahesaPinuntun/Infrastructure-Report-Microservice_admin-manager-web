@@ -65,7 +65,7 @@
               <span class="card-tag">Aktif</span>
             </div>
             <div class="card-body">
-              <span class="stat-number">{{ stats.activeWorkOrders || 0 }}</span>
+              <span class="stat-number">{{ stats.activeWorkOrders }}</span>
               <span class="stat-label">Work Orders Berjalan</span>
             </div>
           </div>
@@ -81,7 +81,7 @@
               <span class="card-tag warning">Perlu Review</span>
             </div>
             <div class="card-body">
-              <span class="stat-number text-amber">{{ stats.pendingApprovals || stats.pendingReports || 0 }}</span>
+              <span class="stat-number text-amber">{{ stats.pendingApprovals }}</span>
               <span class="stat-label">Laporan Menunggu Approval</span>
             </div>
           </div>
@@ -97,7 +97,7 @@
               <span class="card-tag success">Siap Tugas</span>
             </div>
             <div class="card-body">
-              <span class="stat-number text-emerald">{{ stats.availableTechnicians || 0 }}</span>
+              <span class="stat-number text-emerald">{{ stats.availableTechnicians }}</span>
               <span class="stat-label">Teknisi Field Tersedia</span>
             </div>
           </div>
@@ -308,7 +308,16 @@ const fetchStats = async () => {
   errorMessage.value = '';
   try {
     const res = await managerApi.get('/api/manager/stats');
-    stats.value = res?.data?.stats || res?.data?.data || res?.data || { activeWorkOrders: 0, pendingApprovals: 0, availableTechnicians: 0 };
+    console.log('[DEBUG] Raw Response Stats:', res.data);
+
+    // Mengekstrak payload dari berbagai kemungkinan format respon backend
+    const rawData = res.data?.stats || res.data?.data || res.data || {};
+
+    stats.value = {
+      activeWorkOrders: rawData.activeWorkOrders ?? rawData.activeOrders ?? rawData.workOrdersCount ?? rawData.totalWorkOrders ?? 0,
+      pendingApprovals: rawData.pendingApprovals ?? rawData.pendingReports ?? rawData.reportsPendingCount ?? rawData.totalPendingReports ?? 0,
+      availableTechnicians: rawData.availableTechnicians ?? rawData.techniciansCount ?? rawData.techniciansAvailable ?? rawData.totalTechnicians ?? 0
+    };
   } catch (err) {
     console.error('Gagal memuat statistik manager:', err);
     errorMessage.value = 'Gagal terhubung dengan server statistik Manager.';
