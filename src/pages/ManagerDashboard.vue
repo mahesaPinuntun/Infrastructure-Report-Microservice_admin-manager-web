@@ -102,7 +102,7 @@
             </div>
           </div>
 
-          <!-- Bento Action Card 1: Toggle Preview Table Work Orders -->
+          <!-- Bento Action Card 1: Dropdown Toggle Preview Work Orders -->
           <div @click="toggleWorkOrdersTable" :class="['bento-item', 'action-card', 'group-blue', { 'active-card': showWorkOrdersTable }]">
             <div class="action-icon-bg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -120,8 +120,8 @@
             </div>
           </div>
 
-          <!-- Bento Action Card 2: Review Laporan -->
-          <router-link to="/reports" class="bento-item action-card group-indigo">
+          <!-- Bento Action Card 2: Dropdown Toggle Preview Review Laporan -->
+          <div @click="toggleReportsTable" :class="['bento-item', 'action-card', 'group-indigo', { 'active-card': showReportsTable }]">
             <div class="action-icon-bg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
@@ -130,16 +130,16 @@
             <div class="action-content">
               <div class="action-title">
                 <h3>Review Laporan Masuk</h3>
-                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg :class="['arrow-icon', { 'rotate-down': showReportsTable }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                 </svg>
               </div>
-              <p>Verifikasi laporan kerusakan dari pelapor sebelum diterbitkan menjadi Surat Tugas.</p>
+              <p>{{ showReportsTable ? 'Klik untuk menyembunyikan tabel preview.' : 'Tampilkan preview ringkas Laporan Kerusakan di bawah.' }}</p>
             </div>
-          </router-link>
+          </div>
 
           <!-- Bento Action Small Card: Refresh Data -->
-          <button @click="fetchStats" class="bento-item quick-refresh-card">
+          <button @click="refreshAllData" class="bento-item quick-refresh-card">
             <svg class="icon icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
             </svg>
@@ -156,7 +156,7 @@
                 <span class="count-badge">{{ workOrders.length }} Items</span>
               </div>
               
-              <button @click="navigateToWorkOrders" class="btn-reroute">
+              <button @click="navigateTo('/work-orders')" class="btn-reroute">
                 <span>Buka Halaman Penuh (/work-orders)</span>
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
@@ -192,8 +192,62 @@
                       <span v-else class="text-muted">Mandiri</span>
                     </td>
                     <td>
-                      <span :class="['badge-status', item.status?.toLowerCase()]">
+                      <span :class="['badge-status', (item.status || 'ASSIGNED').toLowerCase()]">
                         {{ item.status || 'ASSIGNED' }}
+                      </span>
+                    </td>
+                    <td>{{ formatDate(item.createdAt) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Section Laporan Masuk Preview Table -->
+        <Transition name="expand">
+          <div v-if="showReportsTable" class="table-preview-section">
+            <div class="table-header">
+              <div class="table-title">
+                <h3>Daftar Laporan Masuk Terbaru</h3>
+                <span class="count-badge warning">{{ reports.length }} Items</span>
+              </div>
+              
+              <button @click="navigateTo('/reports')" class="btn-reroute btn-reroute-amber">
+                <span>Buka Halaman Penuh (/reports)</span>
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </button>
+            </div>
+
+            <div v-if="loadingReports" class="table-loading">
+              <div class="spinner-sm"></div>
+              <span>Memuat daftar Laporan Masuk...</span>
+            </div>
+
+            <div v-else class="table-responsive">
+              <table class="minimal-table">
+                <thead>
+                  <tr>
+                    <th>ID Laporan</th>
+                    <th>Deskripsi Kerusakan</th>
+                    <th>Lokasi Perbaikan</th>
+                    <th>Status Review</th>
+                    <th>Tanggal Lapor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="reports.length === 0">
+                    <td colspan="5" class="empty-cell">Belum ada Laporan Masuk yang memerlukan review.</td>
+                  </tr>
+                  <tr v-for="item in reports.slice(0, 5)" :key="item._id || item.id">
+                    <td class="code-cell">{{ item.code || item.reportCode || item._id?.substring(0, 8) }}</td>
+                    <td class="title-cell">{{ item.description || item.title || '-' }}</td>
+                    <td>{{ item.location || item.locationName || '-' }}</td>
+                    <td>
+                      <span :class="['badge-status', (item.status || 'PENDING').toLowerCase()]">
+                        {{ item.status || 'PENDING' }}
                       </span>
                     </td>
                     <td>{{ formatDate(item.createdAt) }}</td>
@@ -216,13 +270,17 @@ import { managerApi, logout } from '../services/api';
 const router = useRouter();
 const stats = ref({ activeWorkOrders: 0, pendingApprovals: 0, availableTechnicians: 0 });
 const workOrders = ref([]);
+const reports = ref([]);
 const user = ref(null);
+
 const loading = ref(true);
 const loadingOrders = ref(false);
+const loadingReports = ref(false);
 const errorMessage = ref('');
-const showWorkOrdersTable = ref(false);
 
-// Default tema di-set ke 'light'
+const showWorkOrdersTable = ref(false);
+const showReportsTable = ref(false);
+
 const activeTheme = ref('light');
 
 const applyTheme = (theme) => {
@@ -241,7 +299,6 @@ const initTheme = () => {
   if (savedTheme) {
     applyTheme(savedTheme);
   } else {
-    // Jika localStorage kosong, otomatis aktifkan Light Mode sebagai default
     applyTheme('light');
   }
 };
@@ -273,6 +330,19 @@ const fetchWorkOrders = async () => {
   }
 };
 
+const fetchReports = async () => {
+  loadingReports.value = true;
+  try {
+    const res = await managerApi.get('/api/manager/reports');
+    const rawData = res.data?.data || res.data?.reports || res.data;
+    reports.value = Array.isArray(rawData) ? rawData : [];
+  } catch (err) {
+    console.error('Gagal memuat daftar Laporan:', err);
+  } finally {
+    loadingReports.value = false;
+  }
+};
+
 const toggleWorkOrdersTable = () => {
   showWorkOrdersTable.value = !showWorkOrdersTable.value;
   if (showWorkOrdersTable.value && workOrders.value.length === 0) {
@@ -280,8 +350,21 @@ const toggleWorkOrdersTable = () => {
   }
 };
 
-const navigateToWorkOrders = () => {
-  router.push('/work-orders');
+const toggleReportsTable = () => {
+  showReportsTable.value = !showReportsTable.value;
+  if (showReportsTable.value && reports.value.length === 0) {
+    fetchReports();
+  }
+};
+
+const refreshAllData = () => {
+  fetchStats();
+  if (showWorkOrdersTable.value) fetchWorkOrders();
+  if (showReportsTable.value) fetchReports();
+};
+
+const navigateTo = (path) => {
+  router.push(path);
 };
 
 const handleLogout = () => {
@@ -323,6 +406,7 @@ onMounted(() => {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --amber-color: #d97706;
+  --amber-hover: #b45309;
   --emerald-color: #059669;
   --danger-color: #ef4444;
   --icon-bg-blue: #eff6ff;
@@ -340,6 +424,7 @@ onMounted(() => {
   --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
   --amber-color: #f59e0b;
+  --amber-hover: #d97706;
   --emerald-color: #10b981;
   --danger-color: #f87171;
   --icon-bg-blue: #1e3a8a;
@@ -366,14 +451,11 @@ onMounted(() => {
 
 .dashboard-wrapper {
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
   padding: 24px 32px;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
@@ -578,7 +660,7 @@ h1 {
 .quick-refresh-card:hover { color: var(--primary-color) !important; }
 .quick-refresh-card:hover .icon-refresh { color: var(--primary-color) !important; transform: rotate(180deg); }
 
-/* Section Table Preview Work Orders */
+/* Section Table Preview */
 .table-preview-section {
   margin-top: 20px;
   background-color: var(--bg-card);
@@ -594,6 +676,7 @@ h1 {
 .table-title { display: flex; align-items: center; gap: 10px; }
 .table-title h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main) !important; }
 .count-badge { font-size: 12px; font-weight: 700; background-color: var(--icon-bg-blue); color: var(--primary-color); padding: 2px 10px; border-radius: 12px; }
+.count-badge.warning { background-color: var(--icon-bg-amber); color: var(--amber-color); }
 
 .btn-reroute {
   display: flex;
@@ -610,9 +693,16 @@ h1 {
   transition: background-color 0.2s ease;
 }
 
+.btn-reroute-amber {
+  background-color: var(--amber-color);
+}
+.btn-reroute-amber:hover {
+  background-color: var(--amber-hover);
+}
+
 .btn-reroute .icon-sm { color: #ffffff !important; }
 
-.btn-reroute:hover { background-color: var(--primary-hover); }
+.btn-reroute:hover:not(.btn-reroute-amber) { background-color: var(--primary-hover); }
 .table-responsive { overflow-x: auto; }
 .minimal-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text-main) !important; }
 .minimal-table th, .minimal-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid rgba(148, 163, 184, 0.15); }
@@ -625,6 +715,7 @@ h1 {
 
 .badge-status { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
 .badge-status.assigned { background-color: var(--icon-bg-blue); color: var(--primary-color); }
+.badge-status.pending { background-color: var(--icon-bg-amber); color: var(--amber-color); }
 .badge-status.in_progress { background-color: var(--icon-bg-amber); color: var(--amber-color); }
 .badge-status.completed { background-color: var(--icon-bg-emerald); color: var(--emerald-color); }
 
