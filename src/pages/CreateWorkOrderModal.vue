@@ -78,7 +78,7 @@
                     </select>
                   </td>
                   <td><input type="email" v-model="tech.email" readonly placeholder="Otomatis terisi" class="input-table readonly" /></td>
-                  <td><input type="tel" v-model="tech.phone" placeholder="0812..." class="input-table" /></td>
+                  <td><input type="tel" v-model="tech.phone" readonly placeholder="Otomatis terisi" class="input-table readonly" /></td>
                   <td><input type="number" v-model.number="tech.fee" min="0" required class="input-table" /></td>
                   <td class="text-center">
                     <button type="button" @click="removeTechnicianRow(index)" class="btn-remove" title="Hapus">&times;</button>
@@ -308,15 +308,16 @@ const getAvailableOptionsForIndex = (currentIndex) => {
   );
 };
 
+// Fungsi pemilihan teknisi presisi otomatis
 const onTechnicianSelect = (index) => {
   const row = form.value.technicians[index];
   const selectedTech = availableTechnicians.value.find(
     (t) => (t.id || t._id) === row.technicianId
   );
   if (selectedTech) {
-    row.name = selectedTech.name;
-    row.email = selectedTech.email;
-    row.phone = selectedTech.phone || row.phone || '';
+    row.name = selectedTech.name || '';
+    row.email = selectedTech.email || '';
+    row.phone = selectedTech.phone || selectedTech.phoneNumber || '';
   }
 };
 
