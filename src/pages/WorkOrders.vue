@@ -94,7 +94,11 @@
             <strong>Nama Pembuat Surat:</strong> {{ activePdfItem.createdBy }}
             <span v-if="activePdfItem.createdByEmail"> ({{ activePdfItem.createdByEmail }})</span>
           </div>
-          <div><strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}</div>
+          <div>
+            <strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}<br />
+            <!-- PERBAIKAN 1: Tampilkan Tanggal Pelaksanaan -->
+            <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}
+          </div>
         </div>
 
         <div class="pdf-section">
@@ -103,8 +107,10 @@
         </div>
 
         <div class="pdf-section">
-          <h4>2. Lokasi Perbaikan</h4>
+          <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
           <p><strong>Nama Tempat:</strong> {{ activePdfItem.locationName || '-' }}</p>
+          <!-- PERBAIKAN 2: Tampilkan Tanggal Pelaksanaan di Seksi Lokasi -->
+          <p><strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}</p>
           <p v-if="activePdfItem.mapsUrl"><strong>Google Maps URL:</strong> {{ activePdfItem.mapsUrl }}</p>
         </div>
 
@@ -123,7 +129,8 @@
               <tr v-for="(t, idx) in (activePdfItem.technicians || [])" :key="idx">
                 <td>{{ t.name }}</td>
                 <td>{{ t.email }}</td>
-                <td>{{ t.phone || '-' }}</td>
+                <!-- PERBAIKAN 3: Fallback ke t.phone || t.phoneNumber || '-' -->
+                <td>{{ t.phone || t.phoneNumber || '-' }}</td>
                 <td>Rp {{ formatCurrency(t.fee) }}</td>
               </tr>
             </tbody>
@@ -178,7 +185,6 @@ const loading = ref(true);
 const showCreateModal = ref(false);
 const activePdfItem = ref(null);
 
-// Inisialisasi tema dari localStorage, default 'light' jika kosong
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
@@ -241,7 +247,7 @@ const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('id-ID', {
     day: 'numeric',
-    month: 'short',
+    month: 'long',
     year: 'numeric'
   });
 };
