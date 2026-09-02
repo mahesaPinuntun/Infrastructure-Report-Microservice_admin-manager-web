@@ -3,7 +3,13 @@ import { createRouter, createWebHistory } from 'vue-router';
 const routes = [
   { 
     path: '/', 
-    redirect: '/login' 
+    name: 'LandingPage',
+    component: () => import('../pages/LandingPage.vue') 
+  },
+  { 
+    path: '/workflow', 
+    name: 'WorkflowPage',
+    component: () => import('../pages/WorkflowPage.vue') 
   },
   { 
     path: '/login', 
@@ -48,7 +54,7 @@ const routes = [
   },
   { 
     path: '/:pathMatch(.*)*', 
-    redirect: '/login' 
+    redirect: '/' 
   }
 ];
 
@@ -68,7 +74,7 @@ const normalizeRole = (role) => {
 
 const getDashboardPath = (normalizedRole) => (normalizedRole === 'ADMIN' ? '/admin' : '/manager');
 
-// Navigation Guard (Tahan pergerakan berulang/glitch)
+// Navigation Guard
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   
@@ -86,7 +92,7 @@ router.beforeEach((to, from, next) => {
   const userRole = normalizeRole(rawRole);
   const isAllowedRole = ['ADMIN', 'MANAGER'].includes(userRole);
 
-  // 1. Jika pengguna belum login atau role tidak valid
+  // 1. Jika pengguna belum login dan mencoba mengakses halaman yang butuh Auth
   if (to.meta.requiresAuth && (!token || !userRole || !isAllowedRole)) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
