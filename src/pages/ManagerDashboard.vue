@@ -185,8 +185,8 @@
                     <td colspan="5" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
                   </tr>
                   <tr v-for="item in workOrders.slice(0, 5)" :key="item._id || item.id">
-                    <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
-                    <td class="title-cell">{{ item.title }}</td>
+                    <td class="code-cell">{{ item.code || item.woCode || item._id?.substring(0, 8) }}</td>
+                    <td class="title-cell">{{ item.title || item.companyName || 'Infrastructure Report' }}</td>
                     <td>
                       <span v-if="item.reportId" class="badge-report">{{ item.reportId }}</span>
                       <span v-else class="text-muted">Mandiri</span>
@@ -222,7 +222,8 @@ const loadingOrders = ref(false);
 const errorMessage = ref('');
 const showWorkOrdersTable = ref(false);
 
-const activeTheme = ref('dark');
+// Default tema di-set ke 'light'
+const activeTheme = ref('light');
 
 const applyTheme = (theme) => {
   activeTheme.value = theme;
@@ -240,14 +241,8 @@ const initTheme = () => {
   if (savedTheme) {
     applyTheme(savedTheme);
   } else {
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    applyTheme(systemPrefersDark ? 'dark' : 'light');
-
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      if (!localStorage.getItem('user-theme')) {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
-    });
+    // Jika localStorage kosong, otomatis aktifkan Light Mode sebagai default
+    applyTheme('light');
   }
 };
 
