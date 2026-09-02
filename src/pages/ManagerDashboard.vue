@@ -308,15 +308,12 @@ const fetchStats = async () => {
   errorMessage.value = '';
   try {
     const res = await managerApi.get('/api/manager/stats');
-    console.log('[DEBUG] Raw Response Stats:', res.data);
-
-    // Mengekstrak payload dari berbagai kemungkinan format respon backend
     const rawData = res.data?.stats || res.data?.data || res.data || {};
 
     stats.value = {
-      activeWorkOrders: rawData.activeWorkOrders ?? rawData.activeOrders ?? rawData.workOrdersCount ?? rawData.totalWorkOrders ?? 0,
-      pendingApprovals: rawData.pendingApprovals ?? rawData.pendingReports ?? rawData.reportsPendingCount ?? rawData.totalPendingReports ?? 0,
-      availableTechnicians: rawData.availableTechnicians ?? rawData.techniciansCount ?? rawData.techniciansAvailable ?? rawData.totalTechnicians ?? 0
+      activeWorkOrders: rawData.activeWorkOrders ?? rawData.activeOrders ?? rawData.totalWorkOrders ?? 0,
+      pendingApprovals: rawData.pendingApprovals ?? rawData.pendingReports ?? rawData.totalPendingReports ?? 0,
+      availableTechnicians: rawData.availableTechnicians ?? rawData.techniciansCount ?? 0
     };
   } catch (err) {
     console.error('Gagal memuat statistik manager:', err);
