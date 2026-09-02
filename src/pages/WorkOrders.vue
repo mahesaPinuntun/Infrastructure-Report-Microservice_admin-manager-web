@@ -80,8 +80,8 @@
       @created="fetchWorkOrders"
     />
 
-    <!-- Hidden Template Rendering PDF untuk Item yang Diunduh -->
-    <div style="display: none;">
+    <!-- Template HiddenOffscreen Rendering PDF (Menggantikan display:none) -->
+    <div class="pdf-offscreen-container">
       <div v-if="activePdfItem" id="dynamic-pdf-area" class="pdf-document">
         <div class="pdf-header">
           <h2>SURAT TUGAS WORK ORDER</h2>
@@ -96,7 +96,6 @@
           </div>
           <div>
             <strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}<br />
-            <!-- PERBAIKAN 1: Tampilkan Tanggal Pelaksanaan -->
             <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}
           </div>
         </div>
@@ -109,7 +108,6 @@
         <div class="pdf-section">
           <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
           <p><strong>Nama Tempat:</strong> {{ activePdfItem.locationName || '-' }}</p>
-          <!-- PERBAIKAN 2: Tampilkan Tanggal Pelaksanaan di Seksi Lokasi -->
           <p><strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}</p>
           <p v-if="activePdfItem.mapsUrl"><strong>Google Maps URL:</strong> {{ activePdfItem.mapsUrl }}</p>
         </div>
@@ -129,7 +127,6 @@
               <tr v-for="(t, idx) in (activePdfItem.technicians || [])" :key="idx">
                 <td>{{ t.name }}</td>
                 <td>{{ t.email }}</td>
-                <!-- PERBAIKAN 3: Fallback ke t.phone || t.phoneNumber || '-' -->
                 <td>{{ t.phone || t.phoneNumber || '-' }}</td>
                 <td>Rp {{ formatCurrency(t.fee) }}</td>
               </tr>
@@ -232,13 +229,17 @@ const generateAndDownloadPDF = async (item) => {
     margin: 10,
     filename: pdfName,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
+    html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
-  html2pdf().set(opt).from(element).save().then(() => {
+  try {
+    await html2pdf().set(opt).from(element).save();
+  } catch (error) {
+    console.error('Gagal membuat file PDF:', error);
+  } finally {
     activePdfItem.value = null;
-  });
+  }
 };
 
 const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
@@ -415,17 +416,25 @@ onMounted(() => {
 .spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* CSS Khusus PDF Download */
+/* PERBAIKAN CSS: Menyembunyikan elemen PDF di luar layar tanpa memutus rendering DOM */
+.pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm; /* Lebar standar kertas A4 */
+  background: #ffffff;
+}
+
 .pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
 .pdf-header { text-align: center; }
-.pdf-header h2 { margin: 0; font-size: 18px; }
-.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333; }
+.pdf-header h2 { margin: 0; font-size: 18px; color: #000000; }
+.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333333; }
 .pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
-.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
-.pdf-section { margin-bottom: 16px; }
-.pdf-section h4 { margin-bottom: 6px; font-size: 14px; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #000000; }
+.pdf-section { margin-bottom: 16px; color: #000000; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 14px; color: #000000; }
 .pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
 .pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
-.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #000000; }
 .pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
 </style>
