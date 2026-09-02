@@ -280,6 +280,12 @@ const form = ref({
   resources: [{ name: '', quantity: 1, unit: 'pcs', price: 0 }]
 });
 
+// Inisialisasi tema dari localStorage, default 'light' jika belum tersimpan
+const initTheme = () => {
+  const savedTheme = localStorage.getItem('user-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+};
+
 const fetchTechnicians = async () => {
   loadingTechs.value = true;
   try {
@@ -381,6 +387,7 @@ const downloadPDF = () => {
 const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
 
 onMounted(() => {
+  initTheme();
   fetchTechnicians();
 });
 </script>
