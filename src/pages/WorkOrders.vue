@@ -284,7 +284,7 @@ onMounted(() => {
 
 .page-wrapper {
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
