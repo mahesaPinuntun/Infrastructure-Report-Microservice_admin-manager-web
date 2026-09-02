@@ -9,7 +9,7 @@
           </svg>
           <span>Kembali ke Landing Page</span>
         </button>
-        <h2>Visit Mode (Prinjau Tamu)</h2>
+        <h2>Visit Mode (Pratinjau Tamu)</h2>
       </div>
 
       <button @click="navigateTo('/workflow')" class="btn-workflow">
@@ -48,21 +48,30 @@
         <table class="minimal-table">
           <thead>
             <tr>
-              <th>WO Code</th>
+              <th>Surat ID</th>
               <th>Nama Perusahaan</th>
+              <th>Pembuat Surat</th>
               <th>Lokasi Perbaikan</th>
               <th>Total Biaya</th>
-              <th>Tanggal</th>
+              <th>Tanggal Buat</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="workOrders.length === 0">
-              <td colspan="5" class="empty-cell">Belum ada data Work Order aktif.</td>
+              <td colspan="6" class="empty-cell">Belum ada data Work Order aktif.</td>
             </tr>
             <tr v-for="item in workOrders" :key="item._id || item.id">
-              <td class="code-cell">{{ item.woCode || item._id?.substring(0, 8) }}</td>
+              <td class="code-cell">{{ item.woCode || item.code || item._id?.substring(0, 8) }}</td>
               <td class="title-cell">{{ item.companyName || 'Infrastructure Report' }}</td>
-              <td>{{ item.locationName || '-' }}</td>
+              <td>
+                <div class="creator-cell">
+                  <span class="creator-name">{{ item.createdBy || item.creatorName || '-' }}</span>
+                  <span v-if="item.createdByEmail || item.creatorEmail" class="creator-email">
+                    {{ item.createdByEmail || item.creatorEmail }}
+                  </span>
+                </div>
+              </td>
+              <td>{{ item.locationName || item.location || '-' }}</td>
               <td class="price-cell">Rp {{ formatCurrency(item.grandTotal) }}</td>
               <td>{{ formatDate(item.createdAt) }}</td>
             </tr>
@@ -87,9 +96,9 @@
               <td colspan="5" class="empty-cell">Belum ada data Laporan Masuk.</td>
             </tr>
             <tr v-for="item in reports" :key="item._id || item.id">
-              <td class="code-cell">{{ item.code || item._id?.substring(0, 8) }}</td>
+              <td class="code-cell">{{ item.code || item.reportCode || item._id?.substring(0, 8) }}</td>
               <td class="title-cell">{{ item.description || item.title || '-' }}</td>
-              <td>{{ item.location || '-' }}</td>
+              <td>{{ item.location || item.locationName || '-' }}</td>
               <td>
                 <span :class="['badge-status', (item.status || 'PENDING').toLowerCase()]">
                   {{ item.status || 'PENDING' }}
@@ -129,7 +138,7 @@ const navigateTo = (path) => {
 const fetchWorkOrders = async () => {
   loading.value = true;
   try {
-    const res = await publicApi.get('/api/public/work-orders');
+    const res = await publicApi.get('/api/manager/work-orders');
     const data = res.data?.data || res.data?.workOrders || res.data;
     workOrders.value = Array.isArray(data) ? data : [];
   } catch (err) {
@@ -143,7 +152,7 @@ const fetchWorkOrders = async () => {
 const fetchReports = async () => {
   loading.value = true;
   try {
-    const res = await publicApi.get('/api/public/reports');
+    const res = await publicApi.get('/api/manager/reports');
     const data = res.data?.data || res.data?.reports || res.data;
     reports.value = Array.isArray(data) ? data : [];
   } catch (err) {
@@ -322,6 +331,20 @@ onMounted(() => {
 .code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
 .title-cell { font-weight: 600; }
 .price-cell { font-weight: 700; color: var(--emerald-color); }
+
+.creator-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.creator-name {
+  font-weight: 600;
+}
+
+.creator-email {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 
 .badge-status {
   font-size: 11px;
