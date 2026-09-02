@@ -178,6 +178,12 @@ const loading = ref(true);
 const showCreateModal = ref(false);
 const activePdfItem = ref(null);
 
+// Inisialisasi tema dari localStorage, default 'light' jika kosong
+const initTheme = () => {
+  const savedTheme = localStorage.getItem('user-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+};
+
 const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
 
 const getApiClient = () => {
@@ -241,6 +247,7 @@ const formatDate = (dateStr) => {
 };
 
 onMounted(() => {
+  initTheme();
   fetchWorkOrders();
 });
 </script>
