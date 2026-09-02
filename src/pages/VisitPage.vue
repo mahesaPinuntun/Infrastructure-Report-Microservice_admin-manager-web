@@ -116,7 +116,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { publicApi } from '../services/api';
+// Menggunakan managerApi langsung yang sudah ter-export dari api.js
+import { managerApi } from '../services/api';
 
 const router = useRouter();
 
@@ -138,7 +139,7 @@ const navigateTo = (path) => {
 const fetchWorkOrders = async () => {
   loading.value = true;
   try {
-    const res = await publicApi.get('/api/manager/work-orders');
+    const res = await managerApi.get('/api/manager/work-orders');
     const data = res.data?.data || res.data?.workOrders || res.data;
     workOrders.value = Array.isArray(data) ? data : [];
   } catch (err) {
@@ -152,7 +153,7 @@ const fetchWorkOrders = async () => {
 const fetchReports = async () => {
   loading.value = true;
   try {
-    const res = await publicApi.get('/api/manager/reports');
+    const res = await managerApi.get('/api/manager/reports');
     const data = res.data?.data || res.data?.reports || res.data;
     reports.value = Array.isArray(data) ? data : [];
   } catch (err) {
