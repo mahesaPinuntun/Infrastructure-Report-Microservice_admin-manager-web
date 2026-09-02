@@ -17,9 +17,14 @@
             <label>Nama Pembuat Surat (Auto):</label>
             <input type="text" :value="creatorName" readonly class="input-control readonly" />
           </div>
-          <div class="form-group full-width">
+          <div class="form-group">
             <label>Tanggal Pembuatan Surat:</label>
             <input type="text" :value="formattedTodayDate" readonly class="input-control readonly" />
+          </div>
+          <!-- Input Baru: Tanggal Pelaksanaan Pekerjaan -->
+          <div class="form-group">
+            <label>Tanggal Pelaksanaan Pekerjaan *:</label>
+            <input type="date" v-model="form.executionDate" required class="input-control" />
           </div>
         </div>
 
@@ -168,7 +173,10 @@
             <strong>Nama Pembuat Surat:</strong> {{ creatorName }}
             <span v-if="creatorEmail"> ({{ creatorEmail }})</span>
           </div>
-          <div><strong>Tanggal Pembuatan:</strong> {{ formattedTodayDate }}</div>
+          <div>
+            <strong>Tanggal Pembuatan:</strong> {{ formattedTodayDate }}<br />
+            <strong>Tanggal Pelaksanaan:</strong> {{ formatFormattedExecutionDate }}
+          </div>
         </div>
 
         <div class="pdf-section">
@@ -177,8 +185,9 @@
         </div>
 
         <div class="pdf-section">
-          <h4>2. Lokasi Perbaikan</h4>
+          <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
           <p><strong>Nama Tempat:</strong> {{ form.locationName || '-' }}</p>
+          <p><strong>Tanggal Pelaksanaan:</strong> {{ formatFormattedExecutionDate }}</p>
           <p v-if="form.mapsUrl"><strong>Google Maps URL:</strong> {{ form.mapsUrl }}</p>
         </div>
 
@@ -255,13 +264,8 @@ const availableTechnicians = ref([]);
 
 const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
-const creatorName = computed(() => {
-  return currentUser.value.name || 'Mahesa Putra Pinuntun';
-});
-
-const creatorEmail = computed(() => {
-  return currentUser.value.email || '';
-});
+const creatorName = computed(() => currentUser.value.name || 'Mahesa Putra Pinuntun');
+const creatorEmail = computed(() => currentUser.value.email || '');
 
 const formattedTodayDate = computed(() => {
   return new Date().toLocaleDateString('id-ID', {
@@ -271,8 +275,11 @@ const formattedTodayDate = computed(() => {
   });
 });
 
+const todayString = new Date().toISOString().split('T')[0];
+
 const form = ref({
   companyName: 'Infrastructure_Report',
+  executionDate: todayString, // Default tanggal pelaksanaan hari ini (YYYY-MM-DD)
   introduction: '',
   locationName: '',
   mapsUrl: '',
@@ -280,7 +287,15 @@ const form = ref({
   resources: [{ name: '', quantity: 1, unit: 'pcs', price: 0 }]
 });
 
-// Inisialisasi tema dari localStorage, default 'light' jika belum tersimpan
+const formatFormattedExecutionDate = computed(() => {
+  if (!form.value.executionDate) return '-';
+  return new Date(form.value.executionDate).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+});
+
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
@@ -308,7 +323,6 @@ const getAvailableOptionsForIndex = (currentIndex) => {
   );
 };
 
-// Fungsi pemilihan teknisi presisi otomatis
 const onTechnicianSelect = (index) => {
   const row = form.value.technicians[index];
   const selectedTech = availableTechnicians.value.find(
