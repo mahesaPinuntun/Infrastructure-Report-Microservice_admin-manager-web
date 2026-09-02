@@ -27,6 +27,12 @@
             <input v-model="newUser.email" type="email" placeholder="nama@domain.com" required />
           </div>
 
+          <!-- Wajib untuk SEMUA Role -->
+          <div class="form-group">
+            <label>Nomor Telepon / WA *</label>
+            <input v-model="newUser.phoneNumber" type="tel" placeholder="081234567890" required />
+          </div>
+
           <div class="form-group">
             <label>Password *</label>
             <input v-model="newUser.password" type="password" placeholder="••••••••" required />
@@ -52,12 +58,6 @@
               required 
             />
             <small class="help-text">Diperlukan untuk memverifikasi pendaftaran Administrator baru.</small>
-          </div>
-
-          <!-- Dynamic Field: Phone Number untuk Non-Admin -->
-          <div v-if="newUser.role !== 'ADMIN'" class="form-group">
-            <label>Nomor Telepon / WA</label>
-            <input v-model="newUser.phoneNumber" type="text" placeholder="081234567890" />
           </div>
 
           <!-- Dynamic Field: Spesialisasi jika Role TECHNICIAN -->
@@ -181,7 +181,7 @@ const handleCreateUser = async () => {
   try {
     const contactNum = newUser.value.phoneNumber || '';
 
-    // Susun payload lengkap dengan dual-field phone & phoneNumber
+    // Payload dikirim lengkap untuk semua role
     const payload = {
       name: newUser.value.name,
       email: newUser.value.email,
@@ -193,13 +193,14 @@ const handleCreateUser = async () => {
 
     if (newUser.value.role === 'ADMIN') {
       payload.adminPin = newUser.value.adminPin;
-    } else {
-      if (newUser.value.role === 'TECHNICIAN' && newUser.value.specialization) {
-        payload.specialization = newUser.value.specialization;
-      }
-      if (['INFRASTRUCTURE_MANAGER', 'USER'].includes(newUser.value.role) && newUser.value.department) {
-        payload.department = newUser.value.department;
-      }
+    }
+
+    if (newUser.value.role === 'TECHNICIAN' && newUser.value.specialization) {
+      payload.specialization = newUser.value.specialization;
+    }
+
+    if (['INFRASTRUCTURE_MANAGER', 'USER'].includes(newUser.value.role) && newUser.value.department) {
+      payload.department = newUser.value.department;
     }
 
     const res = await createUser(payload);
