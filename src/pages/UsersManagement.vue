@@ -91,6 +91,7 @@
             <th>Nama</th>
             <th>Email</th>
             <th>Role</th>
+            <th>No. Telepon / WA</th>
             <th>Info Tambahan</th>
             <th>Status</th>
             <th>Aksi</th>
@@ -104,6 +105,13 @@
               <span :class="['role-badge', formatRoleClass(user.role)]">
                 {{ formatRoleName(user.role) }}
               </span>
+            </td>
+            <!-- Tampilkan Nomor Telepon dengan Fallback -->
+            <td>
+              <span v-if="user.phoneNumber || user.phone" class="phone-text">
+                {{ user.phoneNumber || user.phone }}
+              </span>
+              <small v-else class="text-muted">-</small>
             </td>
             <td>
               <small v-if="user.specialization">Spesialisasi: {{ user.specialization }}</small>
@@ -120,7 +128,7 @@
             </td>
           </tr>
           <tr v-if="users.length === 0">
-            <td colspan="6" class="empty-state">Belum ada pengguna terdaftar.</td>
+            <td colspan="7" class="empty-state">Belum ada pengguna terdaftar.</td>
           </tr>
         </tbody>
       </table>
@@ -171,18 +179,21 @@ const handleCreateUser = async () => {
   successMessage.value = '';
 
   try {
-    // Susun payload sesuai role yang dipilih
+    const contactNum = newUser.value.phoneNumber || '';
+
+    // Susun payload lengkap dengan dual-field phone & phoneNumber
     const payload = {
       name: newUser.value.name,
       email: newUser.value.email,
       password: newUser.value.password,
-      role: newUser.value.role
+      role: newUser.value.role,
+      phoneNumber: contactNum,
+      phone: contactNum
     };
 
     if (newUser.value.role === 'ADMIN') {
       payload.adminPin = newUser.value.adminPin;
     } else {
-      if (newUser.value.phoneNumber) payload.phoneNumber = newUser.value.phoneNumber;
       if (newUser.value.role === 'TECHNICIAN' && newUser.value.specialization) {
         payload.specialization = newUser.value.specialization;
       }
@@ -264,6 +275,7 @@ onMounted(() => {
 .text-danger { color: #dc2626 !important; }
 .help-text { font-size: 11px; color: #ef4444; margin-top: 4px; display: block; }
 .text-muted { color: #94a3b8; font-style: italic; }
+.phone-text { font-family: monospace; font-weight: 600; color: #0f172a; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 
