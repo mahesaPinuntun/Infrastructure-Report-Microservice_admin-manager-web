@@ -21,6 +21,12 @@ const routes = [
     name: 'Login',
     component: () => import('../pages/LoginView.vue') 
   },
+  // ROUTE BARU: Halaman Registrasi Admin
+  { 
+    path: '/register-admin', 
+    name: 'AdminRegister',
+    component: () => import('../views/AdminRegister.vue') 
+  },
   { 
     path: '/admin', 
     name: 'AdminDashboard',
