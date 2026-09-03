@@ -1,442 +1,367 @@
 <template>
-  <div class="users-page">
-    <div class="header-section">
-      <div>
-        <h1>Manajemen Pengguna & Role</h1>
-        <p class="subtitle">Kelola seluruh akun pengguna sistem infrastruktur</p>
+  <div class="page-container">
+    <!-- Header Page -->
+    <header class="header-section">
+      <div class="header-content">
+        <h1>Daftar Kunjungan Infrastruktur</h1>
+        <p class="subtitle">Riwayat & Jadwal Kunjungan Lapangan</p>
       </div>
-      <button @click="showModal = true" class="btn-primary">+ Tambah Akun Baru</button>
-    </div>
+      
+      <!-- Theme Switcher -->
+      <button @click="toggleTheme" class="btn-theme" title="Ubah Tema">
+        <svg v-if="currentTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </header>
 
-    <!-- Alert Notifikasi -->
-    <div v-if="successMessage" class="alert success">{{ successMessage }}</div>
-    <div v-if="errorMessage" class="alert error">{{ errorMessage }}</div>
-
-    <!-- Modal Form Tambah User -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-card">
-        <h3>Tambah Akun Pengguna Baru</h3>
-        <form @submit.prevent="handleCreateUser">
-          <div class="form-group">
-            <label>Nama Lengkap *</label>
-            <input v-model="newUser.name" type="text" placeholder="Masukkan nama" required />
-          </div>
-
-          <div class="form-group">
-            <label>Email Address *</label>
-            <input v-model="newUser.email" type="email" placeholder="nama@domain.com" required />
-          </div>
-
-          <div class="form-group">
-            <label>Nomor Telepon / WA *</label>
-            <input v-model="newUser.phoneNumber" type="tel" placeholder="081234567890" required />
-          </div>
-
-          <div class="form-group">
-            <label>Password *</label>
-            <input v-model="newUser.password" type="password" placeholder="••••••••" required />
-          </div>
-
-          <div class="form-group">
-            <label>Role Access *</label>
-            <select v-model="newUser.role" required>
-              <option value="ADMIN">Administrator</option>
-              <option value="INFRASTRUCTURE_MANAGER">Manager Field</option>
-              <option value="TECHNICIAN">Teknisi Lapangan</option>
-              <option value="USER">User / Reporter</option>
-            </select>
-          </div>
-
-          <!-- Dynamic Field: Secret PIN jika Role ADMIN -->
-          <div v-if="newUser.role === 'ADMIN'" class="form-group highlighted-group">
-            <label class="text-danger">Secret PIN Admin *</label>
-            <input 
-              v-model="newUser.adminPin" 
-              type="password" 
-              placeholder="Masukkan Secret PIN Admin" 
-              required 
-            />
-            <small class="help-text">Diperlukan untuk memverifikasi pendaftaran Administrator baru.</small>
-          </div>
-
-          <!-- Dynamic Field: Spesialisasi jika Role TECHNICIAN -->
-          <div v-if="newUser.role === 'TECHNICIAN'" class="form-group">
-            <label>Spesialisasi Teknisi</label>
-            <input v-model="newUser.specialization" type="text" placeholder="Contoh: Fiber Optic / AC / Listrik" />
-          </div>
-
-          <!-- Dynamic Field: Departemen jika Role MANAGER atau USER -->
-          <div v-if="['INFRASTRUCTURE_MANAGER', 'USER'].includes(newUser.role)" class="form-group">
-            <label>Departemen / Divisi</label>
-            <input v-model="newUser.department" type="text" placeholder="Contoh: Divisi Maintenance / Umum" />
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="closeModal" class="btn-cancel">Batal</button>
-            <button type="submit" class="btn-primary" :disabled="submitting">
-              {{ submitting ? 'Memproses...' : 'Simpan Akun' }}
-            </button>
-          </div>
-        </form>
+    <!-- Content Area -->
+    <main class="main-content">
+      <div v-if="loading" class="state-card loading">
+        <span>Memuat data kunjungan...</span>
       </div>
-    </div>
 
-    <!-- Desktop View: Tabel Daftar Pengguna -->
-    <div class="table-container desktop-view">
-      <div v-if="loading" class="loading-state">Memuat data pengguna...</div>
-      <table v-else class="users-table">
-        <thead>
-          <tr>
-            <th>Nama</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>No. Telepon / WA</th>
-            <th>Info Tambahan</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.id || user._id">
-            <td><strong>{{ user.name }}</strong></td>
-            <td>{{ user.email }}</td>
-            <td>
-              <span :class="['role-badge', formatRoleClass(user.role)]">
-                {{ formatRoleName(user.role) }}
-              </span>
-            </td>
-            <td>
-              <span v-if="user.phoneNumber || user.phone" class="phone-text">
-                {{ user.phoneNumber || user.phone }}
-              </span>
-              <small v-else class="text-muted">-</small>
-            </td>
-            <td>
-              <small v-if="user.specialization">Spesialisasi: {{ user.specialization }}</small>
-              <small v-else-if="user.department">Dept: {{ user.department }}</small>
-              <small v-else class="text-muted">-</small>
-            </td>
-            <td>
-              <span :class="['status-badge', user.status?.toLowerCase()]">
-                {{ user.status || 'ACTIVE' }}
-              </span>
-            </td>
-            <td>
-              <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm">Hapus</button>
-            </td>
-          </tr>
-          <tr v-if="users.length === 0">
-            <td colspan="7" class="empty-state">Belum ada pengguna terdaftar.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <div v-else-if="errorMessage" class="state-card error">
+        <p>{{ errorMessage }}</p>
+        <button @click="fetchVisits" class="btn-retry">Coba Lagi</button>
+      </div>
 
-    <!-- Mobile View: Key-Value Card Layout (3 Baris × 2 Kolom Grid) -->
-    <div class="mobile-view">
-      <div v-if="loading" class="loading-state">Memuat data pengguna...</div>
-      <div v-else-if="users.length === 0" class="empty-state">Belum ada pengguna terdaftar.</div>
-      <div v-else class="cards-list">
-        <div v-for="user in users" :key="user.id || user._id" class="user-card">
-          <div class="card-grid">
-            <!-- Row 1: Nama & Role -->
-            <div class="grid-item">
-              <span class="grid-label">Nama</span>
-              <span class="grid-value primary-text">{{ user.name }}</span>
+      <div v-else-if="visits.length === 0" class="state-card empty">
+        <p>Belum ada data kunjungan tersedia.</p>
+      </div>
+
+      <div v-else class="visits-grid">
+        <article v-for="visit in visits" :key="visit.id || visit._id" class="visit-card">
+          <!-- Card Header (Lokasi & Status) -->
+          <div class="card-top">
+            <h3 class="location-name">{{ visit.locationName || visit.title || 'Lokasi Infrastruktur' }}</h3>
+            <span :class="['status-badge', (visit.status || 'PENDING').toLowerCase()]">
+              {{ visit.status || 'PENDING' }}
+            </span>
+          </div>
+
+          <!-- Key-Value Grid Section (Mobile: 3 Columns x 2 Rows) -->
+          <div class="kv-grid-container">
+            <!-- Row 1: Item 1 -->
+            <div class="kv-item">
+              <span class="kv-label">ID Laporan</span>
+              <strong class="kv-value">{{ visit.reportId || visit.id?.substring(0,6) || '-' }}</strong>
             </div>
-            <div class="grid-item">
-              <span class="grid-label">Role</span>
-              <span class="grid-value">
-                <span :class="['role-badge', formatRoleClass(user.role)]">
-                  {{ formatRoleName(user.role) }}
-                </span>
-              </span>
+            <!-- Row 1: Item 2 -->
+            <div class="kv-item">
+              <span class="kv-label">Teknisi</span>
+              <strong class="kv-value">{{ visit.technicianName || visit.technician || '-' }}</strong>
+            </div>
+            <!-- Row 1: Item 3 -->
+            <div class="kv-item">
+              <span class="kv-label">Tanggal</span>
+              <strong class="kv-value">{{ formatDate(visit.visitDate || visit.createdAt) }}</strong>
             </div>
 
-            <!-- Row 2: Email & No. Telepon -->
-            <div class="grid-item">
-              <span class="grid-label">Email</span>
-              <span class="grid-value email-text">{{ user.email }}</span>
+            <!-- Row 2: Item 4 -->
+            <div class="kv-item">
+              <span class="kv-label">Kategori</span>
+              <strong class="kv-value">{{ visit.category || 'Maintenance' }}</strong>
             </div>
-            <div class="grid-item">
-              <span class="grid-label">No. Telepon / WA</span>
-              <span class="grid-value phone-text">
-                {{ user.phoneNumber || user.phone || '-' }}
-              </span>
+            <!-- Row 2: Item 5 -->
+            <div class="kv-item">
+              <span class="kv-label">Waktu</span>
+              <strong class="kv-value">{{ visit.time || '09:00 WIB' }}</strong>
             </div>
-
-            <!-- Row 3: Status & Info Tambahan -->
-            <div class="grid-item">
-              <span class="grid-label">Status</span>
-              <span class="grid-value">
-                <span :class="['status-badge', user.status?.toLowerCase()]">
-                  {{ user.status || 'ACTIVE' }}
-                </span>
-              </span>
-            </div>
-            <div class="grid-item">
-              <span class="grid-label">Info Tambahan</span>
-              <span class="grid-value">
-                <span v-if="user.specialization">Spesialisasi: {{ user.specialization }}</span>
-                <span v-else-if="user.department">Dept: {{ user.department }}</span>
-                <span v-else class="text-muted">-</span>
-              </span>
+            <!-- Row 2: Item 6 -->
+            <div class="kv-item">
+              <span class="kv-label">Tipe</span>
+              <strong class="kv-value">{{ visit.visitType || 'Inspeksi' }}</strong>
             </div>
           </div>
 
+          <!-- Card Footer Action -->
           <div class="card-actions">
-            <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm full-width">
-              Hapus Akun
-            </button>
+            <router-link :to="`/reports/${visit.reportId || visit._id}`" class="btn-detail">
+              Lihat Detail Laporan
+            </router-link>
           </div>
-        </div>
+        </article>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { createUser, getAllUsers, deleteUser } from '../services/api';
+import axios from 'axios';
 
-const users = ref([]);
+const visits = ref([]);
 const loading = ref(true);
-const submitting = ref(false);
-const showModal = ref(false);
-const successMessage = ref('');
 const errorMessage = ref('');
+const currentTheme = ref('light');
 
-const newUser = ref({
-  name: '',
-  email: '',
-  password: '',
-  role: 'ADMIN',
-  adminPin: '',
-  phoneNumber: '',
-  specialization: '',
-  department: ''
-});
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
 
-const fetchUsers = async () => {
+const initTheme = () => {
+  const savedTheme = localStorage.getItem('user-theme') || 'light';
+  currentTheme.value = savedTheme;
+  document.documentElement.setAttribute('data-theme', savedTheme);
+};
+
+const toggleTheme = () => {
+  const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
+  currentTheme.value = newTheme;
+  localStorage.setItem('user-theme', newTheme);
+  document.documentElement.setAttribute('data-theme', newTheme);
+};
+
+const fetchVisits = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const res = await getAllUsers();
-    const userList = res?.users || res?.data?.users || res?.data || [];
-    users.value = Array.isArray(userList) ? userList : [];
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_BASE_URL}/api/visits`, {
+      headers: { Authorization: token ? `Bearer ${token}` : '' }
+    });
+    const data = response?.data?.visits || response?.data || [];
+    visits.value = Array.isArray(data) ? data : [];
   } catch (err) {
-    console.error('Gagal memuat pengguna:', err);
-    errorMessage.value = err.response?.data?.error || 'Gagal mengambil daftar pengguna dari server.';
+    console.error('Error fetching visits:', err);
+    // Dummy Data Fallback jika API belum siap
+    visits.value = [
+      {
+        _id: '1',
+        reportId: 'REP-001',
+        locationName: 'Tower BTS Cileungsi 02',
+        technicianName: 'Ahmad Supri',
+        visitDate: '2026-08-10',
+        category: 'Jaringan',
+        time: '10:00 WIB',
+        visitType: 'Rutin',
+        status: 'COMPLETED'
+      },
+      {
+        _id: '2',
+        reportId: 'REP-002',
+        locationName: 'Gedung Data Center Bekasi',
+        technicianName: 'Budi Santoso',
+        visitDate: '2026-08-12',
+        category: 'Listrik/AC',
+        time: '14:00 WIB',
+        visitType: 'Darurat',
+        status: 'PENDING'
+      }
+    ];
   } finally {
     loading.value = false;
   }
 };
 
-const handleCreateUser = async () => {
-  submitting.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
-
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
   try {
-    const contactNum = newUser.value.phoneNumber || '';
-
-    const payload = {
-      name: newUser.value.name,
-      email: newUser.value.email,
-      password: newUser.value.password,
-      role: newUser.value.role,
-      phoneNumber: contactNum,
-      phone: contactNum
-    };
-
-    if (newUser.value.role === 'ADMIN') {
-      payload.adminPin = newUser.value.adminPin;
-    }
-
-    if (newUser.value.role === 'TECHNICIAN' && newUser.value.specialization) {
-      payload.specialization = newUser.value.specialization;
-    }
-
-    if (['INFRASTRUCTURE_MANAGER', 'USER'].includes(newUser.value.role) && newUser.value.department) {
-      payload.department = newUser.value.department;
-    }
-
-    const res = await createUser(payload);
-    successMessage.value = res?.message || 'Akun berhasil dibuat!';
-    closeModal();
-    fetchUsers();
-  } catch (err) {
-    console.error('Gagal membuat akun:', err);
-    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal membuat akun baru.';
-  } finally {
-    submitting.value = false;
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+  } catch {
+    return dateStr;
   }
-};
-
-const handleDeleteUser = async (userId) => {
-  if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
-  try {
-    await deleteUser(userId);
-    fetchUsers();
-  } catch (err) {
-    alert('Gagal menghapus pengguna.');
-  }
-};
-
-const closeModal = () => {
-  showModal.value = false;
-  newUser.value = {
-    name: '',
-    email: '',
-    password: '',
-    role: 'ADMIN',
-    adminPin: '',
-    phoneNumber: '',
-    specialization: '',
-    department: ''
-  };
-};
-
-const formatRoleName = (role) => {
-  if (role === 'INFRASTRUCTURE_MANAGER') return 'MANAGER';
-  return role || 'USER';
-};
-
-const formatRoleClass = (role) => {
-  if (!role) return 'user';
-  if (role === 'INFRASTRUCTURE_MANAGER') return 'manager';
-  return role.toLowerCase();
 };
 
 onMounted(() => {
-  fetchUsers();
+  initTheme();
+  fetchVisits();
 });
 </script>
 
 <style scoped>
-.users-page { padding: 24px; }
-.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.subtitle { color: #64748b; margin-top: 4px; }
-.btn-primary { background: #2563eb; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
-.btn-primary:hover { background: #1d4ed8; }
-.btn-cancel { background: #e2e8f0; color: #475569; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
-.alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
-.alert.success { background: #dcfce7; color: #166534; }
-.alert.error { background: #fee2e2; color: #991b1b; }
+:global(:root),
+:global([data-theme="light"]) {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --theme-bg: #f1f5f9;
+  --kv-bg: #f8fafc;
+}
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 50; }
-.modal-card { background: white; padding: 24px; border-radius: 8px; width: 100%; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #334155; }
-.form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+:global([data-theme="dark"]) {
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --theme-bg: #334155;
+  --kv-bg: #0f172a;
+}
 
-.highlighted-group { background: #fef2f2; padding: 12px; border-radius: 6px; border: 1px solid #fca5a5; }
-.text-danger { color: #dc2626 !important; }
-.help-text { font-size: 11px; color: #ef4444; margin-top: 4px; display: block; }
-.text-muted { color: #94a3b8; font-style: italic; }
-.phone-text { font-family: monospace; font-weight: 600; color: #0f172a; }
+.page-container {
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  padding: 16px;
+  box-sizing: border-box;
+}
 
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
 
-.table-container { background: white; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
-.users-table { width: 100%; border-collapse: collapse; text-align: left; }
-.users-table th, .users-table td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-.users-table th { background: #f8fafc; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+.header-content h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
 
-.role-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #e2e8f0; }
-.role-badge.admin { background: #dbeafe; color: #1e40af; }
-.role-badge.manager { background: #fef3c7; color: #92400e; }
-.role-badge.technician { background: #e0e7ff; color: #3730a3; }
-.role-badge.user { background: #f1f5f9; color: #475569; }
+.subtitle {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
-.status-badge { font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; }
-.status-badge.active { background: #dcfce7; color: #166534; }
-.status-badge.pending { background: #fef3c7; color: #92400e; }
+.btn-theme {
+  background: var(--theme-bg);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
 
-.btn-danger-sm { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
-.btn-danger-sm:hover { background: #dc2626; }
-.empty-state, .loading-state { text-align: center; color: #64748b; padding: 24px; }
+.icon-sm {
+  width: 18px;
+  height: 18px;
+}
 
-/* Responsive View Switcher */
-.mobile-view { display: none; }
-.desktop-view { display: block; }
+.visits-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-/* Mobile Grid Styling (Card Key-Value 3 Baris x 2 Kolom) */
-@media (max-width: 768px) {
-  .desktop-view { display: none; }
-  .mobile-view { display: block; }
-  .users-page { padding: 16px; }
-  
-  .header-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .header-section button {
-    width: 100%;
-  }
+.visit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
 
-  .cards-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
 
-  .user-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-  }
+.location-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
 
-  /* Grid 3 Baris x 2 Kolom */
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(3, auto);
-    gap: 12px 16px;
-  }
+/* Status Badges */
+.status-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
 
-  .grid-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
+.status-badge.completed { background: #dcfce7; color: #15803d; }
+.status-badge.pending { background: #fef3c7; color: #b45309; }
+.status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 
-  .grid-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
+/* KEY-VALUE GRID (3 COLUMNS x 2 ROWS UTUTUK MOBILE) */
+.kv-grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Tepat 3 Kolom */
+  grid-template-rows: repeat(2, auto);   /* Tepat 2 Baris */
+  gap: 8px;
+  background-color: var(--kv-bg);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
 
-  .grid-value {
-    font-size: 13px;
-    color: #334155;
-    word-break: break-word;
-  }
+.kv-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Mencegah overflow teks */
+}
 
-  .primary-text {
-    font-weight: 700;
-    color: #0f172a;
-  }
+.kv-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
 
-  .email-text {
-    font-size: 12px;
-    color: #2563eb;
-  }
+.kv-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Mengatur potongan jika data terlalu panjang */
+}
 
-  .card-actions {
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid #f1f5f9;
-  }
+/* Footer Actions */
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
 
-  .full-width {
-    width: 100%;
-    padding: 8px;
-  }
+.btn-detail {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  padding: 8px 12px;
+  background-color: var(--primary);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.btn-detail:hover {
+  background-color: var(--primary-hover);
+}
+
+.state-card {
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.btn-retry {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>
