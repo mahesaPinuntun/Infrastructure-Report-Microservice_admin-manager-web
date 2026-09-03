@@ -3,8 +3,8 @@
     <!-- Header Page -->
     <header class="header-section">
       <div class="header-content">
-        <h1>Daftar Work Order</h1>
-        <p class="subtitle">Manajemen Penugasan & Perbaikan Lapangan</p>
+        <h1>Daftar Kunjungan & Work Order</h1>
+        <p class="subtitle">Riwayat & Jadwal Penugasan Manager Field</p>
       </div>
 
       <!-- Theme Switcher -->
@@ -18,66 +18,66 @@
       </button>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Content Area -->
     <main class="main-content">
       <div v-if="loading" class="state-card loading">
-        <span>Memuat data Work Order dari database...</span>
+        <span>Memuat data kunjungan dari Manager Service...</span>
       </div>
 
       <div v-else-if="errorMessage" class="state-card error">
         <p>{{ errorMessage }}</p>
-        <button @click="fetchWorkOrders" class="btn-retry">Coba Lagi</button>
+        <button @click="fetchVisits" class="btn-retry">Coba Lagi</button>
       </div>
 
-      <div v-else-if="workOrders.length === 0" class="state-card empty">
-        <p>Belum ada data Work Order terdaftar di database.</p>
+      <div v-else-if="visits.length === 0" class="state-card empty">
+        <p>Belum ada data kunjungan / work order terdaftar.</p>
       </div>
 
-      <div v-else class="orders-grid">
-        <article v-for="wo in workOrders" :key="wo._id || wo.id" class="order-card">
+      <div v-else class="visits-grid">
+        <article v-for="visit in visits" :key="visit._id || visit.id" class="visit-card">
           <!-- Card Top Info -->
           <div class="card-top">
-            <h3 class="card-title">{{ wo.title || wo.workOrderNumber || 'Work Order' }}</h3>
-            <span :class="['status-badge', (wo.status || 'PENDING').toLowerCase()]">
-              {{ wo.status || 'PENDING' }}
+            <h3 class="location-name">{{ visit.title || visit.locationName || visit.location || 'Kunjungan Lapangan' }}</h3>
+            <span :class="['status-badge', (visit.status || 'PENDING').toLowerCase()]">
+              {{ visit.status || 'PENDING' }}
             </span>
           </div>
 
-          <!-- Key-Value Grid (Mobile Layout: 3 Columns x 2 Rows) -->
+          <!-- Key-Value Grid Container (Mobile Layout: 3 Columns x 2 Rows) -->
           <div class="kv-grid-container">
             <!-- Row 1 -->
             <div class="kv-item">
-              <span class="kv-label">ID WO</span>
-              <strong class="kv-value">{{ wo.workOrderNumber || wo._id?.substring(0, 6) || '-' }}</strong>
+              <span class="kv-label">ID WO / Report</span>
+              <strong class="kv-value">{{ visit.workOrderNumber || visit.reportId || visit._id?.substring(0, 6) || '-' }}</strong>
             </div>
             <div class="kv-item">
               <span class="kv-label">Teknisi</span>
-              <strong class="kv-value">{{ wo.technicianName || wo.assignedTechnician?.name || '-' }}</strong>
+              <strong class="kv-value">{{ visit.technicianName || visit.assignedTechnician?.name || visit.technician || '-' }}</strong>
             </div>
             <div class="kv-item">
-              <span class="kv-label">Prioritas</span>
-              <strong class="kv-value">{{ wo.priority || 'NORMAL' }}</strong>
+              <span class="kv-label">Tanggal</span>
+              <strong class="kv-value">{{ formatDate(visit.visitDate || visit.createdAt || visit.dueDate) }}</strong>
             </div>
 
             <!-- Row 2 -->
             <div class="kv-item">
-              <span class="kv-label">Tgl Dibuat</span>
-              <strong class="kv-value">{{ formatDate(wo.createdAt) }}</strong>
+              <span class="kv-label">Kategori</span>
+              <strong class="kv-value">{{ visit.category || 'Maintenance' }}</strong>
             </div>
             <div class="kv-item">
-              <span class="kv-label">Target Selesai</span>
-              <strong class="kv-value">{{ formatDate(wo.dueDate) }}</strong>
+              <span class="kv-label">Prioritas</span>
+              <strong class="kv-value">{{ visit.priority || 'NORMAL' }}</strong>
             </div>
             <div class="kv-item">
               <span class="kv-label">Lokasi</span>
-              <strong class="kv-value">{{ wo.location || wo.reportLocation || '-' }}</strong>
+              <strong class="kv-value">{{ visit.location || visit.locationName || '-' }}</strong>
             </div>
           </div>
 
-          <!-- Actions -->
+          <!-- Card Actions -->
           <div class="card-actions">
-            <router-link v-if="wo.reportId" :to="`/reports/${wo.reportId}`" class="btn-action">
-              Lihat Laporan Terkait
+            <router-link v-if="visit.reportId || visit._id" :to="`/reports/${visit.reportId || visit._id}`" class="btn-detail">
+              Lihat Detail Laporan
             </router-link>
           </div>
         </article>
@@ -90,12 +90,13 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-const workOrders = ref([]);
+const visits = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
 
-const API_BASE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
+// URL Base Manager Service (Menyesuaikan Microservice Backend)
+const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
@@ -110,18 +111,18 @@ const toggleTheme = () => {
   document.documentElement.setAttribute('data-theme', newTheme);
 };
 
-// Fetch Work Orders tanpa header token/authorization
-const fetchWorkOrders = async () => {
+// Fetch data tanpa menyertakan Authorization token
+const fetchVisits = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/admin/work-orders`);
-    const data = response?.data?.workOrders || response?.data?.data || response?.data || [];
-    workOrders.value = Array.isArray(data) ? data : [];
+    const response = await axios.get(`${MANAGER_SERVICE_URL}/api/manager/work-orders`);
+    const data = response?.data?.workOrders || response?.data?.data || response?.data?.visits || response?.data || [];
+    visits.value = Array.isArray(data) ? data : [];
   } catch (err) {
-    console.error('Error fetching Work Orders:', err);
-    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal memuat data Work Order dari server.';
-    workOrders.value = [];
+    console.error('Error fetching Manager Work Orders:', err);
+    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal memuat data Work Order dari Manager Service.';
+    visits.value = [];
   } finally {
     loading.value = false;
   }
@@ -139,7 +140,7 @@ const formatDate = (dateStr) => {
 
 onMounted(() => {
   initTheme();
-  fetchWorkOrders();
+  fetchVisits();
 });
 </script>
 
@@ -198,13 +199,13 @@ onMounted(() => {
 
 .icon-sm { width: 18px; height: 18px; }
 
-.orders-grid {
+.visits-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.order-card {
+.visit-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -220,7 +221,7 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.card-title {
+.location-name {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
@@ -241,7 +242,7 @@ onMounted(() => {
 .status-badge.in_progress, .status-badge.pending { background: #fef3c7; color: #b45309; }
 .status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 
-/* Mobile Grid 3 Columns x 2 Rows */
+/* Mobile Key-Value Grid 3 Columns x 2 Rows */
 .kv-grid-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -259,7 +260,7 @@ onMounted(() => {
 .kv-value { font-size: 11px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .card-actions { display: flex; justify-content: flex-end; }
-.btn-action {
+.btn-detail {
   display: inline-block;
   width: 100%;
   text-align: center;
