@@ -30,6 +30,7 @@
     </div>
 
     <div v-else>
+      <!-- Summary Cards -->
       <div class="stats-grid">
         <div class="stat-card">
           <h3>Total Laporan System</h3>
@@ -45,11 +46,74 @@
         </div>
       </div>
 
+      <!-- Quick Actions & Table Dropdown Selector -->
       <div class="quick-actions">
-        <h3>Aksi Cepat Admin</h3>
+        <div class="actions-header">
+          <h3>Tampilkan List Tabel Data</h3>
+          
+          <!-- Dropdown Control -->
+          <div class="dropdown-container">
+            <select v-model="selectedTable" @change="handleTableChange" class="table-select">
+              <option value="none">-- Sembunyikan Tabel --</option>
+              <option value="reports">Tabel Laporan Kerusakan</option>
+              <option value="users">Tabel Pengguna System</option>
+              <option value="technicians">Tabel Data Teknisi</option>
+              <option value="workOrders">Tabel Work Orders (Manager)</option>
+            </select>
+          </div>
+        </div>
+
         <div class="action-buttons">
           <router-link to="/users" class="btn-action">Kelola Pengguna & Roles</router-link>
           <router-link to="/reports" class="btn-action outline">Lihat Semua Laporan</router-link>
+        </div>
+      </div>
+
+      <!-- Dynamic Data Table Section -->
+      <div v-if="selectedTable !== 'none'" class="table-section">
+        <div class="table-header">
+          <h4>{{ tableTitle }}</h4>
+          <span v-if="tableLoading" class="table-loading-tag">Memuat data...</span>
+        </div>
+
+        <div v-if="tableLoading" class="loading-state">Memuat isi tabel...</div>
+        
+        <div v-else-if="tableData.length === 0" class="empty-table">
+          Tidak ada data {{ tableTitle.toLowerCase() }} yang tersedia.
+        </div>
+
+        <div v-else class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th v-for="col in tableColumns" :key="col.key">{{ col.label }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in tableData" :key="item._id || item.id || idx">
+                <td v-for="col in tableColumns" :key="col.key">
+                  <!-- Formatting khusus per kolom -->
+                  <template v-if="col.key === 'status'">
+                    <span :class="['status-badge', (item[col.key] || 'PENDING').toLowerCase()]">
+                      {{ item[col.key] || 'PENDING' }}
+                    </span>
+                  </template>
+
+                  <template v-else-if="col.key === 'technicians'">
+                    {{ getTechnicianName(item) }}
+                  </template>
+
+                  <template v-else-if="col.key === 'createdAt' || col.key === 'visitDate'">
+                    {{ formatDate(item[col.key]) }}
+                  </template>
+
+                  <template v-else>
+                    {{ item[col.key] || '-' }}
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -57,7 +121,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { adminApi, logout } from '../services/api';
 
 const stats = ref({ totalReports: 0, activeTechnicians: 0, systemHealth: 'GOOD' });
@@ -65,6 +130,14 @@ const user = ref(null);
 const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
+
+// Table Dropdown States
+const selectedTable = ref('none');
+const tableData = ref([]);
+const tableLoading = ref(false);
+
+const ADMIN_SERVICE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
+const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
@@ -78,6 +151,55 @@ const toggleTheme = () => {
   localStorage.setItem('user-theme', newTheme);
   document.documentElement.setAttribute('data-theme', newTheme);
 };
+
+// Judul Tabel Dinamis
+const tableTitle = computed(() => {
+  switch (selectedTable.value) {
+    case 'reports': return 'Daftar Laporan Kerusakan';
+    case 'users': return 'Daftar Pengguna System';
+    case 'technicians': return 'Daftar Teknisi Lapangan';
+    case 'workOrders': return 'Daftar Work Orders';
+    default: return '';
+  }
+});
+
+// Kolom Tabel Dinamis
+const tableColumns = computed(() => {
+  switch (selectedTable.value) {
+    case 'reports':
+      return [
+        { key: 'title', label: 'Judul Laporan' },
+        { key: 'category', label: 'Kategori' },
+        { key: 'location', label: 'Lokasi' },
+        { key: 'status', label: 'Status' },
+        { key: 'createdAt', label: 'Tanggal' }
+      ];
+    case 'users':
+      return [
+        { key: 'name', label: 'Nama' },
+        { key: 'email', label: 'Email' },
+        { key: 'role', label: 'Role' },
+        { key: 'status', label: 'Status' }
+      ];
+    case 'technicians':
+      return [
+        { key: 'name', label: 'Nama Teknisi' },
+        { key: 'email', label: 'Email' },
+        { key: 'specialization', label: 'Spesialisasi' },
+        { key: 'status', label: 'Status' }
+      ];
+    case 'workOrders':
+      return [
+        { key: 'workOrderNumber', label: 'No. WO' },
+        { key: 'title', label: 'Judul Pekerjaan' },
+        { key: 'technicians', label: 'Teknisi' },
+        { key: 'priority', label: 'Prioritas' },
+        { key: 'status', label: 'Status' }
+      ];
+    default:
+      return [];
+  }
+});
 
 const fetchStats = async () => {
   loading.value = true;
@@ -95,6 +217,56 @@ const fetchStats = async () => {
     errorMessage.value = 'Gagal memuat data statistik dari server.';
   } finally {
     loading.value = false;
+  }
+};
+
+// Handler Perubahan Dropdown Tabel
+const handleTableChange = async () => {
+  if (selectedTable.value === 'none') {
+    tableData.value = [];
+    return;
+  }
+
+  tableLoading.value = true;
+  tableData.value = [];
+
+  try {
+    let endpoint = '';
+    if (selectedTable.value === 'reports') {
+      endpoint = `${ADMIN_SERVICE_URL}/api/admin/reports`;
+    } else if (selectedTable.value === 'users') {
+      endpoint = `${ADMIN_SERVICE_URL}/api/admin/users`;
+    } else if (selectedTable.value === 'technicians') {
+      endpoint = `${ADMIN_SERVICE_URL}/api/admin/technicians`;
+    } else if (selectedTable.value === 'workOrders') {
+      endpoint = `${MANAGER_SERVICE_URL}/api/manager/work-orders`;
+    }
+
+    const res = await axios.get(endpoint);
+    const data = res?.data?.reports || res?.data?.users || res?.data?.technicians || res?.data?.workOrders || res?.data?.data || res?.data || [];
+    tableData.value = Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error('Gagal mengambil data tabel:', err);
+    tableData.value = [];
+  } finally {
+    tableLoading.value = false;
+  }
+};
+
+// Helper Format Nama Teknisi
+const getTechnicianName = (item) => {
+  if (Array.isArray(item.technicians) && item.technicians.length > 0) {
+    return item.technicians[0]?.name || item.technicians[0] || '-';
+  }
+  return item.technicianName || item.assignedTechnician?.name || '-';
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return dateStr;
   }
 };
 
@@ -133,6 +305,7 @@ onMounted(() => {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --theme-toggle-bg: #f1f5f9;
+  --table-hover: #f1f5f9;
 }
 
 :global([data-theme="dark"]) {
@@ -144,6 +317,7 @@ onMounted(() => {
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
   --theme-toggle-bg: #334155;
+  --table-hover: #334155;
 }
 
 .dashboard-page {
@@ -187,9 +361,6 @@ onMounted(() => {
   border-radius: 6px;
   padding: 8px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .icon-sm {
@@ -201,7 +372,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
@@ -230,18 +401,40 @@ onMounted(() => {
   color: #16a34a;
 }
 
+/* Quick Actions & Dropdown Header */
 .quick-actions {
   background: var(--bg-card);
   padding: 20px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
   color: var(--text-main);
+  margin-bottom: 24px;
 }
 
-.quick-actions h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
+.actions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.actions-header h3 {
+  margin: 0;
   font-size: 16px;
+}
+
+.table-select {
+  padding: 8px 12px;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
 }
 
 .action-buttons {
@@ -257,11 +450,6 @@ onMounted(() => {
   text-decoration: none;
   font-weight: 600;
   font-size: 14px;
-  transition: background-color 0.2s ease;
-}
-
-.btn-action:hover {
-  background-color: var(--primary-hover);
 }
 
 .btn-action.outline {
@@ -270,9 +458,70 @@ onMounted(() => {
   border: 1px solid var(--primary-color);
 }
 
-.btn-action.outline:hover {
-  background-color: rgba(37, 99, 235, 0.1);
+/* Dynamic Table Section */
+.table-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.table-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.table-loading-tag {
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  background-color: var(--bg-main);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--table-hover);
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.status-badge.completed, .status-badge.active, .status-badge.good { background: #dcfce7; color: #15803d; }
+.status-badge.pending, .status-badge.in_progress { background: #fef3c7; color: #b45309; }
 
 .btn-logout {
   padding: 8px 16px;
@@ -282,21 +531,13 @@ onMounted(() => {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
 }
 
-.btn-logout:hover {
-  background-color: #dc2626;
-}
-
-.loading-state,
-.error-state {
-  padding: 24px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+.loading-state, .error-state, .empty-table {
+  padding: 20px;
   text-align: center;
   color: var(--text-muted);
+  font-size: 14px;
 }
 
 .btn-retry {
