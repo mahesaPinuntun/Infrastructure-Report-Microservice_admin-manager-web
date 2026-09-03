@@ -50,7 +50,7 @@
             <label>Login Sebagai *</label>
             <select v-model="form.role" class="input-control select-control">
               <option value="ADMIN">Administrator</option>
-              <option value="MANAGER">Infrastructure Manager</option>
+              <option value="MANAGER">Manager Field</option>
               <option value="TECHNICIAN">Teknisi Lapangan</option>
               <option value="USER">User / Pelapor</option>
             </select>
@@ -88,7 +88,7 @@
         </form>
 
         <div class="auth-footer">
-          <p>Butuh bantuan akses? Hubungi Tim Tim Admin Infrastruktur.</p>
+          <p>Butuh bantuan akses? Hubungi Tim Admin Infrastruktur.</p>
         </div>
       </div>
     </main>
@@ -158,7 +158,7 @@ const handleLogin = async () => {
         const rawRole = (user?.role || form.value.role).toUpperCase();
         if (rawRole === 'ADMIN') {
           router.push('/admin');
-        } else if (rawRole === 'MANAGER' || rawRole === 'MANAGER') {
+        } else if (rawRole === 'MANAGER' || rawRole === 'INFRASTRUCTURE_MANAGER') {
           router.push('/manager');
         } else {
           router.push('/reports');
