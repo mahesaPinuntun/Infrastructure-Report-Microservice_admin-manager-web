@@ -141,7 +141,7 @@
                   <!-- DISPLAY FOR OTHER TABLES (USERS & REPORTS) -->
                   <template v-else>
                     <span v-if="col.key === 'role'" class="role-badge">
-                      {{ item.role || 'USER' }}
+                      {{ formatRoleDisplay(item.role) }}
                     </span>
 
                     <span v-else-if="col.key === 'status'" :class="['status-badge', (item[col.key] || 'PENDING').toLowerCase()]">
@@ -252,12 +252,21 @@ const filteredTableData = computed(() => {
 
   return rawTableData.value.filter(item => {
     const itemRole = (item.role || '').toString().trim().toUpperCase();
-    if (targetRole === 'INFRASTRUCTURE_MANAGER' || targetRole === 'MANAGER') {
-      return itemRole === 'INFRASTRUCTURE_MANAGER' || itemRole === 'MANAGER';
+    if (targetRole === 'MANAGER') {
+      return itemRole === 'MANAGER' || itemRole === 'INFRASTRUCTURE_MANAGER';
     }
     return itemRole === targetRole;
   });
 });
+
+const formatRoleDisplay = (role) => {
+  if (!role) return 'USER';
+  const r = role.toString().trim().toUpperCase();
+  if (r === 'INFRASTRUCTURE_MANAGER' || r === 'MANAGER') {
+    return 'MANAGER';
+  }
+  return r;
+};
 
 const fetchStats = async () => {
   loading.value = true;
