@@ -42,7 +42,7 @@
             <label>Role Access *</label>
             <select v-model="newUser.role" required>
               <option value="ADMIN">Administrator</option>
-              <option value="INFRASTRUCTURE_MANAGER">Manager Field</option>
+              <option value="MANAGER">Manager Field</option>
               <option value="TECHNICIAN">Teknisi Lapangan</option>
               <option value="USER">User / Reporter</option>
             </select>
