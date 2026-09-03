@@ -46,20 +46,34 @@
         </div>
       </div>
 
-      <!-- Quick Actions & Table Dropdown Selector -->
+      <!-- Quick Actions & Dropdown Controls -->
       <div class="quick-actions">
         <div class="actions-header">
-          <h3>Tampilkan List Tabel Data</h3>
+          <h3>Filter Data Dashboard</h3>
           
-          <!-- Dropdown Control -->
-          <div class="dropdown-container">
-            <select v-model="selectedTable" @change="handleTableChange" class="table-select">
-              <option value="none">-- Sembunyikan Tabel --</option>
-              <option value="reports">Tabel Laporan Kerusakan</option>
-              <option value="users">Tabel Pengguna System</option>
-              <option value="technicians">Tabel Data Teknisi</option>
-              <option value="workOrders">Tabel Work Orders (Manager)</option>
-            </select>
+          <div class="dropdown-group">
+            <!-- Dropdown 1: Tipe Data/Tabel -->
+            <div class="dropdown-container">
+              <label class="dropdown-label">Pilih Tabel:</label>
+              <select v-model="selectedTable" @change="handleTableChange" class="table-select">
+                <option value="none">-- Sembunyikan Tabel --</option>
+                <option value="users">Tabel Pengguna (By Role)</option>
+                <option value="reports">Tabel Laporan Kerusakan</option>
+                <option value="workOrders">Tabel Work Orders (Manager)</option>
+              </select>
+            </div>
+
+            <!-- Dropdown 2: Filter Per Role (Muncul saat memilih Tabel Pengguna) -->
+            <div v-if="selectedTable === 'users'" class="dropdown-container">
+              <label class="dropdown-label">Display Per Role:</label>
+              <select v-model="selectedRole" @change="handleRoleChange" class="table-select role-select">
+                <option value="ALL">Semua Role</option>
+                <option value="USER">User (Pelapor)</option>
+                <option value="ADMIN">Admin</option>
+                <option value="INFRASTRUCTURE_MANAGER">Infrastructure Manager</option>
+                <option value="TECHNICIAN">Technician</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -72,14 +86,14 @@
       <!-- Dynamic Data Table Section -->
       <div v-if="selectedTable !== 'none'" class="table-section">
         <div class="table-header">
-          <h4>{{ tableTitle }}</h4>
+          <h4>{{ tableTitle }} <span v-if="selectedTable === 'users'" class="role-tag">({{ selectedRole }})</span></h4>
           <span v-if="tableLoading" class="table-loading-tag">Memuat data...</span>
         </div>
 
         <div v-if="tableLoading" class="loading-state">Memuat isi tabel...</div>
         
-        <div v-else-if="tableData.length === 0" class="empty-table">
-          Tidak ada data {{ tableTitle.toLowerCase() }} yang tersedia.
+        <div v-else-if="filteredTableData.length === 0" class="empty-table">
+          Tidak ada data {{ tableTitle.toLowerCase() }} untuk kriteria ini.
         </div>
 
         <div v-else class="table-responsive">
@@ -90,10 +104,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, idx) in tableData" :key="item._id || item.id || idx">
+              <tr v-for="(item, idx) in filteredTableData" :key="item._id || item.id || idx">
                 <td v-for="col in tableColumns" :key="col.key">
                   <!-- Formatting khusus per kolom -->
-                  <template v-if="col.key === 'status'">
+                  <template v-if="col.key === 'role'">
+                    <span class="role-badge">{{ item.role || 'USER' }}</span>
+                  </template>
+
+                  <template v-else-if="col.key === 'status'">
                     <span :class="['status-badge', (item[col.key] || 'PENDING').toLowerCase()]">
                       {{ item[col.key] || 'PENDING' }}
                     </span>
@@ -105,6 +123,10 @@
 
                   <template v-else-if="col.key === 'createdAt' || col.key === 'visitDate'">
                     {{ formatDate(item[col.key]) }}
+                  </template>
+
+                  <template v-else-if="col.key === 'contact'">
+                    {{ item.phone || item.phoneNumber || '-' }}
                   </template>
 
                   <template v-else>
@@ -131,9 +153,10 @@ const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
 
-// Table Dropdown States
+// Table & Role Selector States
 const selectedTable = ref('none');
-const tableData = ref([]);
+const selectedRole = ref('ALL');
+const rawTableData = ref([]);
 const tableLoading = ref(false);
 
 const ADMIN_SERVICE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
@@ -157,7 +180,6 @@ const tableTitle = computed(() => {
   switch (selectedTable.value) {
     case 'reports': return 'Daftar Laporan Kerusakan';
     case 'users': return 'Daftar Pengguna System';
-    case 'technicians': return 'Daftar Teknisi Lapangan';
     case 'workOrders': return 'Daftar Work Orders';
     default: return '';
   }
@@ -179,13 +201,7 @@ const tableColumns = computed(() => {
         { key: 'name', label: 'Nama' },
         { key: 'email', label: 'Email' },
         { key: 'role', label: 'Role' },
-        { key: 'status', label: 'Status' }
-      ];
-    case 'technicians':
-      return [
-        { key: 'name', label: 'Nama Teknisi' },
-        { key: 'email', label: 'Email' },
-        { key: 'specialization', label: 'Spesialisasi' },
+        { key: 'contact', label: 'No. Telepon' },
         { key: 'status', label: 'Status' }
       ];
     case 'workOrders':
@@ -199,6 +215,14 @@ const tableColumns = computed(() => {
     default:
       return [];
   }
+});
+
+// Data terfilter berbasis Role
+const filteredTableData = computed(() => {
+  if (selectedTable.value !== 'users' || selectedRole.value === 'ALL') {
+    return rawTableData.value;
+  }
+  return rawTableData.value.filter(u => (u.role || '').toUpperCase() === selectedRole.value);
 });
 
 const fetchStats = async () => {
@@ -223,12 +247,12 @@ const fetchStats = async () => {
 // Handler Perubahan Dropdown Tabel
 const handleTableChange = async () => {
   if (selectedTable.value === 'none') {
-    tableData.value = [];
+    rawTableData.value = [];
     return;
   }
 
   tableLoading.value = true;
-  tableData.value = [];
+  rawTableData.value = [];
 
   try {
     let endpoint = '';
@@ -236,21 +260,23 @@ const handleTableChange = async () => {
       endpoint = `${ADMIN_SERVICE_URL}/api/admin/reports`;
     } else if (selectedTable.value === 'users') {
       endpoint = `${ADMIN_SERVICE_URL}/api/admin/users`;
-    } else if (selectedTable.value === 'technicians') {
-      endpoint = `${ADMIN_SERVICE_URL}/api/admin/technicians`;
     } else if (selectedTable.value === 'workOrders') {
       endpoint = `${MANAGER_SERVICE_URL}/api/manager/work-orders`;
     }
 
     const res = await axios.get(endpoint);
-    const data = res?.data?.reports || res?.data?.users || res?.data?.technicians || res?.data?.workOrders || res?.data?.data || res?.data || [];
-    tableData.value = Array.isArray(data) ? data : [];
+    const data = res?.data?.reports || res?.data?.users || res?.data?.workOrders || res?.data?.data || res?.data || [];
+    rawTableData.value = Array.isArray(data) ? data : [];
   } catch (err) {
     console.error('Gagal mengambil data tabel:', err);
-    tableData.value = [];
+    rawTableData.value = [];
   } finally {
     tableLoading.value = false;
   }
+};
+
+const handleRoleChange = () => {
+  // Triggers re-computation via filteredTableData computed property
 };
 
 // Helper Format Nama Teknisi
@@ -425,13 +451,31 @@ onMounted(() => {
   font-size: 16px;
 }
 
+.dropdown-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dropdown-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .table-select {
   padding: 8px 12px;
   background-color: var(--bg-main);
   color: var(--text-main);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   outline: none;
   cursor: pointer;
@@ -477,6 +521,20 @@ onMounted(() => {
 .table-header h4 {
   margin: 0;
   font-size: 16px;
+  font-weight: 700;
+}
+
+.role-tag {
+  font-size: 12px;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.role-badge {
+  background: var(--theme-toggle-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 700;
 }
 
