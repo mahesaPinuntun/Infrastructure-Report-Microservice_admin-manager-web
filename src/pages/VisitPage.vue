@@ -3,10 +3,10 @@
     <!-- Header Page -->
     <header class="header-section">
       <div class="header-content">
-        <h1>Daftar Kunjungan Infrastruktur</h1>
-        <p class="subtitle">Riwayat & Jadwal Kunjungan Lapangan</p>
+        <h1>Daftar Work Order</h1>
+        <p class="subtitle">Manajemen Penugasan & Perbaikan Lapangan</p>
       </div>
-      
+
       <!-- Theme Switcher -->
       <button @click="toggleTheme" class="btn-theme" title="Ubah Tema">
         <svg v-if="currentTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -18,70 +18,66 @@
       </button>
     </header>
 
-    <!-- Content Area -->
+    <!-- Main Content Area -->
     <main class="main-content">
       <div v-if="loading" class="state-card loading">
-        <span>Memuat data kunjungan...</span>
+        <span>Memuat data Work Order dari database...</span>
       </div>
 
       <div v-else-if="errorMessage" class="state-card error">
         <p>{{ errorMessage }}</p>
-        <button @click="fetchVisits" class="btn-retry">Coba Lagi</button>
+        <button @click="fetchWorkOrders" class="btn-retry">Coba Lagi</button>
       </div>
 
-      <div v-else-if="visits.length === 0" class="state-card empty">
-        <p>Belum ada data kunjungan tersedia.</p>
+      <div v-else-if="workOrders.length === 0" class="state-card empty">
+        <p>Belum ada data Work Order terdaftar di database.</p>
       </div>
 
-      <div v-else class="visits-grid">
-        <article v-for="visit in visits" :key="visit.id || visit._id" class="visit-card">
-          <!-- Card Header (Lokasi & Status) -->
+      <div v-else class="orders-grid">
+        <article v-for="wo in workOrders" :key="wo._id || wo.id" class="order-card">
+          <!-- Card Top Info -->
           <div class="card-top">
-            <h3 class="location-name">{{ visit.locationName || visit.title || 'Lokasi Infrastruktur' }}</h3>
-            <span :class="['status-badge', (visit.status || 'PENDING').toLowerCase()]">
-              {{ visit.status || 'PENDING' }}
+            <h3 class="card-title">{{ wo.title || wo.workOrderNumber || 'Work Order' }}</h3>
+            <span :class="['status-badge', (wo.status || 'PENDING').toLowerCase()]">
+              {{ wo.status || 'PENDING' }}
             </span>
           </div>
 
-          <!-- Key-Value Grid Section (Mobile: 3 Columns x 2 Rows) -->
+          <!-- Key-Value Grid (Mobile Layout: 3 Columns x 2 Rows) -->
           <div class="kv-grid-container">
-            <!-- Row 1: Item 1 -->
+            <!-- Row 1 -->
             <div class="kv-item">
-              <span class="kv-label">ID Laporan</span>
-              <strong class="kv-value">{{ visit.reportId || visit.id?.substring(0,6) || '-' }}</strong>
+              <span class="kv-label">ID WO</span>
+              <strong class="kv-value">{{ wo.workOrderNumber || wo._id?.substring(0, 6) || '-' }}</strong>
             </div>
-            <!-- Row 1: Item 2 -->
             <div class="kv-item">
               <span class="kv-label">Teknisi</span>
-              <strong class="kv-value">{{ visit.technicianName || visit.technician || '-' }}</strong>
+              <strong class="kv-value">{{ wo.technicianName || wo.assignedTechnician?.name || '-' }}</strong>
             </div>
-            <!-- Row 1: Item 3 -->
             <div class="kv-item">
-              <span class="kv-label">Tanggal</span>
-              <strong class="kv-value">{{ formatDate(visit.visitDate || visit.createdAt) }}</strong>
+              <span class="kv-label">Prioritas</span>
+              <strong class="kv-value">{{ wo.priority || 'NORMAL' }}</strong>
             </div>
 
-            <!-- Row 2: Item 4 -->
+            <!-- Row 2 -->
             <div class="kv-item">
-              <span class="kv-label">Kategori</span>
-              <strong class="kv-value">{{ visit.category || 'Maintenance' }}</strong>
+              <span class="kv-label">Tgl Dibuat</span>
+              <strong class="kv-value">{{ formatDate(wo.createdAt) }}</strong>
             </div>
-            <!-- Row 2: Item 5 -->
             <div class="kv-item">
-              <span class="kv-label">Waktu</span>
-              <strong class="kv-value">{{ visit.time || '09:00 WIB' }}</strong>
+              <span class="kv-label">Target Selesai</span>
+              <strong class="kv-value">{{ formatDate(wo.dueDate) }}</strong>
             </div>
-            <!-- Row 2: Item 6 -->
             <div class="kv-item">
-              <span class="kv-label">Tipe</span>
-              <strong class="kv-value">{{ visit.visitType || 'Inspeksi' }}</strong>
+              <span class="kv-label">Lokasi</span>
+              <strong class="kv-value">{{ wo.location || wo.reportLocation || '-' }}</strong>
             </div>
           </div>
 
-          <!-- Card Footer Action -->
+          <!-- Actions -->
           <div class="card-actions">
-            <router-link :to="`/reports/${visit.reportId || visit._id}`" class="btn-detail">
-              Lihat Detail Laporan
+            <router-link v-if="wo.reportId" :to="`/reports/${wo.reportId}`" class="btn-action">
+              Lihat Laporan Terkait
             </router-link>
           </div>
         </article>
@@ -94,12 +90,12 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-const visits = ref([]);
+const workOrders = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
+const API_BASE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
 
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
@@ -114,43 +110,21 @@ const toggleTheme = () => {
   document.documentElement.setAttribute('data-theme', newTheme);
 };
 
-const fetchVisits = async () => {
+const fetchWorkOrders = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
     const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/api/visits`, {
+    const response = await axios.get(`${API_BASE_URL}/api/admin/work-orders`, {
       headers: { Authorization: token ? `Bearer ${token}` : '' }
     });
-    const data = response?.data?.visits || response?.data || [];
-    visits.value = Array.isArray(data) ? data : [];
+    
+    const data = response?.data?.workOrders || response?.data?.data || response?.data || [];
+    workOrders.value = Array.isArray(data) ? data : [];
   } catch (err) {
-    console.error('Error fetching visits:', err);
-    // Dummy Data Fallback jika API belum siap
-    visits.value = [
-      {
-        _id: '1',
-        reportId: 'REP-001',
-        locationName: 'Tower BTS Cileungsi 02',
-        technicianName: 'Ahmad Supri',
-        visitDate: '2026-08-10',
-        category: 'Jaringan',
-        time: '10:00 WIB',
-        visitType: 'Rutin',
-        status: 'COMPLETED'
-      },
-      {
-        _id: '2',
-        reportId: 'REP-002',
-        locationName: 'Gedung Data Center Bekasi',
-        technicianName: 'Budi Santoso',
-        visitDate: '2026-08-12',
-        category: 'Listrik/AC',
-        time: '14:00 WIB',
-        visitType: 'Darurat',
-        status: 'PENDING'
-      }
-    ];
+    console.error('Error fetching Work Orders:', err);
+    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal memuat data Work Order dari server.';
+    workOrders.value = [];
   } finally {
     loading.value = false;
   }
@@ -168,7 +142,7 @@ const formatDate = (dateStr) => {
 
 onMounted(() => {
   initTheme();
-  fetchVisits();
+  fetchWorkOrders();
 });
 </script>
 
@@ -213,17 +187,8 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.header-content h1 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.subtitle {
-  margin: 4px 0 0 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.header-content h1 { margin: 0; font-size: 20px; font-weight: 800; }
+.subtitle { margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted); }
 
 .btn-theme {
   background: var(--theme-bg);
@@ -234,18 +199,15 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.icon-sm {
-  width: 18px;
-  height: 18px;
-}
+.icon-sm { width: 18px; height: 18px; }
 
-.visits-grid {
+.orders-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.visit-card {
+.order-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -261,7 +223,7 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.location-name {
+.card-title {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
@@ -269,26 +231,24 @@ onMounted(() => {
   line-height: 1.3;
 }
 
-/* Status Badges */
 .status-badge {
   font-size: 10px;
   font-weight: 800;
   padding: 4px 8px;
   border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   white-space: nowrap;
 }
 
-.status-badge.completed { background: #dcfce7; color: #15803d; }
-.status-badge.pending { background: #fef3c7; color: #b45309; }
+.status-badge.completed, .status-badge.done { background: #dcfce7; color: #15803d; }
+.status-badge.in_progress, .status-badge.pending { background: #fef3c7; color: #b45309; }
 .status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 
-/* KEY-VALUE GRID (3 COLUMNS x 2 ROWS UTUTUK MOBILE) */
+/* Mobile Grid 3 Columns x 2 Rows */
 .kv-grid-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Tepat 3 Kolom */
-  grid-template-rows: repeat(2, auto);   /* Tepat 2 Baris */
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, auto);
   gap: 8px;
   background-color: var(--kv-bg);
   padding: 10px;
@@ -297,37 +257,12 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.kv-item {
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* Mencegah overflow teks */
-}
+.kv-item { display: flex; flex-direction: column; min-width: 0; }
+.kv-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+.kv-value { font-size: 11px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.kv-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  margin-bottom: 2px;
-}
-
-.kv-value {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis; /* Mengatur potongan jika data terlalu panjang */
-}
-
-/* Footer Actions */
-.card-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-detail {
+.card-actions { display: flex; justify-content: flex-end; }
+.btn-action {
   display: inline-block;
   width: 100%;
   text-align: center;
@@ -338,11 +273,6 @@ onMounted(() => {
   font-weight: 700;
   border-radius: 6px;
   text-decoration: none;
-  transition: background-color 0.2s;
-}
-
-.btn-detail:hover {
-  background-color: var(--primary-hover);
 }
 
 .state-card {
