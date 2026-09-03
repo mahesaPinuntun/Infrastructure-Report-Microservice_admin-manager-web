@@ -110,15 +110,12 @@ const toggleTheme = () => {
   document.documentElement.setAttribute('data-theme', newTheme);
 };
 
+// Fetch Work Orders tanpa header token/authorization
 const fetchWorkOrders = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/api/admin/work-orders`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' }
-    });
-    
+    const response = await axios.get(`${API_BASE_URL}/api/admin/work-orders`);
     const data = response?.data?.workOrders || response?.data?.data || response?.data || [];
     workOrders.value = Array.isArray(data) ? data : [];
   } catch (err) {
