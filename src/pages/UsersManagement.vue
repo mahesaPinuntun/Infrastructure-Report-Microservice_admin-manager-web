@@ -4,12 +4,12 @@
     <header class="header-section">
       <div class="header-content">
         <div class="top-nav">
-          <router-link to="/admin" class="btn-back">
+          <a href="https://infrastructure-report-microservice-admin-manager.vercel.app/admin" class="btn-back">
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
             </svg>
             Kembali ke Dashboard
-          </router-link>
+          </a>
         </div>
         <h1>Manajemen Pengguna & Role</h1>
         <p class="subtitle">Kelola seluruh akun pengguna sistem infrastruktur</p>
@@ -69,6 +69,7 @@
             </select>
           </div>
 
+          <!-- Dynamic Field: Secret PIN jika Role ADMIN -->
           <div v-if="newUser.role === 'ADMIN'" class="form-group highlighted-group">
             <label class="text-danger">Secret PIN Admin *</label>
             <input 
@@ -80,12 +81,14 @@
             <small class="help-text">Diperlukan untuk memverifikasi pendaftaran Administrator baru.</small>
           </div>
 
+          <!-- Dynamic Field: Spesialisasi jika Role TECHNICIAN -->
           <div v-if="newUser.role === 'TECHNICIAN'" class="form-group">
             <label>Spesialisasi Teknisi</label>
             <input v-model="newUser.specialization" type="text" placeholder="Contoh: Fiber Optic / AC / Listrik" />
           </div>
 
-          <div v-if="['INFRASTRUCTURE_MANAGER', 'USER', 'MANAGER'].includes(newUser.role)" class="form-group">
+          <!-- Dynamic Field: Departemen jika Role MANAGER atau USER (INFRASTRUCTURE_MANAGER dihapus) -->
+          <div v-if="['MANAGER', 'USER'].includes(newUser.role)" class="form-group">
             <label>Departemen / Divisi</label>
             <input v-model="newUser.department" type="text" placeholder="Contoh: Divisi Maintenance / Umum" />
           </div>
@@ -269,7 +272,8 @@ const handleCreateUser = async () => {
       payload.specialization = newUser.value.specialization;
     }
 
-    if (['INFRASTRUCTURE_MANAGER', 'USER', 'MANAGER'].includes(newUser.value.role) && newUser.value.department) {
+    // Hanya menggunakan 'MANAGER' dan 'USER' untuk pengiriman field department
+    if (['MANAGER', 'USER'].includes(newUser.value.role) && newUser.value.department) {
       payload.department = newUser.value.department;
     }
 
@@ -310,13 +314,12 @@ const closeModal = () => {
 };
 
 const formatRoleName = (role) => {
-  if (role === 'INFRASTRUCTURE_MANAGER' || role === 'MANAGER') return 'MANAGER';
-  return role || 'USER';
+  if (!role) return 'USER';
+  return role.toUpperCase();
 };
 
 const formatRoleClass = (role) => {
   if (!role) return 'user';
-  if (role === 'INFRASTRUCTURE_MANAGER' || role === 'MANAGER') return 'manager';
   return role.toLowerCase();
 };
 
@@ -610,7 +613,7 @@ onMounted(() => {
 .btn-danger-sm:hover { background: #dc2626; }
 .empty-state, .loading-state { text-align: center; color: var(--text-muted); padding: 24px; }
 
-/* Mobile Card View (Responsif Layar Kecil) */
+/* Mobile Card View */
 .mobile-grid {
   display: flex;
   flex-direction: column;
@@ -650,7 +653,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
-  border-top: 1px border-dash var(--border-color);
+  border-top: 1px dashed var(--border-color);
   padding-top: 8px;
 }
 
