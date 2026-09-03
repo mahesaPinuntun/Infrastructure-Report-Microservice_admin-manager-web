@@ -50,7 +50,7 @@
             <label>Login Sebagai *</label>
             <select v-model="form.role" class="input-control select-control">
               <option value="ADMIN">Administrator</option>
-              <option value="INFRASTRUCTURE_MANAGER">Infrastructure Manager</option>
+              <option value="MANAGER">Infrastructure Manager</option>
               <option value="TECHNICIAN">Teknisi Lapangan</option>
               <option value="USER">User / Pelapor</option>
             </select>
@@ -138,7 +138,7 @@ const handleLogin = async () => {
   try {
     let endpointRole = 'user';
     if (form.value.role === 'ADMIN') endpointRole = 'admin';
-    if (form.value.role === 'INFRASTRUCTURE_MANAGER') endpointRole = 'manager';
+    if (form.value.role === 'MANAGER') endpointRole = 'manager';
     if (form.value.role === 'TECHNICIAN') endpointRole = 'technician';
 
     const response = await axios.post(`${AUTH_SERVICE_URL}/api/auth/login/${endpointRole}`, {
@@ -158,7 +158,7 @@ const handleLogin = async () => {
         const rawRole = (user?.role || form.value.role).toUpperCase();
         if (rawRole === 'ADMIN') {
           router.push('/admin');
-        } else if (rawRole === 'INFRASTRUCTURE_MANAGER' || rawRole === 'MANAGER') {
+        } else if (rawRole === 'MANAGER' || rawRole === 'MANAGER') {
           router.push('/manager');
         } else {
           router.push('/reports');
