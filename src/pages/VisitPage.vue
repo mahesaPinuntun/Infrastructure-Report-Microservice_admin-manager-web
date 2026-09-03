@@ -1,113 +1,195 @@
 <template>
-  <div class="page-wrapper">
-    <!-- Header Bar -->
-    <header class="header-bar">
-      <div class="header-left">
-        <button @click="navigateTo('/')" class="btn-back">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-          </svg>
-          <span>Kembali ke Landing Page</span>
-        </button>
-        <h2>Visit Mode (Pratinjau Tamu)</h2>
+  <div class="users-page">
+    <div class="header-section">
+      <div>
+        <h1>Manajemen Pengguna & Role</h1>
+        <p class="subtitle">Kelola seluruh akun pengguna sistem infrastruktur</p>
       </div>
-
-      <button @click="navigateTo('/workflow')" class="btn-workflow">
-        <span>Lihat Workflow Sistem</span>
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-        </svg>
-      </button>
-    </header>
-
-    <!-- Navigation Tabs -->
-    <div class="table-toggle-buttons">
-      <button 
-        @click="switchTable('work-orders')" 
-        :class="['btn-toggle', { active: activeTable === 'work-orders' }]"
-      >
-        Tabel Work Orders
-      </button>
-      <button 
-        @click="switchTable('reports')" 
-        :class="['btn-toggle', { active: activeTable === 'reports' }]"
-      >
-        Tabel Review Laporan
-      </button>
+      <button @click="showModal = true" class="btn-primary">+ Tambah Akun Baru</button>
     </div>
 
-    <!-- Container Content -->
-    <div class="table-container">
-      <div v-if="loading" class="state-card">
-        <div class="spinner"></div>
-        <p>Memuat data pratinjau dari server...</p>
-      </div>
+    <!-- Alert Notifikasi -->
+    <div v-if="successMessage" class="alert success">{{ successMessage }}</div>
+    <div v-if="errorMessage" class="alert error">{{ errorMessage }}</div>
 
-      <!-- Content Table Work Orders -->
-      <div v-else-if="activeTable === 'work-orders'" class="table-responsive">
-        <table class="minimal-table">
-          <thead>
-            <tr>
-              <th>Surat ID</th>
-              <th>Nama Perusahaan</th>
-              <th>Pembuat Surat</th>
-              <th>Lokasi Perbaikan</th>
-              <th>Total Biaya</th>
-              <th>Tanggal Buat</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="workOrders.length === 0">
-              <td colspan="6" class="empty-cell">Belum ada data Work Order aktif.</td>
-            </tr>
-            <tr v-for="item in workOrders" :key="item._id || item.id">
-              <td class="code-cell">{{ item.woCode || item.code || item._id?.substring(0, 8) }}</td>
-              <td class="title-cell">{{ item.companyName || 'Infrastructure Report' }}</td>
-              <td>
-                <div class="creator-cell">
-                  <span class="creator-name">{{ item.createdBy || item.creatorName || '-' }}</span>
-                  <span v-if="item.createdByEmail || item.creatorEmail" class="creator-email">
-                    {{ item.createdByEmail || item.creatorEmail }}
-                  </span>
-                </div>
-              </td>
-              <td>{{ item.locationName || item.location || '-' }}</td>
-              <td class="price-cell">Rp {{ formatCurrency(item.grandTotal) }}</td>
-              <td>{{ formatDate(item.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Modal Form Tambah User -->
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-card">
+        <h3>Tambah Akun Pengguna Baru</h3>
+        <form @submit.prevent="handleCreateUser">
+          <div class="form-group">
+            <label>Nama Lengkap *</label>
+            <input v-model="newUser.name" type="text" placeholder="Masukkan nama" required />
+          </div>
 
-      <!-- Content Table Reports -->
-      <div v-else-if="activeTable === 'reports'" class="table-responsive">
-        <table class="minimal-table">
-          <thead>
-            <tr>
-              <th>ID Laporan</th>
-              <th>Deskripsi Masalah</th>
-              <th>Lokasi</th>
-              <th>Status</th>
-              <th>Tanggal Lapor</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="reports.length === 0">
-              <td colspan="5" class="empty-cell">Belum ada data Laporan Masuk.</td>
-            </tr>
-            <tr v-for="item in reports" :key="item._id || item.id">
-              <td class="code-cell">{{ item.code || item.reportCode || item._id?.substring(0, 8) }}</td>
-              <td class="title-cell">{{ item.description || item.title || '-' }}</td>
-              <td>{{ item.location || item.locationName || '-' }}</td>
-              <td>
-                <span :class="['badge-status', (item.status || 'PENDING').toLowerCase()]">
-                  {{ item.status || 'PENDING' }}
+          <div class="form-group">
+            <label>Email Address *</label>
+            <input v-model="newUser.email" type="email" placeholder="nama@domain.com" required />
+          </div>
+
+          <div class="form-group">
+            <label>Nomor Telepon / WA *</label>
+            <input v-model="newUser.phoneNumber" type="tel" placeholder="081234567890" required />
+          </div>
+
+          <div class="form-group">
+            <label>Password *</label>
+            <input v-model="newUser.password" type="password" placeholder="••••••••" required />
+          </div>
+
+          <div class="form-group">
+            <label>Role Access *</label>
+            <select v-model="newUser.role" required>
+              <option value="ADMIN">Administrator</option>
+              <option value="INFRASTRUCTURE_MANAGER">Manager Field</option>
+              <option value="TECHNICIAN">Teknisi Lapangan</option>
+              <option value="USER">User / Reporter</option>
+            </select>
+          </div>
+
+          <!-- Dynamic Field: Secret PIN jika Role ADMIN -->
+          <div v-if="newUser.role === 'ADMIN'" class="form-group highlighted-group">
+            <label class="text-danger">Secret PIN Admin *</label>
+            <input 
+              v-model="newUser.adminPin" 
+              type="password" 
+              placeholder="Masukkan Secret PIN Admin" 
+              required 
+            />
+            <small class="help-text">Diperlukan untuk memverifikasi pendaftaran Administrator baru.</small>
+          </div>
+
+          <!-- Dynamic Field: Spesialisasi jika Role TECHNICIAN -->
+          <div v-if="newUser.role === 'TECHNICIAN'" class="form-group">
+            <label>Spesialisasi Teknisi</label>
+            <input v-model="newUser.specialization" type="text" placeholder="Contoh: Fiber Optic / AC / Listrik" />
+          </div>
+
+          <!-- Dynamic Field: Departemen jika Role MANAGER atau USER -->
+          <div v-if="['INFRASTRUCTURE_MANAGER', 'USER'].includes(newUser.role)" class="form-group">
+            <label>Departemen / Divisi</label>
+            <input v-model="newUser.department" type="text" placeholder="Contoh: Divisi Maintenance / Umum" />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeModal" class="btn-cancel">Batal</button>
+            <button type="submit" class="btn-primary" :disabled="submitting">
+              {{ submitting ? 'Memproses...' : 'Simpan Akun' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Desktop View: Tabel Daftar Pengguna -->
+    <div class="table-container desktop-view">
+      <div v-if="loading" class="loading-state">Memuat data pengguna...</div>
+      <table v-else class="users-table">
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>No. Telepon / WA</th>
+            <th>Info Tambahan</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in users" :key="user.id || user._id">
+            <td><strong>{{ user.name }}</strong></td>
+            <td>{{ user.email }}</td>
+            <td>
+              <span :class="['role-badge', formatRoleClass(user.role)]">
+                {{ formatRoleName(user.role) }}
+              </span>
+            </td>
+            <td>
+              <span v-if="user.phoneNumber || user.phone" class="phone-text">
+                {{ user.phoneNumber || user.phone }}
+              </span>
+              <small v-else class="text-muted">-</small>
+            </td>
+            <td>
+              <small v-if="user.specialization">Spesialisasi: {{ user.specialization }}</small>
+              <small v-else-if="user.department">Dept: {{ user.department }}</small>
+              <small v-else class="text-muted">-</small>
+            </td>
+            <td>
+              <span :class="['status-badge', user.status?.toLowerCase()]">
+                {{ user.status || 'ACTIVE' }}
+              </span>
+            </td>
+            <td>
+              <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm">Hapus</button>
+            </td>
+          </tr>
+          <tr v-if="users.length === 0">
+            <td colspan="7" class="empty-state">Belum ada pengguna terdaftar.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile View: Key-Value Card Layout (3 Baris × 2 Kolom Grid) -->
+    <div class="mobile-view">
+      <div v-if="loading" class="loading-state">Memuat data pengguna...</div>
+      <div v-else-if="users.length === 0" class="empty-state">Belum ada pengguna terdaftar.</div>
+      <div v-else class="cards-list">
+        <div v-for="user in users" :key="user.id || user._id" class="user-card">
+          <div class="card-grid">
+            <!-- Row 1: Nama & Role -->
+            <div class="grid-item">
+              <span class="grid-label">Nama</span>
+              <span class="grid-value primary-text">{{ user.name }}</span>
+            </div>
+            <div class="grid-item">
+              <span class="grid-label">Role</span>
+              <span class="grid-value">
+                <span :class="['role-badge', formatRoleClass(user.role)]">
+                  {{ formatRoleName(user.role) }}
                 </span>
-              </td>
-              <td>{{ formatDate(item.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
+              </span>
+            </div>
+
+            <!-- Row 2: Email & No. Telepon -->
+            <div class="grid-item">
+              <span class="grid-label">Email</span>
+              <span class="grid-value email-text">{{ user.email }}</span>
+            </div>
+            <div class="grid-item">
+              <span class="grid-label">No. Telepon / WA</span>
+              <span class="grid-value phone-text">
+                {{ user.phoneNumber || user.phone || '-' }}
+              </span>
+            </div>
+
+            <!-- Row 3: Status & Info Tambahan -->
+            <div class="grid-item">
+              <span class="grid-label">Status</span>
+              <span class="grid-value">
+                <span :class="['status-badge', user.status?.toLowerCase()]">
+                  {{ user.status || 'ACTIVE' }}
+                </span>
+              </span>
+            </div>
+            <div class="grid-item">
+              <span class="grid-label">Info Tambahan</span>
+              <span class="grid-value">
+                <span v-if="user.specialization">Spesialisasi: {{ user.specialization }}</span>
+                <span v-else-if="user.department">Dept: {{ user.department }}</span>
+                <span v-else class="text-muted">-</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm full-width">
+              Hapus Akun
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -115,253 +197,246 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-// Menggunakan managerApi langsung yang sudah ter-export dari api.js
-import { managerApi } from '../services/api';
+import { createUser, getAllUsers, deleteUser } from '../services/api';
 
-const router = useRouter();
+const users = ref([]);
+const loading = ref(true);
+const submitting = ref(false);
+const showModal = ref(false);
+const successMessage = ref('');
+const errorMessage = ref('');
 
-const activeTable = ref('work-orders');
-const loading = ref(false);
+const newUser = ref({
+  name: '',
+  email: '',
+  password: '',
+  role: 'ADMIN',
+  adminPin: '',
+  phoneNumber: '',
+  specialization: '',
+  department: ''
+});
 
-const workOrders = ref([]);
-const reports = ref([]);
-
-const initTheme = () => {
-  const savedTheme = localStorage.getItem('user-theme') || 'light';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-};
-
-const navigateTo = (path) => {
-  router.push(path);
-};
-
-const fetchWorkOrders = async () => {
+const fetchUsers = async () => {
   loading.value = true;
+  errorMessage.value = '';
   try {
-    const res = await managerApi.get('/api/manager/work-orders');
-    const data = res.data?.data || res.data?.workOrders || res.data;
-    workOrders.value = Array.isArray(data) ? data : [];
+    const res = await getAllUsers();
+    const userList = res?.users || res?.data?.users || res?.data || [];
+    users.value = Array.isArray(userList) ? userList : [];
   } catch (err) {
-    console.error('Gagal memuat Work Orders:', err);
-    workOrders.value = [];
+    console.error('Gagal memuat pengguna:', err);
+    errorMessage.value = err.response?.data?.error || 'Gagal mengambil daftar pengguna dari server.';
   } finally {
     loading.value = false;
   }
 };
 
-const fetchReports = async () => {
-  loading.value = true;
+const handleCreateUser = async () => {
+  submitting.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
   try {
-    const res = await managerApi.get('/api/manager/reports');
-    const data = res.data?.data || res.data?.reports || res.data;
-    reports.value = Array.isArray(data) ? data : [];
+    const contactNum = newUser.value.phoneNumber || '';
+
+    const payload = {
+      name: newUser.value.name,
+      email: newUser.value.email,
+      password: newUser.value.password,
+      role: newUser.value.role,
+      phoneNumber: contactNum,
+      phone: contactNum
+    };
+
+    if (newUser.value.role === 'ADMIN') {
+      payload.adminPin = newUser.value.adminPin;
+    }
+
+    if (newUser.value.role === 'TECHNICIAN' && newUser.value.specialization) {
+      payload.specialization = newUser.value.specialization;
+    }
+
+    if (['INFRASTRUCTURE_MANAGER', 'USER'].includes(newUser.value.role) && newUser.value.department) {
+      payload.department = newUser.value.department;
+    }
+
+    const res = await createUser(payload);
+    successMessage.value = res?.message || 'Akun berhasil dibuat!';
+    closeModal();
+    fetchUsers();
   } catch (err) {
-    console.error('Gagal memuat Laporan:', err);
-    reports.value = [];
+    console.error('Gagal membuat akun:', err);
+    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal membuat akun baru.';
   } finally {
-    loading.value = false;
+    submitting.value = false;
   }
 };
 
-const switchTable = (type) => {
-  activeTable.value = type;
-  if (type === 'work-orders' && workOrders.value.length === 0) {
-    fetchWorkOrders();
-  } else if (type === 'reports' && reports.value.length === 0) {
-    fetchReports();
+const handleDeleteUser = async (userId) => {
+  if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
+  try {
+    await deleteUser(userId);
+    fetchUsers();
+  } catch (err) {
+    alert('Gagal menghapus pengguna.');
   }
 };
 
-const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
+const closeModal = () => {
+  showModal.value = false;
+  newUser.value = {
+    name: '',
+    email: '',
+    password: '',
+    role: 'ADMIN',
+    adminPin: '',
+    phoneNumber: '',
+    specialization: '',
+    department: ''
+  };
+};
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
+const formatRoleName = (role) => {
+  if (role === 'INFRASTRUCTURE_MANAGER') return 'MANAGER';
+  return role || 'USER';
+};
+
+const formatRoleClass = (role) => {
+  if (!role) return 'user';
+  if (role === 'INFRASTRUCTURE_MANAGER') return 'manager';
+  return role.toLowerCase();
 };
 
 onMounted(() => {
-  initTheme();
-  fetchWorkOrders();
+  fetchUsers();
 });
 </script>
 
 <style scoped>
-:global(:root),
-:global([data-theme="light"]) {
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --primary-color: #2563eb;
-  --emerald-color: #059669;
-  --amber-color: #d97706;
-  --border-color: rgba(148, 163, 184, 0.15);
+.users-page { padding: 24px; }
+.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.subtitle { color: #64748b; margin-top: 4px; }
+.btn-primary { background: #2563eb; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-cancel { background: #e2e8f0; color: #475569; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
+.alert.success { background: #dcfce7; color: #166534; }
+.alert.error { background: #fee2e2; color: #991b1b; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 50; }
+.modal-card { background: white; padding: 24px; border-radius: 8px; width: 100%; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #334155; }
+.form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+
+.highlighted-group { background: #fef2f2; padding: 12px; border-radius: 6px; border: 1px solid #fca5a5; }
+.text-danger { color: #dc2626 !important; }
+.help-text { font-size: 11px; color: #ef4444; margin-top: 4px; display: block; }
+.text-muted { color: #94a3b8; font-style: italic; }
+.phone-text { font-family: monospace; font-weight: 600; color: #0f172a; }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+
+.table-container { background: white; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+.users-table { width: 100%; border-collapse: collapse; text-align: left; }
+.users-table th, .users-table td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+.users-table th { background: #f8fafc; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.role-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #e2e8f0; }
+.role-badge.admin { background: #dbeafe; color: #1e40af; }
+.role-badge.manager { background: #fef3c7; color: #92400e; }
+.role-badge.technician { background: #e0e7ff; color: #3730a3; }
+.role-badge.user { background: #f1f5f9; color: #475569; }
+
+.status-badge { font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; }
+.status-badge.active { background: #dcfce7; color: #166534; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+
+.btn-danger-sm { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.btn-danger-sm:hover { background: #dc2626; }
+.empty-state, .loading-state { text-align: center; color: #64748b; padding: 24px; }
+
+/* Responsive View Switcher */
+.mobile-view { display: none; }
+.desktop-view { display: block; }
+
+/* Mobile Grid Styling (Card Key-Value 3 Baris x 2 Kolom) */
+@media (max-width: 768px) {
+  .desktop-view { display: none; }
+  .mobile-view { display: block; }
+  .users-page { padding: 16px; }
+  
+  .header-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .header-section button {
+    width: 100%;
+  }
+
+  .cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .user-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  /* Grid 3 Baris x 2 Kolom */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 12px 16px;
+  }
+
+  .grid-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .grid-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .grid-value {
+    font-size: 13px;
+    color: #334155;
+    word-break: break-word;
+  }
+
+  .primary-text {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .email-text {
+    font-size: 12px;
+    color: #2563eb;
+  }
+
+  .card-actions {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .full-width {
+    width: 100%;
+    padding: 8px;
+  }
 }
-
-:global([data-theme="dark"]) {
-  --bg-main: #0f172a;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --primary-color: #3b82f6;
-  --emerald-color: #10b981;
-  --amber-color: #f59e0b;
-  --border-color: rgba(255, 255, 255, 0.08);
-}
-
-:global(html),
-:global(body) {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-.page-wrapper {
-  min-height: 100vh;
-  width: 100%;
-  box-sizing: border-box;
-  background-color: var(--bg-main);
-  color: var(--text-main);
-  padding: 24px 32px;
-}
-
-.header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.header-left h2 {
-  margin: 4px 0 0 0;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.btn-back {
-  background: transparent;
-  border: none;
-  color: var(--primary-color);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-}
-
-.btn-workflow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background-color: #d97706;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.table-toggle-buttons {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.btn-toggle {
-  padding: 10px 20px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-toggle.active {
-  background-color: var(--primary-color);
-  color: #ffffff;
-  border-color: var(--primary-color);
-}
-
-.table-container {
-  background-color: var(--bg-card);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-}
-
-.minimal-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.minimal-table th, .minimal-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-main);
-}
-
-.minimal-table th {
-  font-weight: 600;
-  color: var(--text-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-}
-
-.empty-cell {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 24px !important;
-}
-
-.code-cell { font-family: monospace; font-weight: 700; color: var(--primary-color); }
-.title-cell { font-weight: 600; }
-.price-cell { font-weight: 700; color: var(--emerald-color); }
-
-.creator-cell {
-  display: flex;
-  flex-direction: column;
-}
-
-.creator-name {
-  font-weight: 600;
-}
-
-.creator-email {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.badge-status {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-}
-
-.badge-status.pending { background-color: rgba(217, 119, 6, 0.15); color: var(--amber-color); }
-.badge-status.assigned { background-color: rgba(37, 99, 235, 0.15); color: var(--primary-color); }
-.badge-status.completed { background-color: rgba(5, 150, 105, 0.15); color: var(--emerald-color); }
-
-.icon-sm { width: 16px; height: 16px; }
-
-.state-card { padding: 36px; text-align: center; color: var(--text-muted); }
-.spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 </style>
