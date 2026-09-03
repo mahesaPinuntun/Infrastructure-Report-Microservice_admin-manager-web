@@ -1,7 +1,16 @@
 <template>
   <div class="users-page">
-    <div class="header-section">
-      <div>
+    <!-- Header Section -->
+    <header class="header-section">
+      <div class="header-content">
+        <div class="top-nav">
+          <router-link to="/dashboard" class="btn-back">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Kembali ke Dashboard
+          </router-link>
+        </div>
         <h1>Manajemen Pengguna & Role</h1>
         <p class="subtitle">Kelola seluruh akun pengguna sistem infrastruktur</p>
       </div>
@@ -17,9 +26,9 @@
           </svg>
         </button>
 
-        <button @click="showModal = true" class="btn-primary">+ Tambah Akun Baru</button>
+        <button @click="showModal = true" class="btn-primary">+ Akun Baru</button>
       </div>
-    </div>
+    </header>
 
     <!-- Alert Notifikasi -->
     <div v-if="successMessage" class="alert success">{{ successMessage }}</div>
@@ -40,7 +49,6 @@
             <input v-model="newUser.email" type="email" placeholder="nama@domain.com" required />
           </div>
 
-          <!-- Wajib untuk SEMUA Role -->
           <div class="form-group">
             <label>Nomor Telepon / WA *</label>
             <input v-model="newUser.phoneNumber" type="tel" placeholder="081234567890" required />
@@ -61,7 +69,6 @@
             </select>
           </div>
 
-          <!-- Dynamic Field: Secret PIN jika Role ADMIN -->
           <div v-if="newUser.role === 'ADMIN'" class="form-group highlighted-group">
             <label class="text-danger">Secret PIN Admin *</label>
             <input 
@@ -73,13 +80,11 @@
             <small class="help-text">Diperlukan untuk memverifikasi pendaftaran Administrator baru.</small>
           </div>
 
-          <!-- Dynamic Field: Spesialisasi jika Role TECHNICIAN -->
           <div v-if="newUser.role === 'TECHNICIAN'" class="form-group">
             <label>Spesialisasi Teknisi</label>
             <input v-model="newUser.specialization" type="text" placeholder="Contoh: Fiber Optic / AC / Listrik" />
           </div>
 
-          <!-- Dynamic Field: Departemen jika Role MANAGER atau USER -->
           <div v-if="['INFRASTRUCTURE_MANAGER', 'USER', 'MANAGER'].includes(newUser.role)" class="form-group">
             <label>Departemen / Divisi</label>
             <input v-model="newUser.department" type="text" placeholder="Contoh: Divisi Maintenance / Umum" />
@@ -95,57 +100,96 @@
       </div>
     </div>
 
-    <!-- Tabel Daftar Pengguna -->
-    <div class="table-container">
+    <!-- Layout Desktop (Tabel) -->
+    <main class="content-area">
       <div v-if="loading" class="loading-state">Memuat data pengguna...</div>
-      <table v-else class="users-table">
-        <thead>
-          <tr>
-            <th>Nama</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>No. Telepon / WA</th>
-            <th>Info Tambahan</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.id || user._id">
-            <td><strong>{{ user.name }}</strong></td>
-            <td>{{ user.email }}</td>
-            <td>
+
+      <div v-else class="table-container desktop-only">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>No. Telepon / WA</th>
+              <th>Info Tambahan</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in users" :key="user.id || user._id">
+              <td><strong>{{ user.name }}</strong></td>
+              <td>{{ user.email }}</td>
+              <td>
+                <span :class="['role-badge', formatRoleClass(user.role)]">
+                  {{ formatRoleName(user.role) }}
+                </span>
+              </td>
+              <td>
+                <span v-if="user.phoneNumber || user.phone" class="phone-text">
+                  {{ user.phoneNumber || user.phone }}
+                </span>
+                <small v-else class="text-muted">-</small>
+              </td>
+              <td>
+                <small v-if="user.specialization">Spesialisasi: {{ user.specialization }}</small>
+                <small v-else-if="user.department">Dept: {{ user.department }}</small>
+                <small v-else class="text-muted">-</small>
+              </td>
+              <td>
+                <span :class="['status-badge', user.status?.toLowerCase()]">
+                  {{ user.status || 'ACTIVE' }}
+                </span>
+              </td>
+              <td>
+                <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm">Hapus</button>
+              </td>
+            </tr>
+            <tr v-if="users.length === 0">
+              <td colspan="7" class="empty-state">Belum ada pengguna terdaftar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Layout Mobile (Kartu Responsif) -->
+      <div v-if="!loading" class="mobile-grid mobile-only">
+        <div v-if="users.length === 0" class="empty-state">Belum ada pengguna terdaftar.</div>
+        <article v-for="user in users" :key="user.id || user._id" class="user-card">
+          <div class="card-header">
+            <div>
+              <h3 class="user-name">{{ user.name }}</h3>
+              <p class="user-email">{{ user.email }}</p>
+            </div>
+            <span :class="['status-badge', user.status?.toLowerCase()]">
+              {{ user.status || 'ACTIVE' }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="info-row">
+              <span class="info-label">Role:</span>
               <span :class="['role-badge', formatRoleClass(user.role)]">
                 {{ formatRoleName(user.role) }}
               </span>
-            </td>
-            <!-- Tampilkan Nomor Telepon dengan Fallback -->
-            <td>
-              <span v-if="user.phoneNumber || user.phone" class="phone-text">
-                {{ user.phoneNumber || user.phone }}
-              </span>
-              <small v-else class="text-muted">-</small>
-            </td>
-            <td>
-              <small v-if="user.specialization">Spesialisasi: {{ user.specialization }}</small>
-              <small v-else-if="user.department">Dept: {{ user.department }}</small>
-              <small v-else class="text-muted">-</small>
-            </td>
-            <td>
-              <span :class="['status-badge', user.status?.toLowerCase()]">
-                {{ user.status || 'ACTIVE' }}
-              </span>
-            </td>
-            <td>
-              <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm">Hapus</button>
-            </td>
-          </tr>
-          <tr v-if="users.length === 0">
-            <td colspan="7" class="empty-state">Belum ada pengguna terdaftar.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Telepon:</span>
+              <span class="phone-text">{{ user.phoneNumber || user.phone || '-' }}</span>
+            </div>
+            <div class="info-row" v-if="user.specialization || user.department">
+              <span class="info-label">Info:</span>
+              <span>{{ user.specialization ? 'Spesialisasi: ' + user.specialization : 'Dept: ' + user.department }}</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button @click="handleDeleteUser(user.id || user._id)" class="btn-danger-sm full-width">Hapus Akun</button>
+          </div>
+        </article>
+      </div>
+    </main>
   </div>
 </template>
 
@@ -310,8 +354,10 @@ onMounted(() => {
   --input-bg: #0f172a;
 }
 
+/* Fullscreen Root Layout */
 .users-page {
   min-height: 100vh;
+  width: 100%;
   padding: 24px;
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -321,11 +367,32 @@ onMounted(() => {
 .header-section {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.header-section h1 {
+.top-nav {
+  margin-bottom: 8px;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.btn-back:hover {
+  opacity: 0.8;
+}
+
+.header-content h1 {
   margin: 0;
   font-size: 24px;
   font-weight: 800;
@@ -369,7 +436,6 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
-  transition: background-color 0.2s;
 }
 
 .btn-primary:hover {
@@ -406,6 +472,7 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   z-index: 50;
+  padding: 16px;
 }
 
 .modal-card {
@@ -434,7 +501,6 @@ onMounted(() => {
   margin-bottom: 6px;
   font-weight: 600;
   font-size: 13px;
-  color: var(--text-main);
 }
 
 .form-group input,
@@ -460,7 +526,7 @@ onMounted(() => {
 .text-danger { color: #dc2626 !important; }
 .help-text { font-size: 11px; color: #ef4444; margin-top: 4px; display: block; }
 .text-muted { color: var(--text-muted); font-style: italic; }
-.phone-text { font-family: monospace; font-weight: 600; color: var(--text-main); }
+.phone-text { font-family: monospace; font-weight: 600; }
 
 .modal-actions {
   display: flex;
@@ -469,12 +535,13 @@ onMounted(() => {
   margin-top: 24px;
 }
 
-/* Table Design */
+/* Desktop Table Design */
 .table-container {
   background: var(--bg-card);
   border-radius: 8px;
   border: 1px solid var(--border-color);
   overflow-x: auto;
+  width: 100%;
 }
 
 .users-table {
@@ -509,6 +576,7 @@ onMounted(() => {
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
+  display: inline-block;
 }
 
 .role-badge.admin { background: #dbeafe; color: #1e40af; }
@@ -522,6 +590,7 @@ onMounted(() => {
   padding: 3px 6px;
   border-radius: 4px;
   text-transform: uppercase;
+  display: inline-block;
 }
 
 .status-badge.active { background: #dcfce7; color: #166534; }
@@ -540,4 +609,75 @@ onMounted(() => {
 
 .btn-danger-sm:hover { background: #dc2626; }
 .empty-state, .loading-state { text-align: center; color: var(--text-muted); padding: 24px; }
+
+/* Mobile Card View (Responsif Layar Kecil) */
+.mobile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.user-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.user-email {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  border-top: 1px border-dash var(--border-color);
+  padding-top: 8px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Visibility Rules untuk Responsif */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .users-page { padding: 16px; }
+  .desktop-only { display: none; }
+  .mobile-only { display: flex; }
+  .header-actions { width: 100%; justify-content: space-between; }
+  .btn-primary { flex: 1; }
+}
 </style>
