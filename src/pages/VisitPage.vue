@@ -50,10 +50,13 @@
               <span class="kv-label">ID WO / Report</span>
               <strong class="kv-value">{{ visit.workOrderNumber || visit.reportId || visit._id?.substring(0, 6) || '-' }}</strong>
             </div>
+
+            <!-- PERBAIKAN: Menggunakan getTechnicianName(visit) -->
             <div class="kv-item">
               <span class="kv-label">Teknisi</span>
-              <strong class="kv-value">{{ visit.technicianName || visit.assignedTechnician?.name || visit.technician || '-' }}</strong>
+              <strong class="kv-value">{{ getTechnicianName(visit) }}</strong>
             </div>
+
             <div class="kv-item">
               <span class="kv-label">Tanggal</span>
               <strong class="kv-value">{{ formatDate(visit.visitDate || visit.createdAt || visit.dueDate) }}</strong>
@@ -95,7 +98,6 @@ const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
 
-// URL Base Manager Service (Menyesuaikan Microservice Backend)
 const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
 const initTheme = () => {
@@ -111,7 +113,41 @@ const toggleTheme = () => {
   document.documentElement.setAttribute('data-theme', newTheme);
 };
 
-// Fetch data tanpa menyertakan Authorization token
+// Helper untuk membaca nama teknisi dari array technicians atau properti fallback lainnya
+const getTechnicianName = (visit) => {
+  if (!visit) return '-';
+
+  // 1. Membaca dari array 'technicians' (sesuai struktur JSON MongoDB)
+  if (Array.isArray(visit.technicians) && visit.technicians.length > 0) {
+    const firstTech = visit.technicians[0];
+    if (typeof firstTech === 'object' && firstTech !== null && firstTech.name) {
+      return firstTech.name;
+    }
+  }
+
+  // 2. Fallback jika 'technicians' berupa array of strings / IDs
+  if (Array.isArray(visit.technicians) && typeof visit.technicians[0] === 'string') {
+    return visit.technicians[0];
+  }
+
+  // 3. Fallback jika tersimpan sebagai string langsung
+  if (typeof visit.technicianName === 'string' && visit.technicianName.trim()) {
+    return visit.technicianName;
+  }
+
+  // 4. Fallback jika tersimpan di objek assignedTechnician
+  if (visit.assignedTechnician && typeof visit.assignedTechnician === 'object') {
+    return visit.assignedTechnician.name || visit.assignedTechnician.email || '-';
+  }
+
+  // 5. Fallback jika tersimpan di objek technician
+  if (visit.technician && typeof visit.technician === 'object') {
+    return visit.technician.name || visit.technician.email || '-';
+  }
+
+  return '-';
+};
+
 const fetchVisits = async () => {
   loading.value = true;
   errorMessage.value = '';
