@@ -63,10 +63,10 @@
               </select>
             </div>
 
-            <!-- Dropdown 2: Filter Per Role (Muncul saat memilih Tabel Pengguna) -->
+            <!-- Dropdown 2: Filter Per Role (Terikat v-model & @change) -->
             <div v-if="selectedTable === 'users'" class="dropdown-container">
               <label class="dropdown-label">Display Per Role:</label>
-              <select v-model="selectedRole" class="table-select role-select">
+              <select v-model="selectedRole" @change="handleRoleChange" class="table-select role-select">
                 <option value="ALL">Semua Role</option>
                 <option value="USER">User (Pelapor)</option>
                 <option value="ADMIN">Admin</option>
@@ -217,7 +217,7 @@ const tableColumns = computed(() => {
   }
 });
 
-// PERBAIKAN: Filtering Data Berbasis Role dengan Toleransi String Backend
+// PERBAIKAN: Computed Property untuk filtering role yang sangat fleksibel
 const filteredTableData = computed(() => {
   if (selectedTable.value !== 'users' || selectedRole.value === 'ALL') {
     return rawTableData.value;
@@ -226,10 +226,9 @@ const filteredTableData = computed(() => {
   const targetRole = selectedRole.value.toUpperCase();
 
   return rawTableData.value.filter(item => {
-    // Ambil string role & ubah ke UPPERCASE
     const itemRole = (item.role || '').toString().trim().toUpperCase();
 
-    // Toleransi pencocokan Manager (INFRASTRUCTURE_MANAGER vs MANAGER)
+    // Toleransi penamaan role MANAGER / INFRASTRUCTURE_MANAGER
     if (targetRole === 'INFRASTRUCTURE_MANAGER' || targetRole === 'MANAGER') {
       return itemRole === 'INFRASTRUCTURE_MANAGER' || itemRole === 'MANAGER';
     }
@@ -257,7 +256,7 @@ const fetchStats = async () => {
   }
 };
 
-// Handler Perubahan Dropdown Tabel
+// PERBAIKAN: Handler panggil data lengkap dengan Authorization Token jika ada
 const handleTableChange = async () => {
   if (selectedTable.value === 'none') {
     rawTableData.value = [];
@@ -277,9 +276,12 @@ const handleTableChange = async () => {
       endpoint = `${MANAGER_SERVICE_URL}/api/manager/work-orders`;
     }
 
-    const res = await axios.get(endpoint);
-    
-    // Ekstraksi array data dari berbagai kemungkinan struktur JSON backend
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const res = await axios.get(endpoint, { headers });
+
+    // Ekstraksi array data dari berbagai kemungkinan bentuk JSON response
     const data = res?.data?.users || res?.data?.reports || res?.data?.workOrders || res?.data?.data || res?.data || [];
     rawTableData.value = Array.isArray(data) ? data : [];
   } catch (err) {
@@ -288,6 +290,10 @@ const handleTableChange = async () => {
   } finally {
     tableLoading.value = false;
   }
+};
+
+const handleRoleChange = () => {
+  // Memicu kalkulasi ulang filteredTableData secara otomatis
 };
 
 // Helper Format Nama Teknisi
