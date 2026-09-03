@@ -66,7 +66,7 @@
             <!-- Dropdown 2: Filter Per Role (Muncul saat memilih Tabel Pengguna) -->
             <div v-if="selectedTable === 'users'" class="dropdown-container">
               <label class="dropdown-label">Display Per Role:</label>
-              <select v-model="selectedRole" @change="handleRoleChange" class="table-select role-select">
+              <select v-model="selectedRole" class="table-select role-select">
                 <option value="ALL">Semua Role</option>
                 <option value="USER">User (Pelapor)</option>
                 <option value="ADMIN">Admin</option>
@@ -217,12 +217,25 @@ const tableColumns = computed(() => {
   }
 });
 
-// Data terfilter berbasis Role
+// PERBAIKAN: Filtering Data Berbasis Role dengan Toleransi String Backend
 const filteredTableData = computed(() => {
   if (selectedTable.value !== 'users' || selectedRole.value === 'ALL') {
     return rawTableData.value;
   }
-  return rawTableData.value.filter(u => (u.role || '').toUpperCase() === selectedRole.value);
+
+  const targetRole = selectedRole.value.toUpperCase();
+
+  return rawTableData.value.filter(item => {
+    // Ambil string role & ubah ke UPPERCASE
+    const itemRole = (item.role || '').toString().trim().toUpperCase();
+
+    // Toleransi pencocokan Manager (INFRASTRUCTURE_MANAGER vs MANAGER)
+    if (targetRole === 'INFRASTRUCTURE_MANAGER' || targetRole === 'MANAGER') {
+      return itemRole === 'INFRASTRUCTURE_MANAGER' || itemRole === 'MANAGER';
+    }
+
+    return itemRole === targetRole;
+  });
 });
 
 const fetchStats = async () => {
@@ -265,7 +278,9 @@ const handleTableChange = async () => {
     }
 
     const res = await axios.get(endpoint);
-    const data = res?.data?.reports || res?.data?.users || res?.data?.workOrders || res?.data?.data || res?.data || [];
+    
+    // Ekstraksi array data dari berbagai kemungkinan struktur JSON backend
+    const data = res?.data?.users || res?.data?.reports || res?.data?.workOrders || res?.data?.data || res?.data || [];
     rawTableData.value = Array.isArray(data) ? data : [];
   } catch (err) {
     console.error('Gagal mengambil data tabel:', err);
@@ -273,10 +288,6 @@ const handleTableChange = async () => {
   } finally {
     tableLoading.value = false;
   }
-};
-
-const handleRoleChange = () => {
-  // Triggers re-computation via filteredTableData computed property
 };
 
 // Helper Format Nama Teknisi
@@ -427,7 +438,6 @@ onMounted(() => {
   color: #16a34a;
 }
 
-/* Quick Actions & Dropdown Header */
 .quick-actions {
   background: var(--bg-card);
   padding: 20px;
@@ -502,7 +512,6 @@ onMounted(() => {
   border: 1px solid var(--primary-color);
 }
 
-/* Dynamic Table Section */
 .table-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
