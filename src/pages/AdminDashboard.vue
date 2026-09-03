@@ -243,18 +243,27 @@ const tableColumns = computed(() => {
   }
 });
 
+// FITUR FIX: Filter Fleksibel Toleran Terhadap Variasi String Role dari Backend
 const filteredTableData = computed(() => {
   if (selectedTable.value !== 'users' || selectedRole.value === 'ALL') {
     return rawTableData.value;
   }
 
-  const targetRole = selectedRole.value.toUpperCase();
+  const targetRole = selectedRole.value.toString().trim().toUpperCase();
 
   return rawTableData.value.filter(item => {
-    const itemRole = (item.role || '').toString().trim().toUpperCase();
+    // Toleransi jika role dikirim sebagai `role` atau `roleName`
+    const rawRole = item.role || item.roleName || '';
+    const itemRole = rawRole.toString().trim().toUpperCase();
+
     if (targetRole === 'MANAGER') {
-      return itemRole === 'MANAGER' || itemRole === 'INFRASTRUCTURE_MANAGER';
+      return (
+        itemRole === 'MANAGER' ||
+        itemRole === 'INFRASTRUCTURE_MANAGER' ||
+        itemRole.includes('MANAGER')
+      );
     }
+    
     return itemRole === targetRole;
   });
 });
@@ -262,7 +271,7 @@ const filteredTableData = computed(() => {
 const formatRoleDisplay = (role) => {
   if (!role) return 'USER';
   const r = role.toString().trim().toUpperCase();
-  if (r === 'INFRASTRUCTURE_MANAGER' || r === 'MANAGER') {
+  if (r.includes('MANAGER')) {
     return 'MANAGER';
   }
   return r;
@@ -311,6 +320,7 @@ const handleTableChange = async () => {
 
     const res = await axios.get(endpoint, { headers });
     const data = res?.data?.users || res?.data?.reports || res?.data?.workOrders || res?.data?.data || res?.data || [];
+    
     rawTableData.value = Array.isArray(data) ? data : [];
   } catch (err) {
     console.error('Gagal mengambil data tabel:', err);
