@@ -42,7 +42,7 @@
         </div>
 
         <!-- Logout Button -->
-        <button @click="handleLogout" class="btn-logout">Logout</button>
+        <button @click="openLogoutModal" class="btn-logout">Logout</button>
       </div>
     </header>
 
@@ -233,11 +233,39 @@
         </div>
       </div>
     </main>
+
+    <!-- LOGOUT POPUP CONFIRMATION MODAL WITH COUNTDOWN -->
+    <div v-if="showLogoutModal" class="modal-overlay" @click.self="cancelLogout">
+      <div class="modal-card">
+        <div class="modal-icon warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <h3 class="modal-title">Konfirmasi Logout</h3>
+        <p class="modal-text">Apakah Anda yakin ingin keluar dari sistem dashboard administrator?</p>
+
+        <div class="modal-actions">
+          <button @click="cancelLogout" class="btn-modal-cancel">Batal</button>
+          
+          <button 
+            @click="confirmLogout" 
+            class="btn-modal-confirm" 
+            :disabled="logoutCountdown > 0"
+          >
+            <span v-if="logoutCountdown > 0">Tunggu ({{ logoutCountdown }}s)</span>
+            <span v-else>Ya, Logout</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { adminApi, logout } from '../services/api';
 
@@ -254,6 +282,11 @@ const selectedReportCategory = ref('ALL');
 
 const rawTableData = ref([]);
 const tableLoading = ref(false);
+
+// MODAL LOGOUT STATES
+const showLogoutModal = ref(false);
+const logoutCountdown = ref(2);
+let countdownTimer = null;
 
 const ADMIN_SERVICE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
 const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
@@ -274,6 +307,41 @@ const toggleTheme = () => {
   currentTheme.value = newTheme;
   localStorage.setItem('user-theme', newTheme);
   applyThemeToDOM(newTheme);
+};
+
+// MODAL LOGOUT LOGIC WITH COUNTDOWN
+const openLogoutModal = () => {
+  showLogoutModal.value = true;
+  logoutCountdown.value = 2;
+  
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  countdownTimer = setInterval(() => {
+    if (logoutCountdown.value > 0) {
+      logoutCountdown.value -= 1;
+    } else {
+      clearInterval(countdownTimer);
+    }
+  }, 1000);
+};
+
+const cancelLogout = () => {
+  showLogoutModal.value = false;
+  if (countdownTimer) clearInterval(countdownTimer);
+  logoutCountdown.value = 2;
+};
+
+const confirmLogout = () => {
+  if (logoutCountdown.value > 0) return;
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  if (typeof logout === 'function') {
+    logout();
+  } else {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  }
 };
 
 const tableTitle = computed(() => {
@@ -442,16 +510,6 @@ const formatDate = (dateStr) => {
   }
 };
 
-const handleLogout = () => {
-  if (typeof logout === 'function') {
-    logout();
-  } else {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  }
-};
-
 onMounted(() => {
   initTheme();
   const storedUser = localStorage.getItem('user');
@@ -463,6 +521,10 @@ onMounted(() => {
     }
   }
   fetchStats();
+});
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
 });
 </script>
 
@@ -483,6 +545,8 @@ onMounted(() => {
   --switch-icon-color: #0f172a;
   --table-hover: #f1f5f9;
   --skeleton-bg: #e2e8f0;
+  --modal-bg: #ffffff;
+  --modal-overlay: rgba(15, 23, 42, 0.6);
 }
 
 :global([data-theme="dark"]),
@@ -499,9 +563,10 @@ onMounted(() => {
   --switch-icon-color: #f8fafc;
   --table-hover: #334155;
   --skeleton-bg: #334155;
+  --modal-bg: #1e293b;
+  --modal-overlay: rgba(2, 6, 23, 0.8);
 }
 
-/* MENELIMINASI GAP LAYAR DENGAN STYLES GLOBAL FULL-WIDTH */
 :global(html),
 :global(body),
 :global(#app) {
@@ -556,7 +621,7 @@ onMounted(() => {
   gap: 16px;
 }
 
-/* FLUID THEME SWITCH STYLES (KAPSUL) */
+/* FLUID THEME SWITCH STYLES */
 .theme-switch-wrapper {
   display: flex;
   align-items: center;
@@ -888,10 +953,129 @@ onMounted(() => {
   width: 100%;
 }
 
+/* LOGOUT MODAL STYLES */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--modal-overlay);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card {
+  background-color: var(--modal-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  animation: scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.modal-icon.warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.modal-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.modal-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 8px 0 24px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-modal-cancel {
+  flex: 1;
+  padding: 10px;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-modal-cancel:hover {
+  background-color: var(--border-color);
+}
+
+.btn-modal-confirm {
+  flex: 1;
+  padding: 10px;
+  background-color: #ef4444;
+  border: none;
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-confirm:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.btn-modal-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f87171;
+}
+
 @keyframes pulse {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @media (max-width: 600px) {
