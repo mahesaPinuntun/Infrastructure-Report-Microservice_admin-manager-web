@@ -22,7 +22,7 @@
           </button>
         </div>
 
-        <!-- Header Content dengan Kontras Warna yang Diperbaiki -->
+        <!-- Header Content -->
         <div class="header-content">
           <h1 class="page-title">{{ t('pageTitle') }}</h1>
           <p class="subtitle">{{ t('pageSubtitle') }}</p>
@@ -75,69 +75,132 @@
       </div>
     </header>
 
-    <!-- Content Area -->
+    <!-- Content Area (Listing Menurun Vertikal) -->
     <main class="main-content">
-      <!-- CHUNK LOADING (SKELETON STATE) -->
-      <div v-if="loading" class="visits-grid">
-        <div v-for="n in 6" :key="'skeleton-' + n" class="visit-card skeleton-card">
+      <!-- CHUNK LOADING (SKELETON LISTING MENURUN) -->
+      <div v-if="loading" class="wo-vertical-list">
+        <div v-for="n in 4" :key="'skeleton-' + n" class="wo-card skeleton-card">
           <div class="skeleton-line skeleton-title"></div>
-          <div class="skeleton-grid">
-            <div v-for="i in 6" :key="i" class="skeleton-line skeleton-box"></div>
-          </div>
-          <div class="skeleton-line skeleton-btn"></div>
+          <div class="skeleton-line skeleton-box"></div>
+          <div class="skeleton-line skeleton-box"></div>
         </div>
       </div>
 
       <!-- ERROR STATE -->
       <div v-else-if="errorMessage" class="state-card error">
         <p>{{ errorMessage }}</p>
-        <button @click="fetchVisits" class="btn-retry">{{ t('btnRetry') }}</button>
+        <button @click="fetchWorkOrders" class="btn-retry">{{ t('btnRetry') }}</button>
       </div>
 
       <!-- EMPTY STATE -->
-      <div v-else-if="visits.length === 0" class="state-card empty">
+      <div v-else-if="workOrders.length === 0" class="state-card empty">
         <p>{{ t('emptyData') }}</p>
       </div>
 
-      <!-- VISITS GRID DATA -->
-      <div v-else class="visits-grid">
-        <article v-for="visit in visits" :key="visit._id || visit.id" class="visit-card">
-          <div class="card-top">
-            <h3 class="location-name">{{ visit.title || visit.locationName || visit.location || t('defaultLocation') }}</h3>
-            <span :class="['status-badge', (visit.status || 'PENDING').toLowerCase()]">
-              {{ visit.status || 'PENDING' }}
+      <!-- WORK ORDERS LISTING MENURUN -->
+      <div v-else class="wo-vertical-list">
+        <article v-for="wo in workOrders" :key="wo._id || wo.woCode" class="wo-card">
+          <!-- Card Header Row -->
+          <div class="card-header-row">
+            <div class="header-meta">
+              <span class="wo-code">{{ wo.woCode || 'WO-UNTITLED' }}</span>
+              <span class="company-badge">{{ wo.companyName || 'Infrastructure_Report' }}</span>
+            </div>
+            <span :class="['status-badge', (wo.status || 'PENDING').toLowerCase()]">
+              {{ wo.status || 'PENDING' }}
             </span>
           </div>
 
-          <div class="kv-grid-container">
-            <div class="kv-item">
-              <span class="kv-label">{{ t('colWoId') }}</span>
-              <strong class="kv-value">{{ visit.workOrderNumber || visit.reportId || visit._id?.substring(0, 6) || '-' }}</strong>
+          <!-- Location & Intro Section -->
+          <div class="wo-body-section">
+            <div class="location-info">
+              <h3 class="location-title">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {{ wo.locationName || 'Lokasi Belum Ditentukan' }}
+              </h3>
+              <a v-if="wo.mapsUrl" :href="wo.mapsUrl" target="_blank" class="maps-link">Buka Google Maps &rarr;</a>
             </div>
-            <div class="kv-item">
-              <span class="kv-label">{{ t('colTechnician') }}</span>
-              <strong class="kv-value">{{ getTechnicianName(visit) }}</strong>
-            </div>
-            <div class="kv-item">
-              <span class="kv-label">{{ t('colDate') }}</span>
-              <strong class="kv-value">{{ formatDate(visit.visitDate || visit.createdAt || visit.dueDate) }}</strong>
-            </div>
-            <div class="kv-item">
-              <span class="kv-label">{{ t('colCategory') }}</span>
-              <strong class="kv-value">{{ visit.category || 'Maintenance' }}</strong>
-            </div>
-            <div class="kv-item">
-              <span class="kv-label">{{ t('colPriority') }}</span>
-              <strong class="kv-value">{{ visit.priority || 'NORMAL' }}</strong>
-            </div>
-            <div class="kv-item">
-              <span class="kv-label">{{ t('colLocation') }}</span>
-              <strong class="kv-value">{{ visit.location || visit.locationName || '-' }}</strong>
+
+            <p v-if="wo.introduction" class="wo-intro">{{ wo.introduction }}</p>
+
+            <!-- Metadata Grid -->
+            <div class="meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">{{ t('colExecDate') }}</span>
+                <strong class="meta-value">{{ formatDate(wo.executionDate) }}</strong>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ t('colCreatedBy') }}</span>
+                <strong class="meta-value">{{ wo.createdBy || '-' }} ({{ wo.createdByEmail || '-' }})</strong>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ t('colCreatedDate') }}</span>
+                <strong class="meta-value">{{ formatDate(wo.createdAt) }}</strong>
+              </div>
             </div>
           </div>
 
-          <div class="card-actions">
-            <button @click="navigateToDetail(visit)" class="btn-detail">
+          <!-- Listing Menurun: Technicians -->
+          <div class="wo-sub-block">
+            <h4 class="sub-block-title">{{ t('labelTechnicians') }} ({{ wo.technicians?.length || 0 }})</h4>
+            <div class="sub-list">
+              <div v-for="tech in wo.technicians" :key="tech._id || tech.technicianId" class="sub-item">
+                <div class="item-main">
+                  <span class="item-name">{{ tech.name || 'Teknisi' }}</span>
+                  <span class="item-subtext">{{ tech.phone }} &bull; {{ tech.email }}</span>
+                </div>
+                <span class="item-price">{{ formatCurrency(tech.fee) }}</span>
+              </div>
+              <div v-if="!wo.technicians || wo.technicians.length === 0" class="no-data-text">
+                Belum ada teknisi ditugaskan.
+              </div>
+            </div>
+          </div>
+
+          <!-- Listing Menurun: Resources / Material -->
+          <div v-if="wo.resources && wo.resources.length > 0" class="wo-sub-block">
+            <h4 class="sub-block-title">{{ t('labelResources') }} ({{ wo.resources.length }})</h4>
+            <div class="sub-list">
+              <div v-for="res in wo.resources" :key="res._id" class="sub-item">
+                <div class="item-main">
+                  <span class="item-name">{{ res.name }}</span>
+                  <span class="item-subtext">{{ res.quantity }} {{ res.unit }} &times; {{ formatCurrency(res.price) }}</span>
+                </div>
+                <span class="item-price">{{ formatCurrency(res.subtotal) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Cost Breakdown -->
+          <div class="cost-summary-box">
+            <div class="cost-row">
+              <span>Total Biaya Teknisi:</span>
+              <strong>{{ formatCurrency(wo.totalTechnicianFee) }}</strong>
+            </div>
+            <div class="cost-row">
+              <span>Total Biaya Material:</span>
+              <strong>{{ formatCurrency(wo.totalResourceCost) }}</strong>
+            </div>
+            <div class="cost-row grand-total-row">
+              <span>Grand Total:</span>
+              <strong class="grand-total-val">{{ formatCurrency(wo.grandTotal) }}</strong>
+            </div>
+          </div>
+
+          <!-- Bottom Action Buttons -->
+          <div class="card-action-bar">
+            <a v-if="wo.proofDocumentUrl" :href="wo.proofDocumentUrl" target="_blank" class="btn-doc">
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span>{{ t('btnDocument') }}</span>
+            </a>
+            
+            <button @click="navigateToDetail(wo)" class="btn-detail">
               <span>{{ t('btnViewDetail') }}</span>
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -157,7 +220,7 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 
 const router = useRouter();
-const visits = ref([]);
+const workOrders = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
@@ -168,44 +231,41 @@ const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https:/
 const translations = {
   id: {
     navWorkflow: 'Flow System',
-    pageTitle: 'Daftar Kunjungan & Work Order',
+    pageTitle: 'Daftar Dokumen & Work Order',
     pageSubtitle: 'Riwayat & Jadwal Penugasan Manager Field',
     btnRetry: 'Coba Lagi',
-    emptyData: 'Belum ada data kunjungan / work order terdaftar.',
-    defaultLocation: 'Kunjungan Lapangan',
-    colWoId: 'ID WO / Report',
-    colTechnician: 'Teknisi',
-    colDate: 'Tanggal',
-    colCategory: 'Kategori',
-    colPriority: 'Prioritas',
-    colLocation: 'Lokasi',
-    btnViewDetail: 'Lihat Detail Laporan'
+    emptyData: 'Belum ada data work order terdaftar.',
+    colExecDate: 'Tanggal Eksekusi',
+    colCreatedBy: 'Dibuat Oleh',
+    colCreatedDate: 'Tanggal Dibuat',
+    labelTechnicians: 'Teknisi Ditugaskan',
+    labelResources: 'Rincian Material / Resources',
+    btnDocument: 'Dokumen Bukti (PDF)',
+    btnViewDetail: 'Lihat Detail'
   },
   en: {
     navWorkflow: 'Flow System',
-    pageTitle: 'Visits & Work Order List',
+    pageTitle: 'Work Orders & Documents List',
     pageSubtitle: 'History & Field Manager Assignment Schedule',
     btnRetry: 'Try Again',
-    emptyData: 'No visits or work orders registered yet.',
-    defaultLocation: 'Field Visit',
-    colWoId: 'WO / Report ID',
-    colTechnician: 'Technician',
-    colDate: 'Date',
-    colCategory: 'Category',
-    colPriority: 'Priority',
-    colLocation: 'Location',
-    btnViewDetail: 'View Report Details'
+    emptyData: 'No work orders registered yet.',
+    colExecDate: 'Execution Date',
+    colCreatedBy: 'Created By',
+    colCreatedDate: 'Created Date',
+    labelTechnicians: 'Assigned Technicians',
+    labelResources: 'Material / Resources Breakdown',
+    btnDocument: 'Proof Document (PDF)',
+    btnViewDetail: 'View Detail'
   }
 };
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
 const goToHome = () => router.push('/');
-
 const goToWorkflow = () => router.push('/workflow');
 
-const navigateToDetail = (visit) => {
-  const targetId = visit.reportId || visit._id || visit.id;
+const navigateToDetail = (wo) => {
+  const targetId = wo._id || wo.id;
   if (targetId) router.push(`/reports/${targetId}`);
 };
 
@@ -234,39 +294,32 @@ const toggleTheme = () => {
   applyThemeToDOM(currentTheme.value);
 };
 
-const getTechnicianName = (visit) => {
-  if (!visit) return '-';
-  if (Array.isArray(visit.technicians) && visit.technicians.length > 0) {
-    const first = visit.technicians[0];
-    if (typeof first === 'object' && first?.name) return first.name;
-    if (typeof first === 'string') return first;
-  }
-  if (typeof visit.technicianName === 'string' && visit.technicianName.trim()) return visit.technicianName;
-  if (visit.assignedTechnician?.name) return visit.assignedTechnician.name;
-  return '-';
-};
-
-const fetchVisits = async () => {
+const fetchWorkOrders = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
     const res = await axios.get(`${MANAGER_SERVICE_URL}/api/manager/work-orders`);
     const data = res?.data?.workOrders || res?.data?.data || res?.data?.visits || res?.data || [];
-    visits.value = Array.isArray(data) ? data : [];
+    workOrders.value = Array.isArray(data) ? data : [];
   } catch (err) {
-    console.error('Error fetching Manager Work Orders:', err);
-    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal memuat data Work Order.';
-    visits.value = [];
+    console.error('Error fetching Work Orders:', err);
+    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal memuat data Work Order dari server.';
+    workOrders.value = [];
   } finally {
     loading.value = false;
   }
+};
+
+const formatCurrency = (val) => {
+  if (typeof val !== 'number') val = Number(val) || 0;
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
 };
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
     const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
-    return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+    return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
     return dateStr;
   }
@@ -275,14 +328,12 @@ const formatDate = (dateStr) => {
 onMounted(() => {
   initTheme();
   initLanguage();
-  fetchVisits();
+  fetchWorkOrders();
 });
 </script>
 
 <style scoped>
 :global(:root),
-:global(html),
-:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
@@ -291,7 +342,7 @@ onMounted(() => {
   --border-color: #e2e8f0;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
-  --kv-bg: #f8fafc;
+  --sub-bg: #f1f5f9;
   --switch-bg: #2d3748;
   --switch-handle-bg: #ffffff;
   --switch-icon-color: #0f172a;
@@ -301,8 +352,7 @@ onMounted(() => {
   --lang-text-active: #2563eb;
 }
 
-:global([data-theme="dark"]),
-:global(body[data-theme="dark"]) {
+:global([data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #ffffff;
@@ -310,7 +360,7 @@ onMounted(() => {
   --border-color: #334155;
   --primary: #3b82f6;
   --primary-hover: #2563eb;
-  --kv-bg: #0f172a;
+  --sub-bg: #0f172a;
   --switch-bg: #020617;
   --switch-handle-bg: #1e293b;
   --switch-icon-color: #f8fafc;
@@ -333,6 +383,8 @@ onMounted(() => {
 
 .page-container {
   width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -385,7 +437,6 @@ onMounted(() => {
   color: var(--primary);
 }
 
-/* TOMBOL FLOW SYSTEM: BESAR, MENYALA & ANIMASI JUMPING */
 .btn-flow-featured {
   display: flex;
   align-items: center;
@@ -409,21 +460,10 @@ onMounted(() => {
   box-shadow: 0 0 25px rgba(16, 185, 129, 0.85);
 }
 
-.btn-featured-text {
-  letter-spacing: 0.3px;
-}
-
-/* HEADER TITLE & SUBTITLE KONTRAS DENGAN TEMA */
-.header-content {
-  display: flex;
-  flex-direction: column;
-}
-
 .header-content h1.page-title {
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  line-height: 1.2;
   color: var(--text-main);
   transition: color 0.4s ease;
 }
@@ -513,91 +553,239 @@ onMounted(() => {
   transform: translateX(28px);
 }
 
-.switch-icon {
-  width: 15px;
-  height: 15px;
-  color: var(--switch-icon-color);
-}
-
+.switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
 .icon-sm { width: 16px; height: 16px; }
 .icon-md { width: 18px; height: 18px; }
 .icon-xs { width: 14px; height: 14px; }
 
-.main-content {
-  width: 100%;
-}
+.main-content { width: 100%; }
 
-.visits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+/* LAYOUT MENURUN / VERTIKAL CONTAINER */
+.wo-vertical-list {
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   width: 100%;
 }
 
-.visit-card {
+.wo-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
-.card-top {
+.card-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
+  align-items: center;
+  border-bottom: 1px dashed var(--border-color);
+  padding-bottom: 12px;
 }
 
-.location-name {
-  margin: 0;
-  font-size: 16px;
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wo-code {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--primary);
+}
+
+.company-badge {
+  font-size: 11px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  padding: 3px 8px;
+  border-radius: 6px;
   font-weight: 700;
-  color: var(--text-main);
-  transition: color 0.4s ease;
 }
 
 .status-badge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
   text-transform: uppercase;
 }
 
+.status-badge.assigned { background: #dbeafe; color: #1e40af; }
+.status-badge.in_progress, .status-badge.pending { background: #fef3c7; color: #b45309; }
 .status-badge.completed, .status-badge.done { background: #dcfce7; color: #15803d; }
-.status-badge.in_progress, .status-badge.pending, .status-badge.assigned { background: #fef3c7; color: #b45309; }
-.status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 
-.kv-grid-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.wo-body-section {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  background-color: var(--kv-bg);
+}
+
+.location-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.location-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.maps-link {
+  font-size: 13px;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.maps-link:hover { text-decoration: underline; }
+
+.wo-intro {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  background: var(--sub-bg);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  background-color: var(--sub-bg);
   padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  margin-bottom: 16px;
-  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
-.kv-item { display: flex; flex-direction: column; }
-.kv-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
-.kv-value { font-size: 12px; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; }
+.meta-item { display: flex; flex-direction: column; }
+.meta-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+.meta-value { font-size: 12px; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; }
 
-.card-actions { display: flex; justify-content: flex-end; margin-top: auto; }
+/* SUB BLOCKS (MENURUN) */
+.wo-sub-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sub-block-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--sub-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+}
+
+.item-main { display: flex; flex-direction: column; }
+.item-name { font-weight: 700; color: var(--text-main); }
+.item-subtext { font-size: 11px; color: var(--text-muted); }
+.item-price { font-weight: 800; color: var(--primary); }
+
+.no-data-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 6px 0;
+}
+
+.cost-summary-box {
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px dashed var(--primary);
+  padding: 14px 18px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.grand-total-row {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+  font-weight: 800;
+  color: var(--text-main);
+  font-size: 15px;
+}
+
+.grand-total-val {
+  color: #10b981;
+}
+
+.card-action-bar {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.btn-doc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background-color: var(--sub-bg);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.btn-doc:hover { border-color: var(--primary); color: var(--primary); }
 
 .btn-detail {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  padding: 10px 14px;
+  padding: 10px 20px;
   background-color: var(--primary);
   color: #ffffff;
   font-size: 13px;
@@ -608,9 +796,7 @@ onMounted(() => {
   transition: background-color 0.2s ease;
 }
 
-.btn-detail:hover {
-  background-color: var(--primary-hover);
-}
+.btn-detail:hover { background-color: var(--primary-hover); }
 
 .state-card {
   padding: 40px 16px;
@@ -632,7 +818,7 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  min-height: 200px;
+  min-height: 180px;
   animation: pulse 1.5s infinite ease-in-out;
 }
 
@@ -641,40 +827,12 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-.skeleton-title {
-  height: 20px;
-  width: 60%;
-  margin-bottom: 16px;
-}
+.skeleton-title { height: 24px; width: 40%; }
+.skeleton-box { height: 50px; width: 100%; }
 
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.skeleton-box {
-  height: 28px;
-  width: 100%;
-}
-
-.skeleton-btn {
-  height: 36px;
-  width: 100%;
-  margin-top: auto;
-}
-
-/* ANIMASI JUMPING & GLOWING */
 @keyframes jumpGlow {
-  0%, 100% {
-    transform: translateY(0);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
-  }
-  50% {
-    transform: translateY(-6px);
-    box-shadow: 0 0 22px rgba(16, 185, 129, 0.85);
-  }
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+  50% { transform: translateY(-6px); box-shadow: 0 0 22px rgba(16, 185, 129, 0.85); }
 }
 
 @keyframes pulse {
@@ -686,6 +844,7 @@ onMounted(() => {
 @media (max-width: 600px) {
   .page-container { padding: 16px; }
   .btn-text { display: none; }
-  .visits-grid { grid-template-columns: 1fr; }
+  .card-action-bar { flex-direction: column; }
+  .btn-doc, .btn-detail { width: 100%; justify-content: center; }
 }
 </style>
