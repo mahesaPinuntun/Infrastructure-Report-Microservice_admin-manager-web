@@ -21,7 +21,7 @@ const routes = [
     name: 'Login',
     component: () => import('../pages/LoginView.vue') 
   },
-  // ROUTE BARU: Halaman Registrasi Admin
+  // ROUTE: Halaman Registrasi Admin
   { 
     path: '/register-admin', 
     name: 'AdminRegister',
@@ -55,6 +55,13 @@ const routes = [
     path: '/work-orders', 
     name: 'WorkOrders',
     component: () => import('../pages/WorkOrders.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
+  },
+  // ROUTE BARU: Detail Work Order berdasarkan ID
+  { 
+    path: '/work-orders/:id', 
+    name: 'WorkOrderDetail',
+    component: () => import('../pages/WorkOrderDetail.vue'),
     meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
   },
   { 
