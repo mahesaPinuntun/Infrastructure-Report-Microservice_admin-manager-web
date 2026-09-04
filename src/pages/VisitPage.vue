@@ -2,20 +2,52 @@
   <div class="page-container">
     <!-- Header Page -->
     <header class="header-section">
-      <div class="header-content">
-        <h1>Daftar Kunjungan & Work Order</h1>
-        <p class="subtitle">Riwayat & Jadwal Penugasan Manager Field</p>
+      <div class="header-left">
+        <!-- Tombol Reroute ke '/' -->
+        <button @click="goToHome" class="btn-home" title="Kembali ke Landing Page">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="btn-home-text">Home</span>
+        </button>
+
+        <div class="header-content">
+          <h1>Daftar Kunjungan & Work Order</h1>
+          <p class="subtitle">Riwayat & Jadwal Penugasan Manager Field</p>
+        </div>
       </div>
 
-      <!-- Theme Switcher -->
-      <button @click="toggleTheme" class="btn-theme" title="Ubah Tema">
-        <svg v-if="currentTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-        <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      </button>
+      <!-- Fluid Theme Switch (Desain Kapsul) -->
+      <div class="theme-switch-wrapper">
+        <button 
+          @click="toggleTheme" 
+          class="theme-toggle-switch" 
+          :class="{ 'is-dark': currentTheme === 'dark' }"
+          title="Ubah Tema"
+          aria-label="Toggle Theme"
+        >
+          <span class="switch-handle">
+            <!-- Icon Matahari (Light Mode) -->
+            <svg v-if="currentTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="4"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            
+            <!-- Icon Bulan (Dark Mode) -->
+            <svg v-else class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </span>
+        </button>
+      </div>
     </header>
 
     <!-- Content Area -->
@@ -51,7 +83,6 @@
               <strong class="kv-value">{{ visit.workOrderNumber || visit.reportId || visit._id?.substring(0, 6) || '-' }}</strong>
             </div>
 
-            <!-- PERBAIKAN: Menggunakan getTechnicianName(visit) -->
             <div class="kv-item">
               <span class="kv-label">Teknisi</span>
               <strong class="kv-value">{{ getTechnicianName(visit) }}</strong>
@@ -91,14 +122,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 
+const router = useRouter();
 const visits = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
 
 const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
+
+const goToHome = () => {
+  router.push('/');
+};
 
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
@@ -113,11 +150,9 @@ const toggleTheme = () => {
   document.documentElement.setAttribute('data-theme', newTheme);
 };
 
-// Helper untuk membaca nama teknisi dari array technicians atau properti fallback lainnya
 const getTechnicianName = (visit) => {
   if (!visit) return '-';
 
-  // 1. Membaca dari array 'technicians' (sesuai struktur JSON MongoDB)
   if (Array.isArray(visit.technicians) && visit.technicians.length > 0) {
     const firstTech = visit.technicians[0];
     if (typeof firstTech === 'object' && firstTech !== null && firstTech.name) {
@@ -125,22 +160,18 @@ const getTechnicianName = (visit) => {
     }
   }
 
-  // 2. Fallback jika 'technicians' berupa array of strings / IDs
   if (Array.isArray(visit.technicians) && typeof visit.technicians[0] === 'string') {
     return visit.technicians[0];
   }
 
-  // 3. Fallback jika tersimpan sebagai string langsung
   if (typeof visit.technicianName === 'string' && visit.technicianName.trim()) {
     return visit.technicianName;
   }
 
-  // 4. Fallback jika tersimpan di objek assignedTechnician
   if (visit.assignedTechnician && typeof visit.assignedTechnician === 'object') {
     return visit.assignedTechnician.name || visit.assignedTechnician.email || '-';
   }
 
-  // 5. Fallback jika tersimpan di objek technician
   if (visit.technician && typeof visit.technician === 'object') {
     return visit.technician.name || visit.technician.email || '-';
   }
@@ -190,8 +221,10 @@ onMounted(() => {
   --border-color: #e2e8f0;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
-  --theme-bg: #f1f5f9;
   --kv-bg: #f8fafc;
+  --switch-bg: #2d3748;
+  --switch-handle-bg: #ffffff;
+  --switch-icon-color: #0f172a;
 }
 
 :global([data-theme="dark"]) {
@@ -202,8 +235,10 @@ onMounted(() => {
   --border-color: #334155;
   --primary: #3b82f6;
   --primary-hover: #2563eb;
-  --theme-bg: #334155;
   --kv-bg: #0f172a;
+  --switch-bg: #020617;
+  --switch-handle-bg: #1e293b;
+  --switch-icon-color: #f8fafc;
 }
 
 .page-container {
@@ -212,6 +247,7 @@ onMounted(() => {
   color: var(--text-main);
   padding: 16px;
   box-sizing: border-box;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 .header-section {
@@ -219,21 +255,95 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  gap: 12px;
 }
 
-.header-content h1 { margin: 0; font-size: 20px; font-weight: 800; }
-.subtitle { margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted); }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-.btn-theme {
-  background: var(--theme-bg);
+/* BUTTON REROUTE TO HOME ('/') */
+.btn-home {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--bg-card);
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  padding: 8px;
   border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.icon-sm { width: 18px; height: 18px; }
+.btn-home:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.header-content h1 { 
+  margin: 0; 
+  font-size: 18px; 
+  font-weight: 800; 
+  line-height: 1.2;
+}
+
+.subtitle { 
+  margin: 2px 0 0 0; 
+  font-size: 11px; 
+  color: var(--text-muted); 
+}
+
+/* FLUID THEME SWITCH STYLES */
+.theme-switch-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle-switch {
+  position: relative;
+  width: 64px;
+  height: 34px;
+  background-color: var(--switch-bg);
+  border-radius: 50px;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.4s ease;
+}
+
+.switch-handle {
+  width: 28px;
+  height: 28px;
+  background-color: var(--switch-handle-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+  transform: translateX(0);
+}
+
+.theme-toggle-switch.is-dark .switch-handle {
+  transform: translateX(30px);
+}
+
+.switch-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--switch-icon-color);
+  transition: color 0.3s ease;
+}
+
+.icon-sm { width: 16px; height: 16px; }
 
 .visits-grid {
   display: flex;
@@ -247,6 +357,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .card-top {
@@ -289,6 +400,7 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid var(--border-color);
   margin-bottom: 12px;
+  transition: background-color 0.4s ease;
 }
 
 .kv-item { display: flex; flex-direction: column; min-width: 0; }
@@ -327,5 +439,11 @@ onMounted(() => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .btn-home-text {
+    display: none;
+  }
 }
 </style>
