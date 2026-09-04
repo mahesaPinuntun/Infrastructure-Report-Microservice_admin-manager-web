@@ -184,16 +184,16 @@
           </div>
         </div>
 
-        <!-- Proof Document (PDF) -->
+        <!-- Proof Document (PDF) - MENGGUNAKAN BLOB DOWNLOAD DENGAN AUTH HEADER -->
         <div v-if="wo.proofDocumentUrl" class="section-box">
           <label>{{ t('labelDocument') }}</label>
-          <a :href="wo.proofDocumentUrl" target="_blank" class="doc-link">
+          <button @click="downloadDocument(wo.proofDocumentUrl, wo.woCode)" class="doc-link-btn" :disabled="downloading">
             <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
-            <span>Unduh / Buka Dokumen Bukti WO (PDF)</span>
-          </a>
+            <span>{{ downloading ? t('btnDownloading') : 'Unduh / Buka Dokumen Bukti WO (PDF)' }}</span>
+          </button>
         </div>
 
         <!-- Action Panel for Status Update -->
@@ -220,6 +220,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
 import { adminApi, managerApi } from '../services/api';
 
 const route = useRoute();
@@ -228,6 +229,7 @@ const router = useRouter();
 const wo = ref(null);
 const loading = ref(true);
 const updating = ref(false);
+const downloading = ref(false);
 const selectedStatus = ref('PENDING');
 
 const feedbackMessage = ref('');
@@ -249,6 +251,7 @@ const translations = {
     panelTitle: 'Update Status Work Order',
     btnSave: 'Simpan Status',
     btnSaving: 'Menyimpan...',
+    btnDownloading: 'Mengunduh Dokumen...',
     btnRetry: 'Coba Lagi',
     emptyMessage: 'Detail Work Order tidak ditemukan atau gagal dimuat dari server.'
   },
@@ -265,6 +268,7 @@ const translations = {
     panelTitle: 'Update Work Order Status',
     btnSave: 'Save Status',
     btnSaving: 'Saving...',
+    btnDownloading: 'Downloading Document...',
     btnRetry: 'Try Again',
     emptyMessage: 'Work Order details not found or failed to load from server.'
   }
@@ -299,7 +303,45 @@ const showFeedback = (msg, type = 'success') => {
   }, 4000);
 };
 
-// Fetch Work Order Detail (Mendukung Endpoint Single ID dan Fallback Full List)
+// Mengunduh dokumen secara aman menggunakan Axios Blob dengan Header Token
+const downloadDocument = async (fileUrl, fileNamePrefix = 'WO') => {
+  if (!fileUrl) return;
+
+  downloading.value = true;
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+
+    const response = await axios.get(fileUrl, {
+      responseType: 'blob',
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+
+    const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/pdf' });
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', `${fileNamePrefix}_Bukti.pdf`);
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    console.error('Gagal mengunduh dokumen:', err);
+    if (err.response?.status === 401) {
+      showFeedback('Sesi telah berakhir. Silakan login kembali.', 'error');
+      router.push('/login');
+    } else {
+      // Fallback: Jika terjadi error CORS dari URL eksternal CDN/S3
+      window.open(fileUrl, '_blank');
+    }
+  } finally {
+    downloading.value = false;
+  }
+};
+
+// Fetch Work Order Detail
 const fetchWorkOrderDetail = async () => {
   const woId = route.params.id;
   if (!woId) return;
@@ -331,7 +373,7 @@ const fetchWorkOrderDetail = async () => {
         break;
       }
     } catch (err) {
-      // Coba endpoint selanjutnya di loop
+      // Coba endpoint berikutnya di loop
     }
   }
 
@@ -725,7 +767,7 @@ onMounted(() => {
 }
 .grand-total-val { color: #10b981; }
 
-.maps-link, .doc-link {
+.maps-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -737,9 +779,36 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
+  width: fit-content;
 }
 
-.maps-link:hover, .doc-link:hover { text-decoration: underline; }
+.doc-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--box-bg);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.doc-link-btn:hover:not(:disabled) {
+  background-color: var(--bg-card);
+  border-color: var(--primary-color);
+}
+
+.doc-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.maps-link:hover { text-decoration: underline; }
 
 .action-panel {
   background: var(--box-bg);
