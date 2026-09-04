@@ -20,6 +20,13 @@
             </svg>
             <span class="btn-text">{{ t('navDashboard') }}</span>
           </button>
+
+          <button @click="goToWorkflow" class="btn-nav btn-flow" title="Buka Workflow System">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span class="btn-text">{{ t('navWorkflow') }}</span>
+          </button>
         </div>
 
         <div class="header-content">
@@ -75,7 +82,7 @@
 
     <main class="main-content">
       <div v-if="loading" class="visits-grid">
-        <div v-for="n in 3" :key="'skeleton-' + n" class="visit-card skeleton-card">
+        <div v-for="n in 6" :key="'skeleton-' + n" class="visit-card skeleton-card">
           <div class="skeleton-line skeleton-title"></div>
           <div class="skeleton-grid">
             <div v-for="i in 6" :key="i" class="skeleton-line skeleton-box"></div>
@@ -133,10 +140,7 @@
           </div>
 
           <div class="card-actions">
-            <button 
-              @click="navigateToDetail(visit)" 
-              class="btn-detail"
-            >
+            <button @click="navigateToDetail(visit)" class="btn-detail">
               <span>{{ t('btnViewDetail') }}</span>
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
@@ -163,10 +167,11 @@ const currentLang = ref('id');
 
 const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
-// KAMUS TRANSLASI (i18n)
+// TRANSLATION DICTIONARY
 const translations = {
   id: {
     navDashboard: 'Dashboard',
+    navWorkflow: 'Flow System',
     pageTitle: 'Daftar Kunjungan & Work Order',
     pageSubtitle: 'Riwayat & Jadwal Penugasan Manager Field',
     btnRetry: 'Coba Lagi',
@@ -182,6 +187,7 @@ const translations = {
   },
   en: {
     navDashboard: 'Dashboard',
+    navWorkflow: 'Flow System',
     pageTitle: 'Visits & Work Order List',
     pageSubtitle: 'History & Field Manager Assignment Schedule',
     btnRetry: 'Try Again',
@@ -199,15 +205,12 @@ const translations = {
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
-// NAVIGASI DENGAN REROUTING FLOW
-const goToHome = () => {
-  router.push('/');
-};
+// ROUTING FLOW
+const goToHome = () => router.push('/');
 
 const goToDashboard = () => {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const role = (storedUser.role || '').toUpperCase();
-
   if (role === 'ADMIN') {
     router.push('/admin');
   } else if (role === 'MANAGER' || role === 'INFRASTRUCTURE_MANAGER') {
@@ -217,17 +220,18 @@ const goToDashboard = () => {
   }
 };
 
+const goToWorkflow = () => {
+  router.push('/workflow');
+};
+
 const navigateToDetail = (visit) => {
   const targetId = visit.reportId || visit._id || visit.id;
-  if (targetId) {
-    router.push(`/reports/${targetId}`);
-  }
+  if (targetId) router.push(`/reports/${targetId}`);
 };
 
 // LANGUAGE TOGGLE
 const initLanguage = () => {
-  const savedLang = localStorage.getItem('user-lang') || 'id';
-  currentLang.value = savedLang;
+  currentLang.value = localStorage.getItem('user-lang') || 'id';
 };
 
 const toggleLanguage = () => {
@@ -242,36 +246,46 @@ const applyThemeToDOM = (theme) => {
 };
 
 const initTheme = () => {
-  const savedTheme = localStorage.getItem('user-theme') || 'light';
-  currentTheme.value = savedTheme;
-  applyThemeToDOM(savedTheme);
+  currentTheme.value = localStorage.getItem('user-theme') || 'light';
+  applyThemeToDOM(currentTheme.value);
 };
 
 const toggleTheme = () => {
-  const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
-  currentTheme.value = newTheme;
-  localStorage.setItem('user-theme', newTheme);
-  applyThemeToDOM(newTheme);
+  currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light';
+  localStorage.setItem('user-theme', currentTheme.value);
+  applyThemeToDOM(currentTheme.value);
 };
 
 const getTechnicianName = (visit) => {
   if (!visit) return '-';
-
   if (Array.isArray(visit.technicians) && visit.technicians.length > 0) {
-    const firstTech = visit.technicians[0];
-    if (typeof firstTech === 'object' && firstTech !== null && firstTech.name) {
-      return firstTech.name;
-    }
+    const first = visit.technicians[0];
+    if (typeof first === 'object' && first?.name) return first.name;
+    if (typeof first === 'string') return first;
   }
+  if (typeof visit.technicianName === 'string' && visit.technicianName.trim()) return visit.technicianName;
+  if (visit.assignedTechnician?.name) return visit.assignedTechnician.name;
+  return '-';
+};
 
-  if (Array.isArray(visit.technicians) && typeof visit.technicians[0] === 'string') {
-    return visit.technicians[0];
+const fetchVisits = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+  try {
+    const res = await axios.get(`${MANAGER_SERVICE_URL}/api/manager/work-orders`);
+    const data = res?.data?.workOrders || res?.data?.data || res?.data?.visits || res?.data || [];
+    visits.value = Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error('Error fetching Manager Work Orders:', err);
+    errorMessage.value = err.response?.data?.error || err.response?.data?.message || 'Gagal memuat data Work Order.';
+    visits.value = [];
+  } finally {
+    loading.value = false;
   }
+};
 
-  if (typeof visit.technicianName === 'string' && visit.technicianName.trim()) {
-    return visit.technicianName;
-  }
-
-  if (visit.assignedTechnician && typeof visit.assignedTechnician === 'object') {
-    return visit.assignedTechnician.name || visit.assignedTechnician.email || '-';
-  }
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  try {
+    const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
+    return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
