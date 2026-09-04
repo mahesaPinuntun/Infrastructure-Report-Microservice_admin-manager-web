@@ -62,7 +62,7 @@ const routes = [
     path: '/work-orders/:id', 
     name: 'WorkOrderDetail',
     component: () => import('../pages/WorkOrderDetail.vue'),
-    meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
+    //meta: { requiresAuth: true, roles: ['ADMIN', 'MANAGER'] }
   },
   { 
     path: '/users', 
