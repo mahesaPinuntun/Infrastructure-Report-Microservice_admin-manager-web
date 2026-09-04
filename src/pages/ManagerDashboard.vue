@@ -61,8 +61,8 @@
           </button>
         </div>
 
-        <!-- Tombol Logout -->
-        <button @click="handleLogout" class="btn-logout">
+        <!-- Tombol Logout (Memicu Modal Konfirmasi) -->
+        <button @click="triggerLogout" class="btn-logout">
           <svg class="icon-sm icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
           </svg>
@@ -70,6 +70,27 @@
         </button>
       </div>
     </header>
+
+    <!-- Modal Konfirmasi Logout -->
+    <Transition name="fade">
+      <div v-if="showLogoutModal" class="modal-backdrop" @click.self="showLogoutModal = false">
+        <div class="modal-card">
+          <div class="modal-icon-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h3 class="modal-title">{{ t('logoutConfirmTitle') }}</h3>
+          <p class="modal-message">{{ t('logoutConfirmMessage') }}</p>
+          <div class="modal-actions">
+            <button @click="showLogoutModal = false" class="btn-cancel">{{ t('cancel') }}</button>
+            <button @click="confirmLogout" class="btn-confirm-logout">{{ t('yesLogout') }}</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Loading State -->
     <Transition name="fade" mode="out-in">
@@ -317,6 +338,9 @@ const errorMessage = ref('');
 const showWorkOrdersTable = ref(false);
 const showReportsTable = ref(false);
 
+// Control State Modal Logout
+const showLogoutModal = ref(false);
+
 const activeTheme = ref('light');
 const currentLang = ref('id');
 
@@ -326,6 +350,10 @@ const translations = {
     dashboardTitle: 'Dashboard Manager',
     welcome: 'Selamat datang kembali',
     logout: 'Keluar',
+    logoutConfirmTitle: 'Konfirmasi Keluar',
+    logoutConfirmMessage: 'Apakah Anda yakin ingin keluar dari sistem Manager Field?',
+    cancel: 'Batal',
+    yesLogout: 'Ya, Keluar',
     loadingStats: 'Memuat data statistik operasional...',
     retry: 'Coba Memuat Ulang',
     active: 'Aktif',
@@ -363,6 +391,10 @@ const translations = {
     dashboardTitle: 'Manager Dashboard',
     welcome: 'Welcome back',
     logout: 'Logout',
+    logoutConfirmTitle: 'Confirm Logout',
+    logoutConfirmMessage: 'Are you sure you want to log out of the Manager Field system?',
+    cancel: 'Cancel',
+    yesLogout: 'Yes, Logout',
     loadingStats: 'Loading operational statistics...',
     retry: 'Retry Loading',
     active: 'Active',
@@ -501,7 +533,13 @@ const navigateTo = (path) => {
   router.push(path);
 };
 
-const handleLogout = () => {
+// HANDLER KONFIRMASI LOGOUT
+const triggerLogout = () => {
+  showLogoutModal.value = true;
+};
+
+const confirmLogout = () => {
+  showLogoutModal.value = false;
   logout();
 };
 
@@ -557,6 +595,8 @@ onMounted(() => {
   --lang-btn-bg: #e2e8f0;
   --lang-btn-active: #ffffff;
   --lang-text-active: #2563eb;
+  --modal-overlay: rgba(15, 23, 42, 0.5);
+  --modal-bg: #ffffff;
 }
 
 :global([data-theme="dark"]),
@@ -582,6 +622,8 @@ onMounted(() => {
   --lang-btn-bg: #334155;
   --lang-btn-active: #1e293b;
   --lang-text-active: #3b82f6;
+  --modal-overlay: rgba(2, 6, 23, 0.7);
+  --modal-bg: #1e293b;
 }
 
 /* Global Container Resets */
@@ -793,6 +835,105 @@ h1 {
 
 .icon-logout {
   color: #ffffff !important;
+}
+
+/* MODAL LOGOUT STYLES */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--modal-overlay);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.modal-card {
+  background-color: var(--modal-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: scale(1);
+  transition: transform 0.2s ease;
+}
+
+.modal-icon-warning {
+  width: 52px;
+  height: 52px;
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.modal-icon-warning svg {
+  width: 26px;
+  height: 26px;
+}
+
+.modal-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.modal-message {
+  margin: 0 0 24px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background-color: var(--border-color);
+}
+
+.btn-confirm-logout {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: #ef4444;
+  border: none;
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-confirm-logout:hover {
+  background-color: #dc2626;
 }
 
 /* Bento Grid Layout */
