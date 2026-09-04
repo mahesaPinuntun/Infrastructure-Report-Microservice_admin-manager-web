@@ -3,27 +3,88 @@
     <!-- Header Bar -->
     <header class="header-bar">
       <div class="header-left">
-        <button @click="goToDashboard" class="btn-back">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-          </svg>
-          <span>Kembali ke Dashboard Utama</span>
-        </button>
-        <h2>Manajemen Surat Tugas (Work Orders)</h2>
+        <div class="top-nav">
+          <button @click="goToDashboard" class="btn-back">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>{{ t('backToDashboard') }}</span>
+          </button>
+        </div>
+
+        <div class="title-with-logo">
+          <!-- Logo Kanji 築 (Chiku) Header -->
+          <div class="kanji-logo-header">
+            <span class="kanji-header-text">築</span>
+          </div>
+          <div>
+            <h2 class="page-title">{{ t('pageTitle') }}</h2>
+            <p class="subtitle">{{ t('pageSubtitle') }}</p>
+          </div>
+        </div>
       </div>
 
-      <button @click="showCreateModal = true" class="btn-create">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        <span>Buat Work Order Baru</span>
-      </button>
+      <div class="header-actions">
+        <!-- Language Switcher (Pilihan Bahasa ID / EN) -->
+        <div class="lang-switch-wrapper">
+          <button 
+            @click="toggleLanguage" 
+            class="lang-toggle-switch"
+            :class="{ 'is-en': currentLang === 'en' }"
+            :title="currentLang === 'id' ? 'Switch to English' : 'Ubah ke Bahasa Indonesia'"
+            aria-label="Toggle Language"
+          >
+            <span class="lang-option" :class="{ active: currentLang === 'id' }">ID</span>
+            <span class="lang-option" :class="{ active: currentLang === 'en' }">EN</span>
+            <span class="lang-slider"></span>
+          </button>
+        </div>
+
+        <!-- Fluid Theme Switch (Desain Kapsul Animasi) -->
+        <div class="theme-switch-wrapper">
+          <button 
+            @click="toggleTheme" 
+            class="theme-toggle-switch" 
+            :class="{ 'is-dark': activeTheme === 'dark' }"
+            :title="activeTheme === 'light' ? 'Dark Mode' : 'Light Mode'"
+            aria-label="Toggle Theme"
+          >
+            <span class="switch-handle">
+              <!-- Icon Matahari (Light Mode) -->
+              <svg v-if="activeTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="4"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              
+              <!-- Icon Bulan (Dark Mode) -->
+              <svg v-else class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+
+        <!-- Tombol Buat Work Order Baru -->
+        <button @click="showCreateModal = true" class="btn-create">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>{{ t('createWorkOrder') }}</span>
+        </button>
+      </div>
     </header>
 
     <!-- State Card: Loading -->
     <div v-if="loading" class="state-card">
       <div class="spinner"></div>
-      <p>Memuat daftar Surat Tugas (Work Orders)...</p>
+      <p>{{ t('loadingOrders') }}</p>
     </div>
 
     <!-- Table Preview Section -->
@@ -32,18 +93,18 @@
         <table class="minimal-table">
           <thead>
             <tr>
-              <th>Surat ID</th>
-              <th>Nama Perusahaan</th>
-              <th>Pembuat Surat</th>
-              <th>Lokasi Perbaikan</th>
-              <th>Total Biaya</th>
-              <th>Bukti Surat (Dokumen)</th>
-              <th>Tanggal Buat</th>
+              <th>{{ t('colLetterId') }}</th>
+              <th>{{ t('colCompanyName') }}</th>
+              <th>{{ t('colIssuer') }}</th>
+              <th>{{ t('colLocation') }}</th>
+              <th>{{ t('colTotalCost') }}</th>
+              <th>{{ t('colDocument') }}</th>
+              <th>{{ t('colCreatedDate') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="orders.length === 0">
-              <td colspan="7" class="empty-cell">Belum ada Work Order aktif di sistem.</td>
+              <td colspan="7" class="empty-cell">{{ t('noWorkOrders') }}</td>
             </tr>
             <tr v-for="item in orders" :key="item._id || item.id">
               <td class="code-cell">{{ item.woCode || item._id?.substring(0, 8) }}</td>
@@ -63,7 +124,7 @@
                     <polyline points="7 10 12 15 17 10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
-                  <span>Download PDF</span>
+                  <span>{{ t('downloadPdf') }}</span>
                 </button>
               </td>
               <td>{{ formatDate(item.createdAt) }}</td>
@@ -73,14 +134,14 @@
       </div>
     </div>
 
-    <!-- Panggil Komponen Modal Terpisah -->
+    <!-- Modal Komponen Terpisah -->
     <CreateWorkOrderModal
       v-if="showCreateModal"
       @close="showCreateModal = false"
       @created="fetchWorkOrders"
     />
 
-    <!-- Template HiddenOffscreen Rendering PDF (Menggantikan display:none) -->
+    <!-- Template Hidden Offscreen Rendering PDF -->
     <div class="pdf-offscreen-container">
       <div v-if="activePdfItem" id="dynamic-pdf-area" class="pdf-document">
         <div class="pdf-header">
@@ -124,11 +185,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(t, idx) in (activePdfItem.technicians || [])" :key="idx">
-                <td>{{ t.name }}</td>
-                <td>{{ t.email }}</td>
-                <td>{{ t.phone || t.phoneNumber || '-' }}</td>
-                <td>Rp {{ formatCurrency(t.fee) }}</td>
+              <tr v-for="(tItem, idx) in (activePdfItem.technicians || [])" :key="idx">
+                <td>{{ tItem.name }}</td>
+                <td>{{ tItem.email }}</td>
+                <td>{{ tItem.phone || tItem.phoneNumber || '-' }}</td>
+                <td>Rp {{ formatCurrency(tItem.fee) }}</td>
               </tr>
             </tbody>
           </table>
@@ -181,10 +242,76 @@ const orders = ref([]);
 const loading = ref(true);
 const showCreateModal = ref(false);
 const activePdfItem = ref(null);
+const activeTheme = ref('light');
+const currentLang = ref('id');
+
+// KAMUS TRANSLASI (i18n)
+const translations = {
+  id: {
+    backToDashboard: 'Kembali ke Dashboard Utama',
+    pageTitle: 'Manajemen Surat Tugas (Work Orders)',
+    pageSubtitle: 'Kelola pengerjaan teknisi dan alokasi resource infrastruktur',
+    createWorkOrder: 'Buat Work Order Baru',
+    loadingOrders: 'Memuat daftar Surat Tugas (Work Orders)...',
+    colLetterId: 'Surat ID',
+    colCompanyName: 'Nama Perusahaan',
+    colIssuer: 'Pembuat Surat',
+    colLocation: 'Lokasi Perbaikan',
+    colTotalCost: 'Total Biaya',
+    colDocument: 'Bukti Surat (Dokumen)',
+    colCreatedDate: 'Tanggal Buat',
+    noWorkOrders: 'Belum ada Work Order aktif di sistem.',
+    downloadPdf: 'Download PDF'
+  },
+  en: {
+    backToDashboard: 'Back to Main Dashboard',
+    pageTitle: 'Work Order Management',
+    pageSubtitle: 'Manage technician dispatch and infrastructure resource allocations',
+    createWorkOrder: 'Create New Work Order',
+    loadingOrders: 'Loading Work Orders list...',
+    colLetterId: 'Letter ID',
+    colCompanyName: 'Company Name',
+    colIssuer: 'Issuer',
+    colLocation: 'Repair Location',
+    colTotalCost: 'Total Cost',
+    colDocument: 'Letter Proof (Document)',
+    colCreatedDate: 'Date Created',
+    noWorkOrders: 'No active Work Orders in system.',
+    downloadPdf: 'Download PDF'
+  }
+};
+
+const t = (key) => {
+  return translations[currentLang.value]?.[key] || key;
+};
+
+// LANGUAGE TOGGLE FUNCTION
+const initLanguage = () => {
+  const savedLang = localStorage.getItem('user-lang') || 'id';
+  currentLang.value = savedLang;
+};
+
+const toggleLanguage = () => {
+  currentLang.value = currentLang.value === 'id' ? 'en' : 'id';
+  localStorage.setItem('user-lang', currentLang.value);
+};
+
+// THEME TOGGLE LOGIC
+const applyThemeToDOM = (theme) => {
+  activeTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+};
 
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  applyThemeToDOM(savedTheme);
+};
+
+const toggleTheme = () => {
+  const nextTheme = activeTheme.value === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('user-theme', nextTheme);
+  applyThemeToDOM(nextTheme);
 };
 
 const getUserData = () => JSON.parse(localStorage.getItem('user') || '{}');
@@ -246,7 +373,8 @@ const formatCurrency = (val) => Number(val || 0).toLocaleString('id-ID');
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('id-ID', {
+  const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
+  return new Date(dateStr).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -255,38 +383,67 @@ const formatDate = (dateStr) => {
 
 onMounted(() => {
   initTheme();
+  initLanguage();
   fetchWorkOrders();
 });
 </script>
 
 <style scoped>
 :global(:root),
+:global(html),
+:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --text-main: #0f172a;
   --text-muted: #64748b;
   --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
   --emerald-color: #059669;
-  --border-color: rgba(148, 163, 184, 0.15);
+  --border-color: #e2e8f0;
   --badge-bg: #f1f5f9;
   --badge-text: #334155;
   --btn-pdf-bg: #d97706;
   --btn-pdf-hover: #b45309;
+  --switch-bg: #2d3748;
+  --switch-handle-bg: #ffffff;
+  --switch-icon-color: #0f172a;
+  --lang-btn-bg: #e2e8f0;
+  --lang-btn-active: #ffffff;
+  --lang-text-active: #2563eb;
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
   --emerald-color: #10b981;
-  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color: #334155;
   --badge-bg: #334155;
   --badge-text: #cbd5e1;
   --btn-pdf-bg: #f59e0b;
   --btn-pdf-hover: #d97706;
+  --switch-bg: #020617;
+  --switch-handle-bg: #1e293b;
+  --switch-icon-color: #f8fafc;
+  --lang-btn-bg: #334155;
+  --lang-btn-active: #1e293b;
+  --lang-text-active: #3b82f6;
+}
+
+:global(html),
+:global(body),
+:global(#app) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  background-color: var(--bg-main) !important;
+  overflow-x: hidden !important;
 }
 
 .page-wrapper {
@@ -296,6 +453,7 @@ onMounted(() => {
   background-color: var(--bg-main);
   color: var(--text-main);
   padding: 24px 32px;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 .header-bar {
@@ -303,13 +461,51 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.header-left h2 {
-  margin: 0;
-  font-size: 26px;
+.top-nav {
+  margin-bottom: 8px;
+}
+
+.title-with-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kanji-logo-header {
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary-color);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px -2px rgba(37, 99, 235, 0.3);
+  flex-shrink: 0;
+}
+
+.kanji-header-text {
+  font-family: 'sans-serif', 'Noto Sans JP';
+  font-size: 22px;
   font-weight: 800;
-  color: var(--text-main);
+  color: #ffffff;
+  line-height: 1;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-size: 13px;
 }
 
 .btn-back {
@@ -317,33 +513,154 @@ onMounted(() => {
   border: none;
   color: var(--primary-color);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.btn-back:hover {
+  opacity: 0.8;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* LANGUAGE SWITCHER STYLES */
+.lang-switch-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lang-toggle-switch {
+  position: relative;
+  width: 68px;
+  height: 32px;
+  background-color: var(--lang-btn-bg);
+  border-radius: 50px;
+  border: 1px solid var(--border-color);
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background-color 0.3s ease;
+}
+
+.lang-option {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 800;
+  width: 28px;
+  text-align: center;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
+}
+
+.lang-option.active {
+  color: var(--lang-text-active);
+}
+
+.lang-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 24px;
+  background-color: var(--lang-btn-active);
+  border-radius: 50px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+.lang-toggle-switch.is-en .lang-slider {
+  transform: translateX(32px);
+}
+
+/* FLUID THEME SWITCH STYLES */
+.theme-switch-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.theme-toggle-switch {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background-color: var(--switch-bg);
+  border-radius: 50px;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.4s ease;
+}
+
+.switch-handle {
+  width: 26px;
+  height: 26px;
+  background-color: var(--switch-handle-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+  transform: translateX(0);
+}
+
+.theme-toggle-switch.is-dark .switch-handle {
+  transform: translateX(28px);
+}
+
+.switch-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--switch-icon-color);
+  transition: color 0.3s ease;
 }
 
 .btn-create {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 8px 16px;
   background-color: var(--primary-color);
   color: #ffffff;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-create:hover {
+  background-color: var(--primary-hover);
 }
 
 .table-container {
   background-color: var(--bg-card);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.table-responsive {
+  overflow-x: auto;
 }
 
 .minimal-table {
@@ -360,10 +677,11 @@ onMounted(() => {
 }
 
 .minimal-table th {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   font-size: 11px;
   text-transform: uppercase;
+  background-color: var(--bg-main);
 }
 
 .empty-cell {
@@ -412,16 +730,33 @@ onMounted(() => {
 .icon-sm { width: 16px; height: 16px; }
 .icon-xs { width: 14px; height: 14px; }
 
-.state-card { background-color: var(--bg-card); border-radius: 16px; padding: 36px; text-align: center; color: var(--text-muted); }
-.spinner { width: 28px; height: 28px; margin: 0 auto 14px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.state-card { 
+  background-color: var(--bg-card); 
+  border-radius: 12px; 
+  padding: 36px; 
+  text-align: center; 
+  color: var(--text-muted); 
+  border: 1px solid var(--border-color);
+}
+
+.spinner { 
+  width: 28px; 
+  height: 28px; 
+  margin: 0 auto 14px; 
+  border: 3px solid var(--border-color); 
+  border-top-color: var(--primary-color); 
+  border-radius: 50%; 
+  animation: spin 0.8s linear infinite; 
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* PERBAIKAN CSS: Menyembunyikan elemen PDF di luar layar tanpa memutus rendering DOM */
+/* PDF OFFSCREEN CONTAINER */
 .pdf-offscreen-container {
   position: absolute;
   left: -9999px;
   top: -9999px;
-  width: 210mm; /* Lebar standar kertas A4 */
+  width: 210mm;
   background: #ffffff;
 }
 
@@ -437,4 +772,11 @@ onMounted(() => {
 .pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
 .pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #000000; }
 .pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
+
+@media (max-width: 768px) {
+  .page-wrapper { padding: 16px; }
+  .header-bar { flex-direction: column; align-items: flex-start; }
+  .header-actions { width: 100%; justify-content: space-between; }
+  .btn-create { flex: 1; }
+}
 </style>
