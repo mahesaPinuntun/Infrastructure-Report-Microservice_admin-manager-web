@@ -128,7 +128,7 @@
         <!-- Google Maps Link (If Available) -->
         <div v-if="wo.mapsUrl" class="section-box">
           <label>{{ t('labelMaps') }}</label>
-          <a :href="wo.mapsUrl" target="_blank" class="maps-link">
+          <a :href="wo.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
             <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
@@ -184,20 +184,20 @@
           </div>
         </div>
 
-        <!-- Proof Document (PDF) - MENGGUNAKAN BLOB DOWNLOAD DENGAN AUTH HEADER -->
+        <!-- Proof Document (PDF) -->
         <div v-if="wo.proofDocumentUrl" class="section-box">
           <label>{{ t('labelDocument') }}</label>
-          <button @click="downloadDocument(wo.proofDocumentUrl, wo.woCode)" class="doc-link-btn" :disabled="downloading">
+          <button @click="downloadDocument(wo.proofDocumentUrl, wo.woCode)" class="doc-link-btn">
             <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
-            <span>{{ downloading ? t('btnDownloading') : 'Unduh / Buka Dokumen Bukti WO (PDF)' }}</span>
+            <span>Unduh / Buka Dokumen Bukti WO (PDF)</span>
           </button>
         </div>
 
-        <!-- Action Panel for Status Update -->
-        <div class="action-panel">
+        <!-- Action Panel for Status Update (Tampil jika pengguna terautentikasi) -->
+        <div v-if="isAuthenticated" class="action-panel">
           <h3>{{ t('panelTitle') }}</h3>
           <div class="action-form">
             <select v-model="selectedStatus" class="input-select">
@@ -218,7 +218,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { adminApi, managerApi } from '../services/api';
@@ -226,10 +226,11 @@ import { adminApi, managerApi } from '../services/api';
 const route = useRoute();
 const router = useRouter();
 
+const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
+
 const wo = ref(null);
 const loading = ref(true);
 const updating = ref(false);
-const downloading = ref(false);
 const selectedStatus = ref('PENDING');
 
 const feedbackMessage = ref('');
@@ -251,7 +252,6 @@ const translations = {
     panelTitle: 'Update Status Work Order',
     btnSave: 'Simpan Status',
     btnSaving: 'Menyimpan...',
-    btnDownloading: 'Mengunduh Dokumen...',
     btnRetry: 'Coba Lagi',
     emptyMessage: 'Detail Work Order tidak ditemukan atau gagal dimuat dari server.'
   },
@@ -268,7 +268,6 @@ const translations = {
     panelTitle: 'Update Work Order Status',
     btnSave: 'Save Status',
     btnSaving: 'Saving...',
-    btnDownloading: 'Downloading Document...',
     btnRetry: 'Try Again',
     emptyMessage: 'Work Order details not found or failed to load from server.'
   }
@@ -276,11 +275,16 @@ const translations = {
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
+const isAuthenticated = computed(() => {
+  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+  return !!token;
+});
+
 const goBack = () => {
   if (window.history.length > 1) {
     router.back();
   } else {
-    router.push('/reports');
+    router.push('/visit');
   }
 };
 
@@ -303,45 +307,30 @@ const showFeedback = (msg, type = 'success') => {
   }, 4000);
 };
 
-// Mengunduh dokumen secara aman menggunakan Axios Blob dengan Header Token
-const downloadDocument = async (fileUrl, fileNamePrefix = 'WO') => {
-  if (!fileUrl) return;
+// Mengunduh / membuka dokumen secara aman tanpa terhalang CORS & Auth
+const downloadDocument = (fileUrl, fileNamePrefix = 'WO') => {
+  if (!fileUrl) {
+    showFeedback('URL dokumen tidak tersedia.', 'error');
+    return;
+  }
 
-  downloading.value = true;
   try {
-    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-
-    const response = await axios.get(fileUrl, {
-      responseType: 'blob',
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    });
-
-    const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/pdf' });
-    const blobUrl = window.URL.createObjectURL(blob);
-
     const link = document.createElement('a');
-    link.href = blobUrl;
+    link.href = fileUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
     link.setAttribute('download', `${fileNamePrefix}_Bukti.pdf`);
+    
     document.body.appendChild(link);
     link.click();
-
     link.remove();
-    window.URL.revokeObjectURL(blobUrl);
   } catch (err) {
-    console.error('Gagal mengunduh dokumen:', err);
-    if (err.response?.status === 401) {
-      showFeedback('Sesi telah berakhir. Silakan login kembali.', 'error');
-      router.push('/login');
-    } else {
-      // Fallback: Jika terjadi error CORS dari URL eksternal CDN/S3
-      window.open(fileUrl, '_blank');
-    }
-  } finally {
-    downloading.value = false;
+    console.warn('Fallback ke window.open:', err);
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
   }
 };
 
-// Fetch Work Order Detail
+// Fetch Work Order Detail (Mendukung Akses Publik & Terautentikasi)
 const fetchWorkOrderDetail = async () => {
   const woId = route.params.id;
   if (!woId) return;
@@ -349,31 +338,60 @@ const fetchWorkOrderDetail = async () => {
   loading.value = true;
   feedbackMessage.value = '';
 
-  const role = getUserRole();
-  const api = getApiClient();
-
-  const endpoints = role === 'ADMIN'
-    ? [`/api/admin/work-orders/${woId}`, `/api/manager/work-orders/${woId}`, `/api/manager/work-orders`]
-    : [`/api/manager/work-orders/${woId}`, `/api/admin/work-orders/${woId}`, `/api/manager/work-orders`];
-
   let foundWo = null;
 
-  for (const endpoint of endpoints) {
-    try {
-      const res = await api.get(endpoint);
-      let data = res?.data?.workOrder || res?.data?.data || res?.data?.workOrders || res?.data;
+  // 1. Coba via API Terautentikasi (jika pengguna sedang login)
+  if (isAuthenticated.value) {
+    const role = getUserRole();
+    const api = getApiClient();
+    const authEndpoints = role === 'ADMIN'
+      ? [`/api/admin/work-orders/${woId}`, `/api/manager/work-orders/${woId}`, `/api/manager/work-orders`]
+      : [`/api/manager/work-orders/${woId}`, `/api/admin/work-orders/${woId}`, `/api/manager/work-orders`];
 
-      if (Array.isArray(data)) {
-        foundWo = data.find(item => (item._id || item.id || item.woCode) === woId) || data[0];
-      } else if (data && typeof data === 'object') {
-        foundWo = data;
+    for (const endpoint of authEndpoints) {
+      try {
+        const res = await api.get(endpoint);
+        let data = res?.data?.workOrder || res?.data?.data || res?.data?.workOrders || res?.data;
+
+        if (Array.isArray(data)) {
+          foundWo = data.find(item => (item._id || item.id || item.woCode) === woId);
+        } else if (data && typeof data === 'object') {
+          foundWo = data;
+        }
+
+        if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) break;
+      } catch {
+        // Abaikan error dan coba endpoint berikutnya
       }
+    }
+  }
 
-      if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) {
-        break;
+  // 2. Fallback: Panggilan Publik langsung via Axios (Tanpa Token)
+  if (!foundWo) {
+    try {
+      const publicEndpoints = [
+        `${MANAGER_SERVICE_URL}/api/manager/work-orders/${woId}`,
+        `${MANAGER_SERVICE_URL}/api/manager/work-orders`
+      ];
+
+      for (const url of publicEndpoints) {
+        try {
+          const res = await axios.get(url);
+          let data = res?.data?.workOrder || res?.data?.data || res?.data?.workOrders || res?.data;
+
+          if (Array.isArray(data)) {
+            foundWo = data.find(item => (item._id || item.id || item.woCode) === woId);
+          } else if (data && typeof data === 'object') {
+            foundWo = data;
+          }
+
+          if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) break;
+        } catch {
+          // Lanjut ke endpoint publik berikutnya
+        }
       }
     } catch (err) {
-      // Coba endpoint berikutnya di loop
+      console.error('Gagal memuat detail publik:', err);
     }
   }
 
@@ -390,7 +408,7 @@ const fetchWorkOrderDetail = async () => {
   loading.value = false;
 };
 
-// Update Status Work Order
+// Update Status Work Order (Memerlukan Login)
 const updateWoStatus = async () => {
   if (!selectedStatus.value) return;
   updating.value = true;
@@ -798,14 +816,9 @@ onMounted(() => {
   width: fit-content;
 }
 
-.doc-link-btn:hover:not(:disabled) {
+.doc-link-btn:hover {
   background-color: var(--bg-card);
   border-color: var(--primary-color);
-}
-
-.doc-link-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .maps-link:hover { text-decoration: underline; }
