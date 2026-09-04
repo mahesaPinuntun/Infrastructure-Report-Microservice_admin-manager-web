@@ -1,35 +1,67 @@
 <template>
   <div class="dashboard-page">
-    <div class="header-container">
+    <!-- Header Area -->
+    <header class="header-container">
       <div class="header-title">
-        <h1>Admin System Dashboard</h1>
+        <h1 class="brand-title">
+          <span class="brand-sub">エサの ー</span> Admin System Dashboard
+        </h1>
         <p class="subtitle">Selamat datang kembali, Administrator ({{ user?.email || '-' }})</p>
       </div>
 
       <div class="header-actions">
-        <!-- Toggle Theme Button -->
-        <button @click="toggleTheme" class="btn-theme-toggle" title="Ubah Tema">
-          <svg v-if="currentTheme === 'dark'" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
-          <svg v-else class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        </button>
+        <!-- Fluid Theme Switch (Desain Kapsul Animasi) -->
+        <div class="theme-switch-wrapper">
+          <button 
+            @click="toggleTheme" 
+            class="theme-toggle-switch" 
+            :class="{ 'is-dark': currentTheme === 'dark' }"
+            title="Ubah Tema"
+            aria-label="Toggle Theme"
+          >
+            <span class="switch-handle">
+              <!-- Icon Matahari (Light Mode) -->
+              <svg v-if="currentTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="4"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              
+              <!-- Icon Bulan (Dark Mode) -->
+              <svg v-else class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
 
         <!-- Logout Button -->
         <button @click="handleLogout" class="btn-logout">Logout</button>
       </div>
+    </header>
+
+    <!-- CHUNK LOADING INITIALIZER FOR STATS -->
+    <div v-if="loading" class="stats-grid">
+      <div v-for="n in 3" :key="'stat-skeleton-' + n" class="stat-card skeleton-card">
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-number"></div>
+      </div>
     </div>
 
-    <div v-if="loading" class="loading-state">Memuat data statistik admin...</div>
-
+    <!-- ERROR STATE -->
     <div v-else-if="errorMessage" class="error-state">
       <p>{{ errorMessage }}</p>
       <button @click="fetchStats" class="btn-retry">Coba Lagi</button>
     </div>
 
-    <div v-else>
+    <!-- DASHBOARD CONTENT -->
+    <main v-else class="main-dashboard-content">
       <!-- Summary Cards -->
       <div class="stats-grid">
         <div class="stat-card">
@@ -118,7 +150,12 @@
           <span v-if="tableLoading" class="table-loading-tag">Memuat data...</span>
         </div>
 
-        <div v-if="tableLoading" class="loading-state">Memuat isi tabel...</div>
+        <!-- CHUNK LOADING SKELETON FOR TABLE -->
+        <div v-if="tableLoading" class="table-skeleton-container">
+          <div v-for="row in 4" :key="'row-skel-' + row" class="table-skeleton-row">
+            <div v-for="col in 5" :key="'col-skel-' + col" class="skeleton-line skeleton-cell"></div>
+          </div>
+        </div>
         
         <div v-else-if="filteredTableData.length === 0" class="empty-table">
           Tidak ada data {{ tableTitle.toLowerCase() }} untuk kriteria ini.
@@ -195,7 +232,7 @@
           </table>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -221,17 +258,22 @@ const tableLoading = ref(false);
 const ADMIN_SERVICE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
 const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
+const applyThemeToDOM = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+};
+
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   currentTheme.value = savedTheme;
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  applyThemeToDOM(savedTheme);
 };
 
 const toggleTheme = () => {
   const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
   currentTheme.value = newTheme;
   localStorage.setItem('user-theme', newTheme);
-  document.documentElement.setAttribute('data-theme', newTheme);
+  applyThemeToDOM(newTheme);
 };
 
 const tableTitle = computed(() => {
@@ -426,6 +468,8 @@ onMounted(() => {
 
 <style scoped>
 :global(:root),
+:global(html),
+:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
@@ -434,11 +478,15 @@ onMounted(() => {
   --border-color: #e2e8f0;
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
-  --theme-toggle-bg: #f1f5f9;
+  --switch-bg: #2d3748;
+  --switch-handle-bg: #ffffff;
+  --switch-icon-color: #0f172a;
   --table-hover: #f1f5f9;
+  --skeleton-bg: #e2e8f0;
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #f8fafc;
@@ -446,61 +494,133 @@ onMounted(() => {
   --border-color: #334155;
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
-  --theme-toggle-bg: #334155;
+  --switch-bg: #020617;
+  --switch-handle-bg: #1e293b;
+  --switch-icon-color: #f8fafc;
   --table-hover: #334155;
+  --skeleton-bg: #334155;
+}
+
+/* MENELIMINASI GAP LAYAR DENGAN STYLES GLOBAL FULL-WIDTH */
+:global(html),
+:global(body),
+:global(#app) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  background-color: var(--bg-main) !important;
+  overflow-x: hidden !important;
 }
 
 .dashboard-page {
   min-height: 100vh;
+  width: 100%;
   padding: 24px;
   background-color: var(--bg-main);
   color: var(--text-main);
   box-sizing: border-box;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 .header-container {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.header-title h1 {
+.brand-title {
   margin: 0;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--text-main);
+  line-height: 1.2;
+}
+
+.brand-sub {
+  color: var(--primary-color);
 }
 
 .subtitle {
   color: var(--text-muted);
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.btn-theme-toggle {
-  background-color: var(--theme-toggle-bg);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 8px;
+/* FLUID THEME SWITCH STYLES (KAPSUL) */
+.theme-switch-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.theme-toggle-switch {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background-color: var(--switch-bg);
+  border-radius: 50px;
+  border: none;
+  padding: 3px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.4s ease;
 }
 
-.icon-sm {
-  width: 18px;
-  height: 18px;
+.switch-handle {
+  width: 26px;
+  height: 26px;
+  background-color: var(--switch-handle-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+  transform: translateX(0);
+}
+
+.theme-toggle-switch.is-dark .switch-handle {
+  transform: translateX(28px);
+}
+
+.switch-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--switch-icon-color);
+  transition: color 0.3s ease;
+}
+
+.btn-logout {
+  padding: 8px 16px;
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-logout:hover {
+  background-color: #dc2626;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -508,19 +628,20 @@ onMounted(() => {
 .stat-card {
   background: var(--bg-card);
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid var(--border-color);
   color: var(--text-main);
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .stat-card h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
 .stat-number {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: bold;
   color: var(--primary-color);
   margin-top: 8px;
@@ -534,10 +655,11 @@ onMounted(() => {
 .quick-actions {
   background: var(--bg-card);
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid var(--border-color);
   color: var(--text-main);
   margin-bottom: 24px;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .actions-header {
@@ -556,7 +678,7 @@ onMounted(() => {
 
 .dropdown-group {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -582,6 +704,7 @@ onMounted(() => {
   font-weight: 600;
   outline: none;
   cursor: pointer;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .action-buttons {
@@ -593,10 +716,15 @@ onMounted(() => {
   padding: 10px 16px;
   background-color: var(--primary-color);
   color: #ffffff;
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-action:hover {
+  background-color: var(--primary-hover);
 }
 
 .btn-action.outline {
@@ -605,12 +733,18 @@ onMounted(() => {
   border: 1px solid var(--primary-color);
 }
 
+.btn-action.outline:hover {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
 .table-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .table-header {
@@ -633,7 +767,7 @@ onMounted(() => {
 }
 
 .role-badge {
-  background: var(--theme-toggle-bg);
+  background: var(--border-color);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
@@ -696,17 +830,7 @@ onMounted(() => {
 .priority-badge.normal, .priority-badge.medium { background: #e0e7ff; color: #3730a3; }
 .priority-badge.low { background: #f1f5f9; color: #475569; }
 
-.btn-logout {
-  padding: 8px 16px;
-  background-color: #ef4444;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.loading-state, .error-state, .empty-table {
+.error-state, .empty-table {
   padding: 20px;
   text-align: center;
   color: var(--text-muted);
@@ -719,7 +843,79 @@ onMounted(() => {
   background: var(--primary-color);
   color: #ffffff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
+}
+
+/* CHUNK/SKELETON ANIMATIONS */
+.skeleton-card {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-line {
+  background-color: var(--skeleton-bg);
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.skeleton-number {
+  height: 32px;
+  width: 40%;
+}
+
+.table-skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.table-skeleton-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-cell {
+  height: 24px;
+  width: 100%;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 600px) {
+  .dashboard-page {
+    padding: 16px;
+  }
+
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dropdown-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .dropdown-container {
+    justify-content: space-between;
+  }
 }
 </style>
