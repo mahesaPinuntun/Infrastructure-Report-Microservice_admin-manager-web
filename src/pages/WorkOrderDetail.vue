@@ -1,6 +1,5 @@
 <template>
   <div class="page-container">
-    <!-- Header Navigation -->
     <header class="header-section">
       <div class="header-left">
         <button @click="goBack" class="btn-back" title="Kembali">
@@ -13,7 +12,6 @@
       </div>
 
       <div class="header-right-actions">
-        <!-- Switch Language -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
@@ -27,7 +25,6 @@
           </button>
         </div>
 
-        <!-- Switch Theme -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
@@ -56,14 +53,11 @@
       </div>
     </header>
 
-    <!-- Feedback Alert -->
     <div v-if="feedbackMessage" :class="['feedback-alert', feedbackType]">
       {{ feedbackMessage }}
     </div>
 
-    <!-- Centered Content Area -->
     <div class="centered-content-wrapper">
-      <!-- SKELETON CHUNK LOADING -->
       <div v-if="loading" class="detail-card skeleton-card">
         <div class="skeleton-header">
           <div class="skeleton-line skeleton-title"></div>
@@ -78,7 +72,6 @@
         <div class="skeleton-line skeleton-action"></div>
       </div>
 
-      <!-- ERROR / EMPTY STATE -->
       <div v-else-if="!wo" class="state-card empty-state">
         <svg class="icon-lg text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
@@ -89,9 +82,7 @@
         <button @click="fetchWorkOrderDetail" class="btn-retry">{{ t('btnRetry') }}</button>
       </div>
 
-      <!-- WORK ORDER DETAIL CARD (CENTERED) -->
       <div v-else class="detail-card">
-        <!-- Card Top -->
         <div class="card-header-section">
           <div class="title-meta">
             <span class="wo-code-badge">{{ wo.woCode || 'WO-UNTITLED' }}</span>
@@ -105,7 +96,6 @@
 
         <p v-if="wo.introduction" class="wo-intro">{{ wo.introduction }}</p>
 
-        <!-- Meta Info Grid -->
         <div class="info-grid">
           <div class="info-item">
             <label>{{ t('labelWoId') }}</label>
@@ -125,7 +115,6 @@
           </div>
         </div>
 
-        <!-- Google Maps Link (If Available) -->
         <div v-if="wo.mapsUrl" class="section-box">
           <label>{{ t('labelMaps') }}</label>
           <a :href="wo.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
@@ -137,7 +126,6 @@
           </a>
         </div>
 
-        <!-- Technicians List -->
         <div class="section-box">
           <label>{{ t('labelTechnicians') }} ({{ wo.technicians?.length || 0 }})</label>
           <div class="sub-list">
@@ -154,7 +142,6 @@
           </div>
         </div>
 
-        <!-- Resources List -->
         <div v-if="wo.resources && wo.resources.length > 0" class="section-box">
           <label>{{ t('labelResources') }} ({{ wo.resources.length }})</label>
           <div class="sub-list">
@@ -168,7 +155,6 @@
           </div>
         </div>
 
-        <!-- Cost Breakdown Panel -->
         <div class="cost-summary-box">
           <div class="cost-row">
             <span>Total Biaya Teknisi:</span>
@@ -184,19 +170,17 @@
           </div>
         </div>
 
-        <!-- Proof Document (PDF) -->
-        <div v-if="wo.proofDocumentUrl" class="section-box">
+        <div class="section-box">
           <label>{{ t('labelDocument') }}</label>
-          <button @click="downloadDocument(wo.proofDocumentUrl, wo.woCode)" class="doc-link-btn">
+          <button @click="generatePDF" class="doc-link-btn" :disabled="downloading">
             <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
-            <span>Unduh / Buka Dokumen Bukti WO (PDF)</span>
+            <span>{{ downloading ? 'Memproses PDF...' : 'Unduh / Buka Dokumen Bukti WO (PDF)' }}</span>
           </button>
         </div>
 
-        <!-- Action Panel for Status Update (Tampil jika pengguna terautentikasi) -->
         <div v-if="isAuthenticated" class="action-panel">
           <h3>{{ t('panelTitle') }}</h3>
           <div class="action-form">
@@ -214,13 +198,99 @@
         </div>
       </div>
     </div>
+
+    <div class="pdf-offscreen-container">
+      <div v-if="wo" id="dynamic-pdf-area-detail" class="pdf-document">
+        <div class="pdf-header">
+          <h2>SURAT TUGAS WORK ORDER</h2>
+          <h3>{{ wo.companyName || 'Infrastructure_Report' }}</h3>
+          <p><strong>ID Surat:</strong> {{ wo.woCode }}</p>
+        </div>
+        <hr class="pdf-divider" />
+        <div class="pdf-meta">
+          <div>
+            <strong>Nama Pembuat Surat:</strong> {{ wo.createdBy || '-' }}
+            <span v-if="wo.createdByEmail"> ({{ wo.createdByEmail }})</span>
+          </div>
+          <div>
+            <strong>Tanggal Pembuatan:</strong> {{ formatDate(wo.createdAt) }}<br />
+            <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(wo.executionDate || wo.createdAt) }}
+          </div>
+        </div>
+
+        <div class="pdf-section">
+          <h4>1. Pendahuluan</h4>
+          <p>{{ wo.introduction || '-' }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
+          <p><strong>Nama Tempat:</strong> {{ wo.locationName || '-' }}</p>
+          <p><strong>Tanggal Pelaksanaan:</strong> {{ formatDate(wo.executionDate || wo.createdAt) }}</p>
+          <p v-if="wo.mapsUrl"><strong>Google Maps URL:</strong> {{ wo.mapsUrl }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>3. List Teknisi yang Dipekerjakan</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Teknisi</th>
+                <th>Email Teknisi</th>
+                <th>Nomor Handphone</th>
+                <th>Bayaran</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(tItem, idx) in (wo.technicians || [])" :key="idx">
+                <td>{{ tItem.name }}</td>
+                <td>{{ tItem.email }}</td>
+                <td>{{ tItem.phone || tItem.phoneNumber || '-' }}</td>
+                <td>{{ formatCurrency(tItem.fee) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>{{ formatCurrency(wo.totalTechnicianFee) }}</strong></p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>4. List Biaya Resource</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Sumber Daya</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Harga Satuan</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in (wo.resources || [])" :key="idx">
+                <td>{{ r.name }}</td>
+                <td>{{ r.quantity }}</td>
+                <td>{{ r.unit }}</td>
+                <td>{{ formatCurrency(r.price) }}</td>
+                <td>{{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Biaya Resource: <strong>{{ formatCurrency(wo.totalResourceCost) }}</strong></p>
+        </div>
+
+        <div class="pdf-footer-summary">
+          GRAND TOTAL BIAYA: {{ formatCurrency(wo.grandTotal) }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
 import { adminApi, managerApi } from '../services/api';
 
 const route = useRoute();
@@ -231,6 +301,7 @@ const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https:/
 const wo = ref(null);
 const loading = ref(true);
 const updating = ref(false);
+const downloading = ref(false);
 const selectedStatus = ref('PENDING');
 
 const feedbackMessage = ref('');
@@ -307,30 +378,41 @@ const showFeedback = (msg, type = 'success') => {
   }, 4000);
 };
 
-// Mengunduh / membuka dokumen secara aman tanpa terhalang CORS & Auth
-const downloadDocument = (fileUrl, fileNamePrefix = 'WO') => {
-  if (!fileUrl) {
-    showFeedback('URL dokumen tidak tersedia.', 'error');
+// GENERATE PDF DINAMIS VIA HTML2PDF
+const generatePDF = async () => {
+  if (!wo.value) return;
+
+  downloading.value = true;
+  await nextTick();
+
+  const element = document.getElementById('dynamic-pdf-area-detail');
+  if (!element) {
+    downloading.value = false;
+    showFeedback('Gagal menyiapkan elemen PDF.', 'error');
     return;
   }
 
+  const pdfName = `WorkOrder_${wo.value.woCode || wo.value._id}.pdf`;
+
+  const opt = {
+    margin: 10,
+    filename: pdfName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
   try {
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.setAttribute('download', `${fileNamePrefix}_Bukti.pdf`);
-    
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (err) {
-    console.warn('Fallback ke window.open:', err);
-    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    await html2pdf().set(opt).from(element).save();
+    showFeedback('PDF Berhasil diunduh!', 'success');
+  } catch (error) {
+    console.error('Gagal merender PDF:', error);
+    showFeedback('Gagal membuat dokumen PDF.', 'error');
+  } finally {
+    downloading.value = false;
   }
 };
 
-// Fetch Work Order Detail (Mendukung Akses Publik & Terautentikasi)
 const fetchWorkOrderDetail = async () => {
   const woId = route.params.id;
   if (!woId) return;
@@ -340,7 +422,6 @@ const fetchWorkOrderDetail = async () => {
 
   let foundWo = null;
 
-  // 1. Coba via API Terautentikasi (jika pengguna sedang login)
   if (isAuthenticated.value) {
     const role = getUserRole();
     const api = getApiClient();
@@ -361,12 +442,11 @@ const fetchWorkOrderDetail = async () => {
 
         if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) break;
       } catch {
-        // Abaikan error dan coba endpoint berikutnya
+        // Abaikan error endpoint
       }
     }
   }
 
-  // 2. Fallback: Panggilan Publik langsung via Axios (Tanpa Token)
   if (!foundWo) {
     try {
       const publicEndpoints = [
@@ -387,7 +467,7 @@ const fetchWorkOrderDetail = async () => {
 
           if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) break;
         } catch {
-          // Lanjut ke endpoint publik berikutnya
+          // Abaikan error endpoint publik
         }
       }
     } catch (err) {
@@ -408,7 +488,6 @@ const fetchWorkOrderDetail = async () => {
   loading.value = false;
 };
 
-// Update Status Work Order (Memerlukan Login)
 const updateWoStatus = async () => {
   if (!selectedStatus.value) return;
   updating.value = true;
@@ -816,9 +895,14 @@ onMounted(() => {
   width: fit-content;
 }
 
-.doc-link-btn:hover {
+.doc-link-btn:hover:not(:disabled) {
   background-color: var(--bg-card);
   border-color: var(--primary-color);
+}
+
+.doc-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .maps-link:hover { text-decoration: underline; }
@@ -968,6 +1052,28 @@ onMounted(() => {
 .icon-sm { width: 16px; height: 16px; }
 .icon-xs { width: 14px; height: 14px; }
 .icon-lg { width: 40px; height: 40px; margin-bottom: 10px; }
+
+/* PDF OFFSCREEN CONTAINER */
+.pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm;
+  background: #ffffff;
+}
+
+.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+.pdf-header { text-align: center; }
+.pdf-header h2 { margin: 0; font-size: 18px; color: #000000; }
+.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333333; }
+.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #000000; }
+.pdf-section { margin-bottom: 16px; color: #000000; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 14px; color: #000000; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #000000; }
+.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
 
 @keyframes pulse {
   0% { opacity: 0.6; }
