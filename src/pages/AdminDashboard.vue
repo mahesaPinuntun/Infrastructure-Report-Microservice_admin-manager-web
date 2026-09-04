@@ -6,17 +6,32 @@
         <h1 class="brand-title">
           <span class="brand-sub">エサの ー</span> Admin System Dashboard
         </h1>
-        <p class="subtitle">Selamat datang kembali, Administrator ({{ user?.email || '-' }})</p>
+        <p class="subtitle">{{ t('welcome') }}, Administrator ({{ user?.email || '-' }})</p>
       </div>
 
       <div class="header-actions">
+        <!-- Language Switcher (Pilihan Bahasa ID / EN) -->
+        <div class="lang-switch-wrapper">
+          <button 
+            @click="toggleLanguage" 
+            class="lang-toggle-switch"
+            :class="{ 'is-en': currentLang === 'en' }"
+            :title="currentLang === 'id' ? 'Switch to English' : 'Ubah ke Bahasa Indonesia'"
+            aria-label="Toggle Language"
+          >
+            <span class="lang-option" :class="{ active: currentLang === 'id' }">ID</span>
+            <span class="lang-option" :class="{ active: currentLang === 'en' }">EN</span>
+            <span class="lang-slider"></span>
+          </button>
+        </div>
+
         <!-- Fluid Theme Switch (Desain Kapsul Animasi) -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
             class="theme-toggle-switch" 
             :class="{ 'is-dark': currentTheme === 'dark' }"
-            title="Ubah Tema"
+            :title="currentTheme === 'light' ? 'Dark Mode' : 'Light Mode'"
             aria-label="Toggle Theme"
           >
             <span class="switch-handle">
@@ -42,7 +57,7 @@
         </div>
 
         <!-- Logout Button -->
-        <button @click="openLogoutModal" class="btn-logout">Logout</button>
+        <button @click="openLogoutModal" class="btn-logout">{{ t('logout') }}</button>
       </div>
     </header>
 
@@ -57,7 +72,7 @@
     <!-- ERROR STATE -->
     <div v-else-if="errorMessage" class="error-state">
       <p>{{ errorMessage }}</p>
-      <button @click="fetchStats" class="btn-retry">Coba Lagi</button>
+      <button @click="fetchStats" class="btn-retry">{{ t('retry') }}</button>
     </div>
 
     <!-- DASHBOARD CONTENT -->
@@ -65,15 +80,15 @@
       <!-- Summary Cards -->
       <div class="stats-grid">
         <div class="stat-card">
-          <h3>Total Laporan System</h3>
+          <h3>{{ t('totalReports') }}</h3>
           <p class="stat-number">{{ stats.totalReports || 0 }}</p>
         </div>
         <div class="stat-card">
-          <h3>Total Teknisi Aktif</h3>
+          <h3>{{ t('activeTechnicians') }}</h3>
           <p class="stat-number">{{ stats.activeTechnicians || 0 }}</p>
         </div>
         <div class="stat-card">
-          <h3>Status System Health</h3>
+          <h3>{{ t('systemHealth') }}</h3>
           <p class="stat-number health-ok">{{ stats.systemHealth || 'GOOD' }}</p>
         </div>
       </div>
@@ -81,26 +96,26 @@
       <!-- Quick Actions & Dropdown Controls -->
       <div class="quick-actions">
         <div class="actions-header">
-          <h3>Filter Data Dashboard</h3>
+          <h3>{{ t('filterTitle') }}</h3>
           
           <div class="dropdown-group">
             <!-- Dropdown 1: Tipe Data/Tabel -->
             <div class="dropdown-container">
-              <label class="dropdown-label">Pilih Tabel:</label>
+              <label class="dropdown-label">{{ t('selectTable') }}:</label>
               <select v-model="selectedTable" @change="handleTableChange" class="table-select">
-                <option value="none">-- Sembunyikan Tabel --</option>
-                <option value="users">Tabel Pengguna (By Role)</option>
-                <option value="reports">Tabel Laporan Kerusakan</option>
-                <option value="workOrders">Tabel Work Orders (Manager)</option>
+                <option value="none">-- {{ t('hideTable') }} --</option>
+                <option value="users">{{ t('tableUsers') }}</option>
+                <option value="reports">{{ t('tableReports') }}</option>
+                <option value="workOrders">{{ t('tableWorkOrders') }}</option>
               </select>
             </div>
 
             <!-- Dropdown Filter Per Role (Khusus Tabel Users) -->
             <div v-if="selectedTable === 'users'" class="dropdown-container">
-              <label class="dropdown-label">Display Per Role:</label>
+              <label class="dropdown-label">{{ t('displayRole') }}:</label>
               <select v-model="selectedRole" class="table-select role-select">
-                <option value="ALL">Semua Role</option>
-                <option value="USER">User (Pelapor)</option>
+                <option value="ALL">{{ t('allRoles') }}</option>
+                <option value="USER">User ({{ t('reporter') }})</option>
                 <option value="ADMIN">Admin</option>
                 <option value="MANAGER">Manager</option>
                 <option value="TECHNICIAN">Technician</option>
@@ -109,33 +124,33 @@
 
             <!-- Dropdown Filter Status Laporan (Khusus Tabel Reports) -->
             <div v-if="selectedTable === 'reports'" class="dropdown-container">
-              <label class="dropdown-label">Status Laporan:</label>
+              <label class="dropdown-label">{{ t('reportStatus') }}:</label>
               <select v-model="selectedReportStatus" class="table-select">
-                <option value="ALL">Semua Status</option>
+                <option value="ALL">{{ t('allStatus') }}</option>
                 <option value="PENDING">Pending</option>
                 <option value="IN_PROGRESS">In Progress</option>
-                <option value="RESOLVED">Resolved / Selesai</option>
-                <option value="REJECTED">Ditolak</option>
+                <option value="RESOLVED">Resolved / {{ t('completed') }}</option>
+                <option value="REJECTED">{{ t('rejected') }}</option>
               </select>
             </div>
 
             <!-- Dropdown Filter Kategori Laporan (Khusus Tabel Reports) -->
             <div v-if="selectedTable === 'reports'" class="dropdown-container">
-              <label class="dropdown-label">Kategori:</label>
+              <label class="dropdown-label">{{ t('category') }}:</label>
               <select v-model="selectedReportCategory" class="table-select">
-                <option value="ALL">Semua Kategori</option>
-                <option value="Listrik">Listrik</option>
-                <option value="Jaringan">Jaringan / Internet</option>
-                <option value="Gedung">Gedung & Fasilitas</option>
-                <option value="Lainnya">Lainnya</option>
+                <option value="ALL">{{ t('allCategories') }}</option>
+                <option value="Listrik">{{ t('catElectrical') }}</option>
+                <option value="Jaringan">{{ t('catNetwork') }}</option>
+                <option value="Gedung">{{ t('catBuilding') }}</option>
+                <option value="Lainnya">{{ t('catOthers') }}</option>
               </select>
             </div>
           </div>
         </div>
 
         <div class="action-buttons">
-          <router-link to="/users" class="btn-action">Kelola Pengguna & Roles</router-link>
-          <router-link to="/reports" class="btn-action outline">Lihat Semua Laporan</router-link>
+          <router-link to="/users" class="btn-action">{{ t('manageUsers') }}</router-link>
+          <router-link to="/reports" class="btn-action outline">{{ t('viewReports') }}</router-link>
         </div>
       </div>
 
@@ -147,7 +162,7 @@
             <span v-if="selectedTable === 'users'" class="role-tag">({{ selectedRole }})</span>
             <span v-if="selectedTable === 'reports'" class="role-tag">({{ selectedReportStatus }})</span>
           </h4>
-          <span v-if="tableLoading" class="table-loading-tag">Memuat data...</span>
+          <span v-if="tableLoading" class="table-loading-tag">{{ t('loadingData') }}</span>
         </div>
 
         <!-- CHUNK LOADING SKELETON FOR TABLE -->
@@ -158,7 +173,7 @@
         </div>
         
         <div v-else-if="filteredTableData.length === 0" class="empty-table">
-          Tidak ada data {{ tableTitle.toLowerCase() }} untuk kriteria ini.
+          {{ t('noData') }}
         </div>
 
         <div v-else class="table-responsive">
@@ -244,19 +259,19 @@
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <h3 class="modal-title">Konfirmasi Logout</h3>
-        <p class="modal-text">Apakah Anda yakin ingin keluar dari sistem dashboard administrator?</p>
+        <h3 class="modal-title">{{ t('logoutConfirmTitle') }}</h3>
+        <p class="modal-text">{{ t('logoutConfirmMsg') }}</p>
 
         <div class="modal-actions">
-          <button @click="cancelLogout" class="btn-modal-cancel">Batal</button>
+          <button @click="cancelLogout" class="btn-modal-cancel">{{ t('cancel') }}</button>
           
           <button 
             @click="confirmLogout" 
             class="btn-modal-confirm" 
             :disabled="logoutCountdown > 0"
           >
-            <span v-if="logoutCountdown > 0">Tunggu ({{ logoutCountdown }}s)</span>
-            <span v-else>Ya, Logout</span>
+            <span v-if="logoutCountdown > 0">{{ t('wait') }} ({{ logoutCountdown }}s)</span>
+            <span v-else>{{ t('yesLogout') }}</span>
           </button>
         </div>
       </div>
@@ -274,6 +289,7 @@ const user = ref(null);
 const loading = ref(true);
 const errorMessage = ref('');
 const currentTheme = ref('light');
+const currentLang = ref('id'); // Default Bahasa Indonesia
 
 const selectedTable = ref('none');
 const selectedRole = ref('ALL');
@@ -291,6 +307,126 @@ let countdownTimer = null;
 const ADMIN_SERVICE_URL = import.meta.env.VITE_ADMIN_SERVICE_URL || 'https://infrastructure-report-microservice-admin-service.vercel.app';
 const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
+// KAMUS TRANSLASI / I18N
+const translations = {
+  id: {
+    welcome: 'Selamat datang kembali',
+    logout: 'Logout',
+    retry: 'Coba Lagi',
+    totalReports: 'Total Laporan System',
+    activeTechnicians: 'Total Teknisi Aktif',
+    systemHealth: 'Status System Health',
+    filterTitle: 'Filter Data Dashboard',
+    selectTable: 'Pilih Tabel',
+    hideTable: 'Sembunyikan Tabel',
+    tableUsers: 'Tabel Pengguna (By Role)',
+    tableReports: 'Tabel Laporan Kerusakan',
+    tableWorkOrders: 'Tabel Work Orders (Manager)',
+    displayRole: 'Display Per Role',
+    allRoles: 'Semua Role',
+    reporter: 'Pelapor',
+    reportStatus: 'Status Laporan',
+    allStatus: 'Semua Status',
+    completed: 'Selesai',
+    rejected: 'Ditolak',
+    category: 'Kategori',
+    allCategories: 'Semua Kategori',
+    catElectrical: 'Listrik',
+    catNetwork: 'Jaringan / Internet',
+    catBuilding: 'Gedung & Fasilitas',
+    catOthers: 'Lainnya',
+    manageUsers: 'Kelola Pengguna & Roles',
+    viewReports: 'Lihat Semua Laporan',
+    loadingData: 'Memuat data...',
+    noData: 'Tidak ada data untuk kriteria ini.',
+    logoutConfirmTitle: 'Konfirmasi Logout',
+    logoutConfirmMsg: 'Apakah Anda yakin ingin keluar dari sistem dashboard administrator?',
+    cancel: 'Batal',
+    wait: 'Tunggu',
+    yesLogout: 'Ya, Logout',
+    // Table Headers
+    colTitle: 'Judul Laporan',
+    colCategory: 'Kategori',
+    colLocation: 'Lokasi',
+    colStatus: 'Status',
+    colDate: 'Tanggal',
+    colName: 'Nama',
+    colEmail: 'Email',
+    colRole: 'Role',
+    colPhone: 'No. Telepon',
+    colWoNo: 'No. WO',
+    colJobTitle: 'Judul Pekerjaan',
+    colTechnicians: 'Teknisi',
+    colPriority: 'Prioritas'
+  },
+  en: {
+    welcome: 'Welcome back',
+    logout: 'Logout',
+    retry: 'Try Again',
+    totalReports: 'Total System Reports',
+    activeTechnicians: 'Active Technicians',
+    systemHealth: 'System Health Status',
+    filterTitle: 'Dashboard Data Filter',
+    selectTable: 'Select Table',
+    hideTable: 'Hide Table',
+    tableUsers: 'Users Table (By Role)',
+    tableReports: 'Damage Reports Table',
+    tableWorkOrders: 'Work Orders Table (Manager)',
+    displayRole: 'Display By Role',
+    allRoles: 'All Roles',
+    reporter: 'Reporter',
+    reportStatus: 'Report Status',
+    allStatus: 'All Statuses',
+    completed: 'Resolved',
+    rejected: 'Rejected',
+    category: 'Category',
+    allCategories: 'All Categories',
+    catElectrical: 'Electrical',
+    catNetwork: 'Network / Internet',
+    catBuilding: 'Building & Facilities',
+    catOthers: 'Others',
+    manageUsers: 'Manage Users & Roles',
+    viewReports: 'View All Reports',
+    loadingData: 'Loading data...',
+    noData: 'No data available for this criteria.',
+    logoutConfirmTitle: 'Confirm Logout',
+    logoutConfirmMsg: 'Are you sure you want to log out of the admin dashboard system?',
+    cancel: 'Cancel',
+    wait: 'Wait',
+    yesLogout: 'Yes, Logout',
+    // Table Headers
+    colTitle: 'Report Title',
+    colCategory: 'Category',
+    colLocation: 'Location',
+    colStatus: 'Status',
+    colDate: 'Date',
+    colName: 'Name',
+    colEmail: 'Email',
+    colRole: 'Role',
+    colPhone: 'Phone Number',
+    colWoNo: 'WO No.',
+    colJobTitle: 'Job Title',
+    colTechnicians: 'Technician',
+    colPriority: 'Priority'
+  }
+};
+
+const t = (key) => {
+  return translations[currentLang.value]?.[key] || key;
+};
+
+// LANGUAGE TOGGLE FUNCTION
+const initLanguage = () => {
+  const savedLang = localStorage.getItem('user-lang') || 'id';
+  currentLang.value = savedLang;
+};
+
+const toggleLanguage = () => {
+  currentLang.value = currentLang.value === 'id' ? 'en' : 'id';
+  localStorage.setItem('user-lang', currentLang.value);
+};
+
+// THEME TOGGLE LOGIC
 const applyThemeToDOM = (theme) => {
   document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
@@ -346,9 +482,9 @@ const confirmLogout = () => {
 
 const tableTitle = computed(() => {
   switch (selectedTable.value) {
-    case 'reports': return 'Daftar Laporan Kerusakan';
-    case 'users': return 'Daftar Pengguna System';
-    case 'workOrders': return 'Daftar Work Orders';
+    case 'reports': return t('tableReports');
+    case 'users': return t('tableUsers');
+    case 'workOrders': return t('tableWorkOrders');
     default: return '';
   }
 });
@@ -357,27 +493,27 @@ const tableColumns = computed(() => {
   switch (selectedTable.value) {
     case 'reports':
       return [
-        { key: 'title', label: 'Judul Laporan' },
-        { key: 'category', label: 'Kategori' },
-        { key: 'location', label: 'Lokasi' },
-        { key: 'status', label: 'Status' },
-        { key: 'createdAt', label: 'Tanggal' }
+        { key: 'title', label: t('colTitle') },
+        { key: 'category', label: t('colCategory') },
+        { key: 'location', label: t('colLocation') },
+        { key: 'status', label: t('colStatus') },
+        { key: 'createdAt', label: t('colDate') }
       ];
     case 'users':
       return [
-        { key: 'name', label: 'Nama' },
-        { key: 'email', label: 'Email' },
-        { key: 'role', label: 'Role' },
-        { key: 'contact', label: 'No. Telepon' },
-        { key: 'status', label: 'Status' }
+        { key: 'name', label: t('colName') },
+        { key: 'email', label: t('colEmail') },
+        { key: 'role', label: t('colRole') },
+        { key: 'contact', label: t('colPhone') },
+        { key: 'status', label: t('colStatus') }
       ];
     case 'workOrders':
       return [
-        { key: 'workOrderNumber', label: 'No. WO' },
-        { key: 'title', label: 'Judul Pekerjaan' },
-        { key: 'technicians', label: 'Teknisi' },
-        { key: 'priority', label: 'Prioritas' },
-        { key: 'status', label: 'Status' }
+        { key: 'workOrderNumber', label: t('colWoNo') },
+        { key: 'title', label: t('colJobTitle') },
+        { key: 'technicians', label: t('colTechnicians') },
+        { key: 'priority', label: t('colPriority') },
+        { key: 'status', label: t('colStatus') }
       ];
     default:
       return [];
@@ -388,7 +524,6 @@ const tableColumns = computed(() => {
 const filteredTableData = computed(() => {
   let list = [...rawTableData.value];
 
-  // 1. FILTERING TIPE USERS BY ROLE
   if (selectedTable.value === 'users' && selectedRole.value !== 'ALL') {
     const targetRole = selectedRole.value.toString().trim().toUpperCase();
     list = list.filter(item => {
@@ -406,7 +541,6 @@ const filteredTableData = computed(() => {
     });
   }
 
-  // 2. FILTERING TIPE REPORTS BY STATUS & CATEGORY
   if (selectedTable.value === 'reports') {
     if (selectedReportStatus.value !== 'ALL') {
       const targetStatus = selectedReportStatus.value.toUpperCase();
@@ -504,7 +638,8 @@ const getTechnicianName = (item) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
-    return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
+    return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
     return dateStr;
   }
@@ -512,6 +647,7 @@ const formatDate = (dateStr) => {
 
 onMounted(() => {
   initTheme();
+  initLanguage();
   const storedUser = localStorage.getItem('user');
   if (storedUser) {
     try {
@@ -547,6 +683,9 @@ onUnmounted(() => {
   --skeleton-bg: #e2e8f0;
   --modal-bg: #ffffff;
   --modal-overlay: rgba(15, 23, 42, 0.6);
+  --lang-btn-bg: #e2e8f0;
+  --lang-btn-active: #ffffff;
+  --lang-text-active: #2563eb;
 }
 
 :global([data-theme="dark"]),
@@ -565,6 +704,9 @@ onUnmounted(() => {
   --skeleton-bg: #334155;
   --modal-bg: #1e293b;
   --modal-overlay: rgba(2, 6, 23, 0.8);
+  --lang-btn-bg: #334155;
+  --lang-btn-active: #1e293b;
+  --lang-text-active: #3b82f6;
 }
 
 :global(html),
@@ -618,7 +760,61 @@ onUnmounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+/* STYLES UNTUK LANGUAGE SWITCHER (ID / EN) */
+.lang-switch-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lang-toggle-switch {
+  position: relative;
+  width: 68px;
+  height: 32px;
+  background-color: var(--lang-btn-bg);
+  border-radius: 50px;
+  border: 1px solid var(--border-color);
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background-color 0.3s ease;
+}
+
+.lang-option {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 800;
+  width: 28px;
+  text-align: center;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
+}
+
+.lang-option.active {
+  color: var(--lang-text-active);
+}
+
+.lang-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 24px;
+  background-color: var(--lang-btn-active);
+  border-radius: 50px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+.lang-toggle-switch.is-en .lang-slider {
+  transform: translateX(32px);
 }
 
 /* FLUID THEME SWITCH STYLES */
