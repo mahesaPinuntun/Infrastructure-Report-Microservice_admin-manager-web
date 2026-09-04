@@ -4,14 +4,24 @@
       <router-link to="/reports" class="back-link">&larr; Kembali ke Daftar Laporan</router-link>
     </div>
 
+    <!-- Alert Message Box -->
+    <div v-if="feedbackMessage" :class="['feedback-alert', feedbackType]">
+      {{ feedbackMessage }}
+    </div>
+
     <div v-if="loading" class="loading-state">Memuat detail laporan...</div>
 
-    <div v-else-if="!report" class="empty-state">Laporan tidak ditemukan.</div>
+    <div v-else-if="!report" class="empty-state">
+      <p>Laporan tidak ditemukan atau gagal dimuat.</p>
+    </div>
 
     <div v-else class="detail-card">
       <div class="header-section">
-        <h2>{{ report.title || 'Detail Laporan Infrastruktur' }}</h2>
-        <span :class="['status-badge', report.status?.toLowerCase()]">
+        <div>
+          <h2>{{ report.title || 'Detail Laporan Infrastruktur' }}</h2>
+          <span class="category-tag">{{ report.category || 'Infrastruktur Umum' }}</span>
+        </div>
+        <span :class="['status-badge', (report.status || 'PENDING').toLowerCase()]">
           {{ report.status || 'PENDING' }}
         </span>
       </div>
@@ -19,11 +29,11 @@
       <div class="info-grid">
         <div class="info-item">
           <label>ID Laporan:</label>
-          <p>{{ report._id || report.id }}</p>
+          <p class="code-text">{{ report._id || report.id }}</p>
         </div>
         <div class="info-item">
           <label>Pelapor:</label>
-          <p>{{ report.reporterName || report.userEmail || 'Anonim' }}</p>
+          <p>{{ report.reporterName || report.userName || report.userEmail || 'Anonim' }}</p>
         </div>
         <div class="info-item">
           <label>Lokasi:</label>
@@ -40,9 +50,9 @@
         <p>{{ report.description || 'Tidak ada deskripsi rinci.' }}</p>
       </div>
 
-      <div v-if="report.imageUrl" class="image-box">
+      <div v-if="imageUrl" class="image-box">
         <label>Foto Bukti Kerusakan:</label>
-        <img :src="report.imageUrl" alt="Bukti Kerusakan" class="report-image" />
+        <img :src="imageUrl" alt="Bukti Kerusakan" class="report-image" />
       </div>
 
       <!-- Control Panel untuk Update Status -->
@@ -65,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { adminApi, managerApi } from '../services/api';
 
@@ -75,22 +85,53 @@ const loading = ref(true);
 const updating = ref(false);
 const selectedStatus = ref('PENDING');
 
+const feedbackMessage = ref('');
+const feedbackType = ref('success');
+
+// Normalisasi Role Pengguna
+const getUserRole = () => {
+  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const rawRole = (storedUser.role || '').toString().trim().toUpperCase();
+  return rawRole.includes('MANAGER') ? 'MANAGER' : rawRole;
+};
+
 const getApiClient = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  return user.role === 'ADMIN' ? adminApi : managerApi;
+  const role = getUserRole();
+  return role === 'ADMIN' ? adminApi : managerApi;
+};
+
+const imageUrl = computed(() => {
+  if (!report.value) return '';
+  return report.value.imageUrl || report.value.image || report.value.photoUrl || '';
+});
+
+const showFeedback = (msg, type = 'success') => {
+  feedbackMessage.value = msg;
+  feedbackType.value = type;
+  setTimeout(() => {
+    feedbackMessage.value = '';
+  }, 4000);
 };
 
 onMounted(async () => {
   try {
     const api = getApiClient();
+    const role = getUserRole();
     const reportId = route.params.id;
-    const res = await api.get(`/api/reports/${reportId}`);
-    report.value = res.data.report || res.data;
+
+    const endpoint = role === 'ADMIN' 
+      ? `/api/admin/reports/${reportId}` 
+      : `/api/manager/reports/${reportId}`;
+
+    const res = await api.get(endpoint);
+    report.value = res?.data?.report || res?.data?.data || res?.data;
+
     if (report.value?.status) {
-      selectedStatus.value = report.value.status;
+      selectedStatus.value = report.value.status.toUpperCase();
     }
   } catch (err) {
     console.error('Gagal mengambil detail laporan:', err);
+    showFeedback('Gagal memuat detail laporan dari server.', 'error');
   } finally {
     loading.value = false;
   }
@@ -100,14 +141,23 @@ const updateReportStatus = async () => {
   updating.value = true;
   try {
     const api = getApiClient();
+    const role = getUserRole();
     const reportId = route.params.id;
-    await api.patch(`/api/reports/${reportId}/status`, { status: selectedStatus.value });
+
+    const endpoint = role === 'ADMIN'
+      ? `/api/admin/reports/${reportId}/status`
+      : `/api/manager/reports/${reportId}/status`;
+
+    await api.patch(endpoint, { status: selectedStatus.value });
+
     if (report.value) {
       report.value.status = selectedStatus.value;
     }
-    alert('Status laporan berhasil diperbarui!');
+
+    showFeedback('Status laporan berhasil diperbarui!', 'success');
   } catch (err) {
-    alert(err.response?.data?.error || 'Gagal memperbarui status laporan.');
+    console.error('Gagal memperbarui status:', err);
+    showFeedback(err.response?.data?.error || 'Gagal memperbarui status laporan.', 'error');
   } finally {
     updating.value = false;
   }
@@ -115,34 +165,207 @@ const updateReportStatus = async () => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  try {
+    return new Date(dateStr).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return dateStr;
+  }
 };
 </script>
 
 <style scoped>
-.page-container { padding: 24px; max-width: 900px; margin: 0 auto; }
-.top-bar { margin-bottom: 20px; }
-.back-link { color: #2563eb; text-decoration: none; font-weight: 600; }
-.detail-card { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; }
-.status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+.page-container { 
+  padding: 24px; 
+  max-width: 900px; 
+  margin: 0 auto; 
+  min-height: 100vh;
+}
+
+.top-bar { 
+  margin-bottom: 20px; 
+}
+
+.back-link { 
+  color: #2563eb; 
+  text-decoration: none; 
+  font-weight: 600; 
+  font-size: 14px;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.feedback-alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.feedback-alert.success {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.feedback-alert.error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.detail-card { 
+  background: #fff; 
+  border-radius: 8px; 
+  border: 1px solid #e2e8f0; 
+  padding: 24px; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+}
+
+.header-section { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start; 
+  margin-bottom: 20px; 
+  border-bottom: 1px solid #f1f5f9; 
+  padding-bottom: 16px; 
+}
+
+.header-section h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.category-tag {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.status-badge { 
+  padding: 6px 12px; 
+  border-radius: 20px; 
+  font-size: 11px; 
+  font-weight: bold; 
+  text-transform: uppercase; 
+}
+
 .status-badge.pending { background-color: #fef3c7; color: #d97706; }
 .status-badge.in_progress { background-color: #e0f2fe; color: #0284c7; }
 .status-badge.resolved { background-color: #dcfce7; color: #15803d; }
 .status-badge.rejected { background-color: #fee2e2; color: #b91c1c; }
-.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
-.info-item label { font-size: 12px; color: #64748b; font-weight: 600; }
-.info-item p { margin: 4px 0 0 0; font-size: 14px; color: #0f172a; font-weight: 500; }
-.description-box, .image-box { margin-bottom: 20px; }
-.description-box label, .image-box label { font-size: 12px; color: #64748b; font-weight: 600; display: block; margin-bottom: 6px; }
-.report-image { max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #e2e8f0; }
-.action-panel { background: #f8fafc; padding: 16px; border-radius: 6px; border: 1px solid #e2e8f0; }
-.action-panel h3 { margin: 0 0 12px 0; font-size: 14px; color: #334155; }
-.action-form { display: flex; gap: 12px; }
-.input-select { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; }
-.btn-primary { padding: 8px 16px; background-color: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+.info-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+  gap: 16px; 
+  margin-bottom: 20px; 
+}
+
+.info-item label { 
+  font-size: 12px; 
+  color: #64748b; 
+  font-weight: 600; 
+}
+
+.info-item p { 
+  margin: 4px 0 0 0; 
+  font-size: 14px; 
+  color: #0f172a; 
+  font-weight: 500; 
+}
+
+.code-text {
+  font-family: monospace;
+  font-weight: 700 !important;
+}
+
+.description-box, .image-box { 
+  margin-bottom: 20px; 
+}
+
+.description-box label, .image-box label { 
+  font-size: 12px; 
+  color: #64748b; 
+  font-weight: 600; 
+  display: block; 
+  margin-bottom: 6px; 
+}
+
+.description-box p {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.report-image { 
+  max-width: 100%; 
+  max-height: 400px; 
+  border-radius: 6px; 
+  border: 1px solid #e2e8f0; 
+  object-fit: cover;
+}
+
+.action-panel { 
+  background: #f8fafc; 
+  padding: 16px; 
+  border-radius: 6px; 
+  border: 1px solid #e2e8f0; 
+}
+
+.action-panel h3 { 
+  margin: 0 0 12px 0; 
+  font-size: 14px; 
+  color: #334155; 
+}
+
+.action-form { 
+  display: flex; 
+  gap: 12px; 
+}
+
+.input-select { 
+  padding: 8px 12px; 
+  border-radius: 6px; 
+  border: 1px solid #cbd5e1; 
+  font-size: 14px; 
+  background-color: #fff;
+  outline: none;
+}
+
+.btn-primary { 
+  padding: 8px 16px; 
+  background-color: #2563eb; 
+  color: #fff; 
+  border: none; 
+  border-radius: 6px; 
+  font-weight: 600; 
+  cursor: pointer; 
+}
+
+.btn-primary:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 14px;
+}
 </style>
