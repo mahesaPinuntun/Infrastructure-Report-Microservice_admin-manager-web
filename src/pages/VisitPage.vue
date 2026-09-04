@@ -52,19 +52,29 @@
 
     <!-- Content Area -->
     <main class="main-content">
-      <div v-if="loading" class="state-card loading">
-        <span>Memuat data kunjungan dari Manager Service...</span>
+      <!-- CHUNK LOADING (SKELETON STATE) -->
+      <div v-if="loading" class="visits-grid">
+        <div v-for="n in 3" :key="'skeleton-' + n" class="visit-card skeleton-card">
+          <div class="skeleton-line skeleton-title"></div>
+          <div class="skeleton-grid">
+            <div v-for="i in 6" :key="i" class="skeleton-line skeleton-box"></div>
+          </div>
+          <div class="skeleton-line skeleton-btn"></div>
+        </div>
       </div>
 
+      <!-- ERROR STATE -->
       <div v-else-if="errorMessage" class="state-card error">
         <p>{{ errorMessage }}</p>
         <button @click="fetchVisits" class="btn-retry">Coba Lagi</button>
       </div>
 
+      <!-- EMPTY STATE -->
       <div v-else-if="visits.length === 0" class="state-card empty">
         <p>Belum ada data kunjungan / work order terdaftar.</p>
       </div>
 
+      <!-- VISITS GRID DATA -->
       <div v-else class="visits-grid">
         <article v-for="visit in visits" :key="visit._id || visit.id" class="visit-card">
           <!-- Card Top Info -->
@@ -75,7 +85,7 @@
             </span>
           </div>
 
-          <!-- Key-Value Grid Container (Mobile Layout: 3 Columns x 2 Rows) -->
+          <!-- Key-Value Grid Container (Layout Responsif 3 Kolom) -->
           <div class="kv-grid-container">
             <!-- Row 1 -->
             <div class="kv-item">
@@ -225,6 +235,7 @@ onMounted(() => {
   --switch-bg: #2d3748;
   --switch-handle-bg: #ffffff;
   --switch-icon-color: #0f172a;
+  --skeleton-bg: #e2e8f0;
 }
 
 :global([data-theme="dark"]) {
@@ -239,9 +250,20 @@ onMounted(() => {
   --switch-bg: #020617;
   --switch-handle-bg: #1e293b;
   --switch-icon-color: #f8fafc;
+  --skeleton-bg: #334155;
+}
+
+:global(html),
+:global(body) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .page-container {
+  width: 100%;
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -256,15 +278,17 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 240px;
 }
 
-/* BUTTON REROUTE TO HOME ('/') */
 .btn-home {
   display: flex;
   align-items: center;
@@ -278,6 +302,7 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .btn-home:hover {
@@ -285,11 +310,16 @@ onMounted(() => {
   color: var(--primary);
 }
 
+.header-content {
+  min-width: 0;
+}
+
 .header-content h1 { 
   margin: 0; 
   font-size: 18px; 
   font-weight: 800; 
   line-height: 1.2;
+  word-break: break-word;
 }
 
 .subtitle { 
@@ -302,12 +332,13 @@ onMounted(() => {
 .theme-switch-wrapper {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .theme-toggle-switch {
   position: relative;
-  width: 64px;
-  height: 34px;
+  width: 60px;
+  height: 32px;
   background-color: var(--switch-bg);
   border-radius: 50px;
   border: none;
@@ -320,8 +351,8 @@ onMounted(() => {
 }
 
 .switch-handle {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   background-color: var(--switch-handle-bg);
   border-radius: 50%;
   display: flex;
@@ -333,22 +364,30 @@ onMounted(() => {
 }
 
 .theme-toggle-switch.is-dark .switch-handle {
-  transform: translateX(30px);
+  transform: translateX(28px);
 }
 
 .switch-icon {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   color: var(--switch-icon-color);
   transition: color 0.3s ease;
 }
 
 .icon-sm { width: 16px; height: 16px; }
 
+.main-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* VISITS GRID RESPONSIF */
 .visits-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
+  width: 100%;
 }
 
 .visit-card {
@@ -358,6 +397,9 @@ onMounted(() => {
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: background-color 0.4s ease, border-color 0.4s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .card-top {
@@ -374,6 +416,7 @@ onMounted(() => {
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.3;
+  word-break: break-word;
 }
 
 .status-badge {
@@ -383,17 +426,17 @@ onMounted(() => {
   border-radius: 6px;
   text-transform: uppercase;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-badge.completed, .status-badge.done { background: #dcfce7; color: #15803d; }
 .status-badge.in_progress, .status-badge.pending { background: #fef3c7; color: #b45309; }
 .status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 
-/* Mobile Key-Value Grid 3 Columns x 2 Rows */
+/* Key-Value Grid Container */
 .kv-grid-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, auto);
   gap: 8px;
   background-color: var(--kv-bg);
   padding: 10px;
@@ -404,10 +447,10 @@ onMounted(() => {
 }
 
 .kv-item { display: flex; flex-direction: column; min-width: 0; }
-.kv-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+.kv-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
 .kv-value { font-size: 11px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.card-actions { display: flex; justify-content: flex-end; }
+.card-actions { display: flex; justify-content: flex-end; margin-top: auto; }
 .btn-detail {
   display: inline-block;
   width: 100%;
@@ -419,31 +462,108 @@ onMounted(() => {
   font-weight: 700;
   border-radius: 6px;
   text-decoration: none;
+  box-sizing: border-box;
+}
+
+.btn-detail:hover {
+  background-color: var(--primary-hover);
 }
 
 .state-card {
-  padding: 24px;
+  padding: 32px 16px;
   text-align: center;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--text-muted);
   font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-retry {
-  margin-top: 8px;
-  padding: 6px 12px;
+  margin-top: 10px;
+  padding: 8px 16px;
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
 }
 
+/* CHUNK SKELETON ANIMATION */
+.skeleton-card {
+  min-height: 180px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-line {
+  background-color: var(--skeleton-bg);
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.skeleton-box {
+  height: 24px;
+  width: 100%;
+}
+
+.skeleton-btn {
+  height: 32px;
+  width: 100%;
+  margin-top: auto;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* MEDIA QUERIES UNTUK TAMPILAN HP KECIL */
 @media (max-width: 480px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  .header-section {
+    flex-direction: row;
+    align-items: center;
+  }
+
   .btn-home-text {
     display: none;
+  }
+
+  .visits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kv-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .kv-label {
+    font-size: 8px;
+  }
+
+  .kv-value {
+    font-size: 10px;
   }
 }
 </style>
