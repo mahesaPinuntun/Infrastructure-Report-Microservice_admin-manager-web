@@ -24,12 +24,12 @@
             <span class="btn-text">{{ t('navDashboard') }}</span>
           </button>
 
-          <!-- Tombol Reroute ke Flow / Workflow -->
-          <button @click="goToWorkflow" class="btn-nav btn-flow" title="Buka Workflow System">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- Tombol Reroute ke Flow / Workflow (Didesain Lebih Besar, Menyala & Jumping) -->
+          <button @click="goToWorkflow" class="btn-nav btn-flow-featured" title="Buka Workflow System">
+            <svg class="icon-md icon-animated" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
-            <span class="btn-text">{{ t('navWorkflow') }}</span>
+            <span class="btn-featured-text">{{ t('navWorkflow') }}</span>
           </button>
         </div>
 
@@ -384,7 +384,7 @@ onMounted(() => {
 .nav-button-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .btn-nav {
@@ -400,6 +400,12 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-nav:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .btn-dashboard {
@@ -408,10 +414,32 @@ onMounted(() => {
   color: var(--primary);
 }
 
-.btn-flow {
-  background-color: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+/* STYLING KHUSUS TOMBOL FLOW SYSTEM: LEBIH BESAR, MENYALA & JUMPING ANIMATION */
+.btn-flow-featured {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+  animation: jumpGlow 2s infinite ease-in-out;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-flow-featured:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+}
+
+.btn-featured-text {
+  letter-spacing: 0.3px;
 }
 
 .header-content h1 {
@@ -511,6 +539,7 @@ onMounted(() => {
 }
 
 .icon-sm { width: 16px; height: 16px; }
+.icon-md { width: 18px; height: 18px; }
 .icon-xs { width: 14px; height: 14px; }
 
 .main-content {
@@ -645,6 +674,18 @@ onMounted(() => {
   height: 36px;
   width: 100%;
   margin-top: auto;
+}
+
+/* ANIMASI JUMPING & GLOWING UNTUK TOMBOL FLOW SYSTEM */
+@keyframes jumpGlow {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: translateY(-6px);
+    box-shadow: 0 0 22px rgba(16, 185, 129, 0.85);
+  }
 }
 
 @keyframes pulse {
