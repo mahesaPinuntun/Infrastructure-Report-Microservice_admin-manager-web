@@ -1,5 +1,6 @@
 <template>
   <div class="page-container">
+    <!-- Header Section -->
     <header class="header-section">
       <div class="header-left">
         <div class="nav-button-group">
@@ -26,6 +27,7 @@
       </div>
 
       <div class="header-right-actions">
+        <!-- Switch Language -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
@@ -39,6 +41,7 @@
           </button>
         </div>
 
+        <!-- Switch Theme -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
@@ -67,110 +70,50 @@
       </div>
     </header>
 
+    <!-- Main Content -->
     <main class="main-content">
+      <!-- Loading Skeleton -->
       <div v-if="loading" class="wo-vertical-list">
         <div v-for="n in 4" :key="'skeleton-' + n" class="wo-card skeleton-card">
           <div class="skeleton-line skeleton-title"></div>
           <div class="skeleton-line skeleton-box"></div>
-          <div class="skeleton-line skeleton-box"></div>
         </div>
       </div>
 
+      <!-- State Card: Error -->
       <div v-else-if="errorMessage" class="state-card error">
         <p>{{ errorMessage }}</p>
         <button @click="fetchWorkOrders" class="btn-retry">{{ t('btnRetry') }}</button>
       </div>
 
+      <!-- State Card: Empty -->
       <div v-else-if="workOrders.length === 0" class="state-card empty">
         <p>{{ t('emptyData') }}</p>
       </div>
 
+      <!-- List Work Orders (Ringkas: Nama Tempat & Tanggal Eksekusi) -->
       <div v-else class="wo-vertical-list">
         <article v-for="wo in workOrders" :key="wo._id || wo.woCode" class="wo-card">
-          <div class="card-header-row">
-            <div class="header-meta">
-              <span class="wo-code">{{ wo.woCode || 'WO-UNTITLED' }}</span>
-              <span class="company-badge">{{ wo.companyName || 'Infrastructure_Report' }}</span>
-            </div>
-            <span :class="['status-badge', (wo.status || 'PENDING').toLowerCase()]">
-              {{ wo.status || 'PENDING' }}
-            </span>
-          </div>
-
-          <div class="wo-body-section">
+          <div class="wo-simple-info">
+            <!-- Nama Tempat -->
             <div class="location-info">
               <h3 class="location-title">
                 <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
-                {{ wo.locationName || 'Lokasi Belum Ditentukan' }}
+                <span>{{ wo.locationName || 'Lokasi Belum Ditentukan' }}</span>
               </h3>
-              <a v-if="wo.mapsUrl" :href="wo.mapsUrl" target="_blank" class="maps-link">Buka Google Maps &rarr;</a>
             </div>
 
-            <p v-if="wo.introduction" class="wo-intro">{{ wo.introduction }}</p>
-
-            <div class="meta-grid">
-              <div class="meta-item">
-                <span class="meta-label">{{ t('colExecDate') }}</span>
-                <strong class="meta-value">{{ formatDate(wo.executionDate) }}</strong>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">{{ t('colCreatedBy') }}</span>
-                <strong class="meta-value">{{ wo.createdBy || '-' }} ({{ wo.createdByEmail || '-' }})</strong>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">{{ t('colCreatedDate') }}</span>
-                <strong class="meta-value">{{ formatDate(wo.createdAt) }}</strong>
-              </div>
+            <!-- Tanggal Eksekusi -->
+            <div class="exec-date-badge">
+              <span class="meta-label">{{ t('colExecDate') }}:</span>
+              <strong class="meta-value">{{ formatDate(wo.executionDate) }}</strong>
             </div>
           </div>
 
-          <div class="wo-sub-block">
-            <h4 class="sub-block-title">{{ t('labelTechnicians') }} ({{ wo.technicians?.length || 0 }})</h4>
-            <div class="sub-list">
-              <div v-for="tech in wo.technicians" :key="tech._id || tech.technicianId" class="sub-item">
-                <div class="item-main">
-                  <span class="item-name">{{ tech.name || 'Teknisi' }}</span>
-                  <span class="item-subtext">{{ tech.phone }} &bull; {{ tech.email }}</span>
-                </div>
-                <span class="item-price">{{ formatCurrency(tech.fee) }}</span>
-              </div>
-              <div v-if="!wo.technicians || wo.technicians.length === 0" class="no-data-text">
-                Belum ada teknisi ditugaskan.
-              </div>
-            </div>
-          </div>
-
-          <div v-if="wo.resources && wo.resources.length > 0" class="wo-sub-block">
-            <h4 class="sub-block-title">{{ t('labelResources') }} ({{ wo.resources.length }})</h4>
-            <div class="sub-list">
-              <div v-for="res in wo.resources" :key="res._id" class="sub-item">
-                <div class="item-main">
-                  <span class="item-name">{{ res.name }}</span>
-                  <span class="item-subtext">{{ res.quantity }} {{ res.unit }} &times; {{ formatCurrency(res.price) }}</span>
-                </div>
-                <span class="item-price">{{ formatCurrency(res.subtotal) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="cost-summary-box">
-            <div class="cost-row">
-              <span>Total Biaya Teknisi:</span>
-              <strong>{{ formatCurrency(wo.totalTechnicianFee) }}</strong>
-            </div>
-            <div class="cost-row">
-              <span>Total Biaya Material:</span>
-              <strong>{{ formatCurrency(wo.totalResourceCost) }}</strong>
-            </div>
-            <div class="cost-row grand-total-row">
-              <span>Grand Total:</span>
-              <strong class="grand-total-val">{{ formatCurrency(wo.grandTotal) }}</strong>
-            </div>
-          </div>
-
+          <!-- Tombol Aksi Navigasi ke Detail -->
           <div class="card-action-bar">
             <button @click="generateAndDownloadPDF(wo)" class="btn-doc">
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -179,7 +122,7 @@
               </svg>
               <span>{{ t('btnDocument') }}</span>
             </button>
-            
+
             <button @click="navigateToDetail(wo)" class="btn-detail">
               <span>{{ t('btnViewDetail') }}</span>
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -192,6 +135,7 @@
       </div>
     </main>
 
+    <!-- Offscreen Container untuk Render PDF -->
     <div class="pdf-offscreen-container">
       <div v-if="activePdfItem" id="dynamic-pdf-area-visit" class="pdf-document">
         <div class="pdf-header">
@@ -303,10 +247,6 @@ const translations = {
     btnRetry: 'Coba Lagi',
     emptyData: 'Belum ada data work order terdaftar.',
     colExecDate: 'Tanggal Eksekusi',
-    colCreatedBy: 'Dibuat Oleh',
-    colCreatedDate: 'Tanggal Dibuat',
-    labelTechnicians: 'Teknisi Ditugaskan',
-    labelResources: 'Rincian Material / Resources',
     btnDocument: 'Dokumen Bukti (PDF)',
     btnViewDetail: 'Lihat Detail'
   },
@@ -317,10 +257,6 @@ const translations = {
     btnRetry: 'Try Again',
     emptyData: 'No work orders registered yet.',
     colExecDate: 'Execution Date',
-    colCreatedBy: 'Created By',
-    colCreatedDate: 'Created Date',
-    labelTechnicians: 'Assigned Technicians',
-    labelResources: 'Material / Resources Breakdown',
     btnDocument: 'Proof Document (PDF)',
     btnViewDetail: 'View Detail'
   }
@@ -336,7 +272,6 @@ const navigateToDetail = (wo) => {
   if (targetId) router.push(`/work-orders/${targetId}`);
 };
 
-// MODUL GENERATE PDF CLIENT-SIDE
 const generateAndDownloadPDF = async (item) => {
   activePdfItem.value = item;
   await nextTick();
@@ -477,7 +412,7 @@ onMounted(() => {
 
 .page-container {
   width: 100%;
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
   min-height: 100vh;
   background-color: var(--bg-main);
@@ -559,14 +494,12 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 800;
   color: var(--text-main);
-  transition: color 0.4s ease;
 }
 
 .subtitle {
   margin: 4px 0 0 0;
   font-size: 13px;
   color: var(--text-muted);
-  transition: color 0.4s ease;
 }
 
 .header-right-actions {
@@ -657,7 +590,7 @@ onMounted(() => {
 .wo-vertical-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
 }
 
@@ -665,202 +598,62 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  padding: 24px;
+  padding: 20px 24px;
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   transition: background-color 0.4s ease, border-color 0.4s ease;
-}
-
-.card-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px dashed var(--border-color);
-  padding-bottom: 12px;
-}
-
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   flex-wrap: wrap;
 }
 
-.wo-code {
-  font-family: monospace;
-  font-weight: 800;
-  font-size: 15px;
-  color: var(--primary);
-}
-
-.company-badge {
-  font-size: 11px;
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--primary);
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-}
-
-.status-badge {
-  font-size: 11px;
-  font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 20px;
-  text-transform: uppercase;
-}
-
-.status-badge.assigned { background: #dbeafe; color: #1e40af; }
-.status-badge.in_progress, .status-badge.pending { background: #fef3c7; color: #b45309; }
-.status-badge.completed, .status-badge.done { background: #dcfce7; color: #15803d; }
-
-.wo-body-section {
+.wo-simple-info {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.location-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .location-title {
   margin: 0;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.maps-link {
-  font-size: 13px;
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.maps-link:hover { text-decoration: underline; }
-
-.wo-intro {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-muted);
-  line-height: 1.5;
-  background: var(--sub-bg);
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-}
-
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  background-color: var(--sub-bg);
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-}
-
-.meta-item { display: flex; flex-direction: column; }
-.meta-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-.meta-value { font-size: 12px; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; }
-
-.wo-sub-block {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.sub-block-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sub-list {
+.exec-date-badge {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sub-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background: var(--sub-bg);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  font-size: 13px;
-}
-
-.item-main { display: flex; flex-direction: column; }
-.item-name { font-weight: 700; color: var(--text-main); }
-.item-subtext { font-size: 11px; color: var(--text-muted); }
-.item-price { font-weight: 800; color: var(--primary); }
-
-.no-data-text {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-style: italic;
-  padding: 6px 0;
-}
-
-.cost-summary-box {
-  background: rgba(37, 99, 235, 0.04);
-  border: 1px dashed var(--primary);
-  padding: 14px 18px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
   gap: 6px;
   font-size: 13px;
-}
-
-.cost-row {
-  display: flex;
-  justify-content: space-between;
   color: var(--text-muted);
 }
 
-.grand-total-row {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-color);
-  font-weight: 800;
-  color: var(--text-main);
-  font-size: 15px;
+.meta-label {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
 }
 
-.grand-total-val {
-  color: #10b981;
+.meta-value {
+  color: var(--primary);
+  font-weight: 800;
 }
 
 .card-action-bar {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  margin-top: 4px;
+  align-items: center;
+  gap: 10px;
 }
 
 .btn-doc {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 8px 14px;
   background-color: var(--sub-bg);
   color: var(--text-main);
   border: 1px solid var(--border-color);
@@ -878,7 +671,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 8px 18px;
   background-color: var(--primary);
   color: #ffffff;
   font-size: 13px;
@@ -911,7 +704,7 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  min-height: 180px;
+  height: 80px;
   animation: pulse 1.5s infinite ease-in-out;
 }
 
@@ -920,10 +713,10 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-.skeleton-title { height: 24px; width: 40%; }
-.skeleton-box { height: 50px; width: 100%; }
+.skeleton-title { height: 20px; width: 50%; }
+.skeleton-box { height: 16px; width: 30%; }
 
-/* PDF OFFSCREEN CONTAINER STYLES */
+/* PDF Offscreen Container */
 .pdf-offscreen-container {
   position: absolute;
   left: -9999px;
@@ -958,8 +751,7 @@ onMounted(() => {
 
 @media (max-width: 600px) {
   .page-container { padding: 16px; }
-  .btn-text { display: none; }
-  .card-action-bar { flex-direction: column; }
-  .btn-doc, .btn-detail { width: 100%; justify-content: center; }
+  .wo-card { flex-direction: column; align-items: flex-start; }
+  .card-action-bar { width: 100%; justify-content: flex-end; }
 }
 </style>
