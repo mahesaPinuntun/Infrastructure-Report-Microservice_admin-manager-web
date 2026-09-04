@@ -37,7 +37,8 @@
         <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
-        <h1>Infrastructure Field System</h1>
+        <h1>エサの ー Infrastructure Report</h1>
+        <h2 class="subtitle">Page for Admin and Manager Control</h2>
         <p class="subtitle">Silakan pilih opsi akses untuk masuk ke sistem</p>
       </div>
 
