@@ -1,10 +1,8 @@
 <template>
   <div class="page-container">
-    <!-- Header Page -->
     <header class="header-section">
       <div class="header-left">
         <div class="nav-button-group">
-          <!-- Tombol Reroute ke Home '/' -->
           <button @click="goToHome" class="btn-nav" title="Kembali ke Landing Page">
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -13,7 +11,6 @@
             <span class="btn-text">Home</span>
           </button>
 
-          <!-- Tombol Reroute ke Flow / Workflow (Besar, Menyala & Jumping) -->
           <button @click="goToWorkflow" class="btn-nav btn-flow-featured" title="Buka Workflow System">
             <svg class="icon-md icon-animated" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -22,7 +19,6 @@
           </button>
         </div>
 
-        <!-- Header Content -->
         <div class="header-content">
           <h1 class="page-title">{{ t('pageTitle') }}</h1>
           <p class="subtitle">{{ t('pageSubtitle') }}</p>
@@ -30,7 +26,6 @@
       </div>
 
       <div class="header-right-actions">
-        <!-- Language Switcher (ID / EN) -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
@@ -45,7 +40,6 @@
           </button>
         </div>
 
-        <!-- Fluid Theme Switch -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
@@ -75,9 +69,7 @@
       </div>
     </header>
 
-    <!-- Content Area (Listing Menurun Vertikal) -->
     <main class="main-content">
-      <!-- CHUNK LOADING (SKELETON LISTING MENURUN) -->
       <div v-if="loading" class="wo-vertical-list">
         <div v-for="n in 4" :key="'skeleton-' + n" class="wo-card skeleton-card">
           <div class="skeleton-line skeleton-title"></div>
@@ -86,21 +78,17 @@
         </div>
       </div>
 
-      <!-- ERROR STATE -->
       <div v-else-if="errorMessage" class="state-card error">
         <p>{{ errorMessage }}</p>
         <button @click="fetchWorkOrders" class="btn-retry">{{ t('btnRetry') }}</button>
       </div>
 
-      <!-- EMPTY STATE -->
       <div v-else-if="workOrders.length === 0" class="state-card empty">
         <p>{{ t('emptyData') }}</p>
       </div>
 
-      <!-- WORK ORDERS LISTING MENURUN -->
       <div v-else class="wo-vertical-list">
         <article v-for="wo in workOrders" :key="wo._id || wo.woCode" class="wo-card">
-          <!-- Card Header Row -->
           <div class="card-header-row">
             <div class="header-meta">
               <span class="wo-code">{{ wo.woCode || 'WO-UNTITLED' }}</span>
@@ -111,7 +99,6 @@
             </span>
           </div>
 
-          <!-- Location & Intro Section -->
           <div class="wo-body-section">
             <div class="location-info">
               <h3 class="location-title">
@@ -126,7 +113,6 @@
 
             <p v-if="wo.introduction" class="wo-intro">{{ wo.introduction }}</p>
 
-            <!-- Metadata Grid -->
             <div class="meta-grid">
               <div class="meta-item">
                 <span class="meta-label">{{ t('colExecDate') }}</span>
@@ -143,7 +129,6 @@
             </div>
           </div>
 
-          <!-- Listing Menurun: Technicians -->
           <div class="wo-sub-block">
             <h4 class="sub-block-title">{{ t('labelTechnicians') }} ({{ wo.technicians?.length || 0 }})</h4>
             <div class="sub-list">
@@ -160,7 +145,6 @@
             </div>
           </div>
 
-          <!-- Listing Menurun: Resources / Material -->
           <div v-if="wo.resources && wo.resources.length > 0" class="wo-sub-block">
             <h4 class="sub-block-title">{{ t('labelResources') }} ({{ wo.resources.length }})</h4>
             <div class="sub-list">
@@ -174,7 +158,6 @@
             </div>
           </div>
 
-          <!-- Total Cost Breakdown -->
           <div class="cost-summary-box">
             <div class="cost-row">
               <span>Total Biaya Teknisi:</span>
@@ -190,7 +173,6 @@
             </div>
           </div>
 
-          <!-- Bottom Action Buttons -->
           <div class="card-action-bar">
             <a v-if="wo.proofDocumentUrl" :href="wo.proofDocumentUrl" target="_blank" class="btn-doc">
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -264,9 +246,10 @@ const t = (key) => translations[currentLang.value]?.[key] || key;
 const goToHome = () => router.push('/');
 const goToWorkflow = () => router.push('/workflow');
 
+// Mengarahkan ke rute detail Work Order (/work-orders/:id)
 const navigateToDetail = (wo) => {
   const targetId = wo._id || wo.id;
-  if (targetId) router.push(`/reports/${targetId}`);
+  if (targetId) router.push(`/work-orders/${targetId}`);
 };
 
 const initLanguage = () => {
@@ -560,7 +543,6 @@ onMounted(() => {
 
 .main-content { width: 100%; }
 
-/* LAYOUT MENURUN / VERTIKAL CONTAINER */
 .wo-vertical-list {
   display: flex;
   flex-direction: column;
@@ -681,7 +663,6 @@ onMounted(() => {
 .meta-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
 .meta-value { font-size: 12px; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; }
 
-/* SUB BLOCKS (MENURUN) */
 .wo-sub-block {
   display: flex;
   flex-direction: column;
