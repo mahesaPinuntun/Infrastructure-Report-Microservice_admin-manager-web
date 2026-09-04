@@ -31,7 +31,6 @@
             @click="toggleLanguage" 
             class="lang-toggle-switch"
             :class="{ 'is-en': currentLang === 'en' }"
-            :title="currentLang === 'id' ? 'Switch to English' : 'Ubah ke Bahasa Indonesia'"
             aria-label="Toggle Language"
           >
             <span class="lang-option" :class="{ active: currentLang === 'id' }">ID</span>
@@ -45,7 +44,6 @@
             @click="toggleTheme" 
             class="theme-toggle-switch" 
             :class="{ 'is-dark': currentTheme === 'dark' }"
-            title="Ubah Tema"
             aria-label="Toggle Theme"
           >
             <span class="switch-handle">
@@ -174,13 +172,13 @@
           </div>
 
           <div class="card-action-bar">
-            <a v-if="wo.proofDocumentUrl" :href="wo.proofDocumentUrl" target="_blank" class="btn-doc">
+            <button @click="generateAndDownloadPDF(wo)" class="btn-doc">
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
               <span>{{ t('btnDocument') }}</span>
-            </a>
+            </button>
             
             <button @click="navigateToDetail(wo)" class="btn-detail">
               <span>{{ t('btnViewDetail') }}</span>
@@ -193,18 +191,105 @@
         </article>
       </div>
     </main>
+
+    <div class="pdf-offscreen-container">
+      <div v-if="activePdfItem" id="dynamic-pdf-area-visit" class="pdf-document">
+        <div class="pdf-header">
+          <h2>SURAT TUGAS WORK ORDER</h2>
+          <h3>{{ activePdfItem.companyName || 'Infrastructure_Report' }}</h3>
+          <p><strong>ID Surat:</strong> {{ activePdfItem.woCode }}</p>
+        </div>
+        <hr class="pdf-divider" />
+        <div class="pdf-meta">
+          <div>
+            <strong>Nama Pembuat Surat:</strong> {{ activePdfItem.createdBy || '-' }}
+            <span v-if="activePdfItem.createdByEmail"> ({{ activePdfItem.createdByEmail }})</span>
+          </div>
+          <div>
+            <strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}<br />
+            <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}
+          </div>
+        </div>
+
+        <div class="pdf-section">
+          <h4>1. Pendahuluan</h4>
+          <p>{{ activePdfItem.introduction || '-' }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
+          <p><strong>Nama Tempat:</strong> {{ activePdfItem.locationName || '-' }}</p>
+          <p><strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}</p>
+          <p v-if="activePdfItem.mapsUrl"><strong>Google Maps URL:</strong> {{ activePdfItem.mapsUrl }}</p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>3. List Teknisi yang Dipekerjakan</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Teknisi</th>
+                <th>Email Teknisi</th>
+                <th>Nomor Handphone</th>
+                <th>Bayaran</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(tItem, idx) in (activePdfItem.technicians || [])" :key="idx">
+                <td>{{ tItem.name }}</td>
+                <td>{{ tItem.email }}</td>
+                <td>{{ tItem.phone || tItem.phoneNumber || '-' }}</td>
+                <td>{{ formatCurrency(tItem.fee) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>{{ formatCurrency(activePdfItem.totalTechnicianFee) }}</strong></p>
+        </div>
+
+        <div class="pdf-section">
+          <h4>4. List Biaya Resource</h4>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Nama Sumber Daya</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Harga Satuan</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in (activePdfItem.resources || [])" :key="idx">
+                <td>{{ r.name }}</td>
+                <td>{{ r.quantity }}</td>
+                <td>{{ r.unit }}</td>
+                <td>{{ formatCurrency(r.price) }}</td>
+                <td>{{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="pdf-subtotal">Total Biaya Resource: <strong>{{ formatCurrency(activePdfItem.totalResourceCost) }}</strong></p>
+        </div>
+
+        <div class="pdf-footer-summary">
+          GRAND TOTAL BIAYA: {{ formatCurrency(activePdfItem.grandTotal) }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
 
 const router = useRouter();
 const workOrders = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
+const activePdfItem = ref(null);
 const currentTheme = ref('light');
 const currentLang = ref('id');
 
@@ -246,10 +331,36 @@ const t = (key) => translations[currentLang.value]?.[key] || key;
 const goToHome = () => router.push('/');
 const goToWorkflow = () => router.push('/workflow');
 
-// Mengarahkan ke rute detail Work Order (/work-orders/:id)
 const navigateToDetail = (wo) => {
   const targetId = wo._id || wo.id;
   if (targetId) router.push(`/work-orders/${targetId}`);
+};
+
+// MODUL GENERATE PDF CLIENT-SIDE
+const generateAndDownloadPDF = async (item) => {
+  activePdfItem.value = item;
+  await nextTick();
+
+  const element = document.getElementById('dynamic-pdf-area-visit');
+  if (!element) return;
+
+  const pdfName = `WorkOrder_${item.woCode || item._id}.pdf`;
+
+  const opt = {
+    margin: 10,
+    filename: pdfName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  try {
+    await html2pdf().set(opt).from(element).save();
+  } catch (error) {
+    console.error('Gagal merender PDF:', error);
+  } finally {
+    activePdfItem.value = null;
+  }
 };
 
 const initLanguage = () => {
@@ -756,7 +867,8 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
-  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-doc:hover { border-color: var(--primary); color: var(--primary); }
@@ -810,6 +922,28 @@ onMounted(() => {
 
 .skeleton-title { height: 24px; width: 40%; }
 .skeleton-box { height: 50px; width: 100%; }
+
+/* PDF OFFSCREEN CONTAINER STYLES */
+.pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm;
+  background: #ffffff;
+}
+
+.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+.pdf-header { text-align: center; }
+.pdf-header h2 { margin: 0; font-size: 18px; color: #000000; }
+.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333333; }
+.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #000000; }
+.pdf-section { margin-bottom: 16px; color: #000000; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 14px; color: #000000; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #000000; }
+.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
 
 @keyframes jumpGlow {
   0%, 100% { transform: translateY(0); box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
