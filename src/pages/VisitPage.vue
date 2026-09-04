@@ -253,21 +253,23 @@ onMounted(() => {
   --skeleton-bg: #334155;
 }
 
+/* HAPUS SELURUH MARGIN DAN PADDING LAYAR UTAMA */
 :global(html),
 :global(body) {
   margin: 0 !important;
   padding: 0 !important;
-  width: 100%;
-  min-height: 100vh;
-  overflow-x: hidden;
+  width: 100vw !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  background-color: var(--bg-main);
 }
 
 .page-container {
-  width: 100%;
+  width: 100vw;
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
-  padding: 16px;
+  padding: 24px;
   box-sizing: border-box;
   transition: background-color 0.4s ease, color 0.4s ease;
 }
@@ -276,29 +278,27 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
+  gap: 16px;
+  width: 100%;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 240px;
+  gap: 16px;
 }
 
 .btn-home {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 10px 16px;
   background-color: var(--bg-card);
   color: var(--text-main);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -310,21 +310,16 @@ onMounted(() => {
   color: var(--primary);
 }
 
-.header-content {
-  min-width: 0;
-}
-
 .header-content h1 { 
   margin: 0; 
-  font-size: 18px; 
+  font-size: 22px; 
   font-weight: 800; 
   line-height: 1.2;
-  word-break: break-word;
 }
 
 .subtitle { 
-  margin: 2px 0 0 0; 
-  font-size: 11px; 
+  margin: 4px 0 0 0; 
+  font-size: 13px; 
   color: var(--text-muted); 
 }
 
@@ -376,17 +371,17 @@ onMounted(() => {
 
 .icon-sm { width: 16px; height: 16px; }
 
+/* KONTEN UTAMA FULL-WIDTH TANPA BATAS MAKSIMAL */
 .main-content {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  margin: 0;
 }
 
-/* VISITS GRID RESPONSIF */
+/* VISITS GRID MEMENUHI DINDING KANAN & KIRI LAYAR */
 .visits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
   width: 100%;
 }
 
@@ -394,7 +389,7 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: background-color 0.4s ease, border-color 0.4s ease;
   display: flex;
@@ -406,13 +401,13 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .location-name {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.3;
@@ -430,37 +425,37 @@ onMounted(() => {
 }
 
 .status-badge.completed, .status-badge.done { background: #dcfce7; color: #15803d; }
-.status-badge.in_progress, .status-badge.pending { background: #fef3c7; color: #b45309; }
+.status-badge.in_progress, .status-badge.pending, .status-badge.assigned { background: #fef3c7; color: #b45309; }
 .status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 
 /* Key-Value Grid Container */
 .kv-grid-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
   background-color: var(--kv-bg);
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   transition: background-color 0.4s ease;
 }
 
 .kv-item { display: flex; flex-direction: column; min-width: 0; }
-.kv-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
-.kv-value { font-size: 11px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kv-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+.kv-value { font-size: 12px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .card-actions { display: flex; justify-content: flex-end; margin-top: auto; }
 .btn-detail {
   display: inline-block;
   width: 100%;
   text-align: center;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background-color: var(--primary);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
   box-sizing: border-box;
 }
@@ -470,19 +465,19 @@ onMounted(() => {
 }
 
 .state-card {
-  padding: 32px 16px;
+  padding: 40px 16px;
   text-align: center;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .btn-retry {
-  margin-top: 10px;
+  margin-top: 12px;
   padding: 8px 16px;
   background: var(--primary);
   color: white;
@@ -494,7 +489,7 @@ onMounted(() => {
 
 /* CHUNK SKELETON ANIMATION */
 .skeleton-card {
-  min-height: 180px;
+  min-height: 200px;
   animation: pulse 1.5s infinite ease-in-out;
 }
 
@@ -506,23 +501,23 @@ onMounted(() => {
 .skeleton-title {
   height: 20px;
   width: 60%;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .skeleton-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .skeleton-box {
-  height: 24px;
+  height: 28px;
   width: 100%;
 }
 
 .skeleton-btn {
-  height: 32px;
+  height: 36px;
   width: 100%;
   margin-top: auto;
 }
@@ -533,15 +528,9 @@ onMounted(() => {
   100% { opacity: 0.6; }
 }
 
-/* MEDIA QUERIES UNTUK TAMPILAN HP KECIL */
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .page-container {
-    padding: 12px;
-  }
-
-  .header-section {
-    flex-direction: row;
-    align-items: center;
+    padding: 16px;
   }
 
   .btn-home-text {
@@ -550,20 +539,6 @@ onMounted(() => {
 
   .visits-grid {
     grid-template-columns: 1fr;
-  }
-
-  .kv-grid-container {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    padding: 8px;
-  }
-
-  .kv-label {
-    font-size: 8px;
-  }
-
-  .kv-value {
-    font-size: 10px;
   }
 }
 </style>
