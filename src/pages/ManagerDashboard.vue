@@ -71,9 +71,9 @@
       </div>
     </header>
 
-    <!-- Modal Konfirmasi Logout -->
+    <!-- Modal Konfirmasi Logout dengan Countdown 2 Detik -->
     <Transition name="fade">
-      <div v-if="showLogoutModal" class="modal-backdrop" @click.self="showLogoutModal = false">
+      <div v-if="showLogoutModal" class="modal-backdrop" @click.self="closeLogoutModal">
         <div class="modal-card">
           <div class="modal-icon-warning">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,8 +85,19 @@
           <h3 class="modal-title">{{ t('logoutConfirmTitle') }}</h3>
           <p class="modal-message">{{ t('logoutConfirmMessage') }}</p>
           <div class="modal-actions">
-            <button @click="showLogoutModal = false" class="btn-cancel">{{ t('cancel') }}</button>
-            <button @click="confirmLogout" class="btn-confirm-logout">{{ t('yesLogout') }}</button>
+            <button @click="closeLogoutModal" class="btn-cancel">{{ t('cancel') }}</button>
+            <button 
+              @click="confirmLogout" 
+              :disabled="logoutCountdown > 0" 
+              class="btn-confirm-logout"
+            >
+              <span v-if="logoutCountdown > 0">
+                {{ t('waitText') }} ({{ logoutCountdown }}s)
+              </span>
+              <span v-else>
+                {{ t('yesLogout') }}
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -320,7 +331,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { managerApi, logout } from '../services/api';
 
@@ -338,8 +349,10 @@ const errorMessage = ref('');
 const showWorkOrdersTable = ref(false);
 const showReportsTable = ref(false);
 
-// Control State Modal Logout
+// State Modal Logout & Countdown Timer
 const showLogoutModal = ref(false);
+const logoutCountdown = ref(2);
+let countdownTimer = null;
 
 const activeTheme = ref('light');
 const currentLang = ref('id');
@@ -354,6 +367,7 @@ const translations = {
     logoutConfirmMessage: 'Apakah Anda yakin ingin keluar dari sistem Manager Field?',
     cancel: 'Batal',
     yesLogout: 'Ya, Keluar',
+    waitText: 'Tunggu',
     loadingStats: 'Memuat data statistik operasional...',
     retry: 'Coba Memuat Ulang',
     active: 'Aktif',
@@ -395,6 +409,7 @@ const translations = {
     logoutConfirmMessage: 'Are you sure you want to log out of the Manager Field system?',
     cancel: 'Cancel',
     yesLogout: 'Yes, Logout',
+    waitText: 'Wait',
     loadingStats: 'Loading operational statistics...',
     retry: 'Retry Loading',
     active: 'Active',
@@ -533,13 +548,34 @@ const navigateTo = (path) => {
   router.push(path);
 };
 
-// HANDLER KONFIRMASI LOGOUT
+// LOGIC MODAL LOGOUT DENGAN COUNTDOWN 2 DETIK
 const triggerLogout = () => {
   showLogoutModal.value = true;
+  logoutCountdown.value = 2; // Inisialisasi hitung mundur 2 detik
+  
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  countdownTimer = setInterval(() => {
+    if (logoutCountdown.value > 0) {
+      logoutCountdown.value -= 1;
+    } else {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }, 1000);
+};
+
+const closeLogoutModal = () => {
+  showLogoutModal.value = false;
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
 };
 
 const confirmLogout = () => {
-  showLogoutModal.value = false;
+  if (logoutCountdown.value > 0) return;
+  closeLogoutModal();
   logout();
 };
 
@@ -565,6 +601,10 @@ onMounted(() => {
     }
   }
   fetchStats();
+});
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
 });
 </script>
 
@@ -929,11 +969,17 @@ h1 {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.btn-confirm-logout:hover {
+.btn-confirm-logout:hover:not(:disabled) {
   background-color: #dc2626;
+}
+
+.btn-confirm-logout:disabled {
+  background-color: #f87171;
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 /* Bento Grid Layout */
