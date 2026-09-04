@@ -4,10 +4,11 @@
     <header class="top-header">
       <div class="header-left">
         <router-link to="/" class="brand-logo">
-          <svg class="icon-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-          <span>エサの ー Infrastructure Report</span>
+          <!-- Logo Kanji 築 (Chiku) Small Badge -->
+          <div class="kanji-logo-badge">
+            <span class="kanji-badge-text">築</span>
+          </div>
+          <span class="brand-title">エサの ー Infrastructure Report</span>
         </router-link>
       </div>
 
@@ -308,10 +309,30 @@ onMounted(() => {
   font-size: 18px;
 }
 
-.icon-brand {
-  width: 26px;
-  height: 26px;
-  color: #2563eb;
+/* BADGE LOGO KANJI 築 (Chiku) */
+.kanji-logo-badge {
+  width: 32px;
+  height: 32px;
+  background-color: var(--btn-admin-bg);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px -1px rgba(37, 99, 235, 0.4);
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+.kanji-badge-text {
+  font-family: 'sans-serif', 'Noto Sans JP';
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.brand-title {
+  letter-spacing: -0.3px;
 }
 
 .header-right {
@@ -320,7 +341,7 @@ onMounted(() => {
   gap: 16px;
 }
 
-/* FLUID THEME SWITCH STYLES (KAPSU) */
+/* FLUID THEME SWITCH STYLES (KAPSUL) */
 .theme-switch-wrapper {
   display: flex;
   align-items: center;
