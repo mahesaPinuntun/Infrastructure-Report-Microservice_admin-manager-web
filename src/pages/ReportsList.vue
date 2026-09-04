@@ -1,5 +1,12 @@
 <template>
   <div class="page-container">
+    <!-- BAR NAVIGASI KEMBALI KEDASHBOARD -->
+    <div class="top-bar">
+      <router-link :to="dashboardRoute" class="back-link">
+        &larr; Kembali ke Dashboard ({{ userRole === 'ADMIN' ? 'Admin' : 'Manager' }})
+      </router-link>
+    </div>
+
     <div class="header-section">
       <h2>Daftar Laporan Infrastruktur</h2>
     </div>
@@ -64,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { adminApi, managerApi } from '../services/api';
 
@@ -73,6 +80,11 @@ const reports = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const userRole = ref('');
+
+// Computed Property untuk menentukan rute kembali secara dinamis
+const dashboardRoute = computed(() => {
+  return userRole.value === 'ADMIN' ? '/admin' : '/manager';
+});
 
 const fetchReports = async () => {
   loading.value = true;
@@ -117,6 +129,21 @@ onMounted(() => {
   padding: 24px;
   background-color: var(--bg-main, #f8fafc);
   min-height: 100vh;
+}
+
+.top-bar {
+  margin-bottom: 16px;
+}
+
+.back-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 .header-section {
