@@ -13,18 +13,7 @@
             <span class="btn-text">Home</span>
           </button>
 
-          <!-- Tombol Reroute ke Dashboard -->
-          <button @click="goToDashboard" class="btn-nav btn-dashboard" title="Kembali ke Dashboard Utama">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="9"/>
-              <rect x="14" y="3" width="7" height="5"/>
-              <rect x="14" y="12" width="7" height="9"/>
-              <rect x="3" y="16" width="7" height="5"/>
-            </svg>
-            <span class="btn-text">{{ t('navDashboard') }}</span>
-          </button>
-
-          <!-- Tombol Reroute ke Flow / Workflow (Didesain Lebih Besar, Menyala & Jumping) -->
+          <!-- Tombol Reroute ke Flow / Workflow (Besar, Menyala & Jumping) -->
           <button @click="goToWorkflow" class="btn-nav btn-flow-featured" title="Buka Workflow System">
             <svg class="icon-md icon-animated" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -33,14 +22,15 @@
           </button>
         </div>
 
+        <!-- Header Content dengan Kontras Warna yang Diperbaiki -->
         <div class="header-content">
-          <h1>{{ t('pageTitle') }}</h1>
+          <h1 class="page-title">{{ t('pageTitle') }}</h1>
           <p class="subtitle">{{ t('pageSubtitle') }}</p>
         </div>
       </div>
 
       <div class="header-right-actions">
-        <!-- Language Switcher -->
+        <!-- Language Switcher (ID / EN) -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
@@ -177,7 +167,6 @@ const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https:/
 
 const translations = {
   id: {
-    navDashboard: 'Dashboard',
     navWorkflow: 'Flow System',
     pageTitle: 'Daftar Kunjungan & Work Order',
     pageSubtitle: 'Riwayat & Jadwal Penugasan Manager Field',
@@ -193,7 +182,6 @@ const translations = {
     btnViewDetail: 'Lihat Detail Laporan'
   },
   en: {
-    navDashboard: 'Dashboard',
     navWorkflow: 'Flow System',
     pageTitle: 'Visits & Work Order List',
     pageSubtitle: 'History & Field Manager Assignment Schedule',
@@ -213,18 +201,6 @@ const translations = {
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
 const goToHome = () => router.push('/');
-
-const goToDashboard = () => {
-  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const role = (storedUser.role || '').toUpperCase();
-  if (role === 'ADMIN') {
-    router.push('/admin');
-  } else if (role === 'MANAGER' || role === 'INFRASTRUCTURE_MANAGER') {
-    router.push('/manager');
-  } else {
-    router.push('/reports');
-  }
-};
 
 const goToWorkflow = () => router.push('/workflow');
 
@@ -311,7 +287,7 @@ onMounted(() => {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-muted: #475569;
   --border-color: #e2e8f0;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
@@ -329,8 +305,8 @@ onMounted(() => {
 :global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  --text-main: #ffffff;
+  --text-muted: #cbd5e1;
   --border-color: #334155;
   --primary: #3b82f6;
   --primary-hover: #2563eb;
@@ -362,6 +338,7 @@ onMounted(() => {
   color: var(--text-main);
   padding: 24px;
   box-sizing: border-box;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 .header-section {
@@ -408,13 +385,7 @@ onMounted(() => {
   color: var(--primary);
 }
 
-.btn-dashboard {
-  background-color: rgba(37, 99, 235, 0.08);
-  border-color: rgba(37, 99, 235, 0.2);
-  color: var(--primary);
-}
-
-/* STYLING KHUSUS TOMBOL FLOW SYSTEM: LEBIH BESAR, MENYALA & JUMPING ANIMATION */
+/* TOMBOL FLOW SYSTEM: BESAR, MENYALA & ANIMASI JUMPING */
 .btn-flow-featured {
   display: flex;
   align-items: center;
@@ -435,23 +406,33 @@ onMounted(() => {
 
 .btn-flow-featured:hover {
   transform: translateY(-4px) scale(1.03);
-  box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.85);
 }
 
 .btn-featured-text {
   letter-spacing: 0.3px;
 }
 
-.header-content h1 {
+/* HEADER TITLE & SUBTITLE KONTRAS DENGAN TEMA */
+.header-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-content h1.page-title {
   margin: 0;
   font-size: 22px;
   font-weight: 800;
+  line-height: 1.2;
+  color: var(--text-main);
+  transition: color 0.4s ease;
 }
 
 .subtitle {
   margin: 4px 0 0 0;
   font-size: 13px;
   color: var(--text-muted);
+  transition: color 0.4s ease;
 }
 
 .header-right-actions {
@@ -561,6 +542,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .card-top {
@@ -576,6 +558,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
+  transition: color 0.4s ease;
 }
 
 .status-badge {
@@ -599,6 +582,7 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid var(--border-color);
   margin-bottom: 16px;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .kv-item { display: flex; flex-direction: column; }
@@ -621,6 +605,11 @@ onMounted(() => {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-detail:hover {
+  background-color: var(--primary-hover);
 }
 
 .state-card {
@@ -676,7 +665,7 @@ onMounted(() => {
   margin-top: auto;
 }
 
-/* ANIMASI JUMPING & GLOWING UNTUK TOMBOL FLOW SYSTEM */
+/* ANIMASI JUMPING & GLOWING */
 @keyframes jumpGlow {
   0%, 100% {
     transform: translateY(0);
