@@ -147,17 +147,22 @@ const goToHome = () => {
   router.push('/');
 };
 
+const applyThemeToDOM = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+};
+
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   currentTheme.value = savedTheme;
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  applyThemeToDOM(savedTheme);
 };
 
 const toggleTheme = () => {
   const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
   currentTheme.value = newTheme;
   localStorage.setItem('user-theme', newTheme);
-  document.documentElement.setAttribute('data-theme', newTheme);
+  applyThemeToDOM(newTheme);
 };
 
 const getTechnicianName = (visit) => {
@@ -223,6 +228,8 @@ onMounted(() => {
 
 <style scoped>
 :global(:root),
+:global(html),
+:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
@@ -238,7 +245,8 @@ onMounted(() => {
   --skeleton-bg: #e2e8f0;
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #f8fafc;
@@ -253,19 +261,20 @@ onMounted(() => {
   --skeleton-bg: #334155;
 }
 
-/* HAPUS SELURUH MARGIN DAN PADDING LAYAR UTAMA */
+/* MENELIMINASI SELURUH GAP/MARGIN/OVERFLOW DARI ROOT HTML/BODY */
 :global(html),
-:global(body) {
+:global(body),
+:global(#app) {
   margin: 0 !important;
   padding: 0 !important;
-  width: 100vw !important;
+  width: 100% !important;
   min-height: 100vh !important;
+  background-color: var(--bg-main) !important;
   overflow-x: hidden !important;
-  background-color: var(--bg-main);
 }
 
 .page-container {
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -371,13 +380,13 @@ onMounted(() => {
 
 .icon-sm { width: 16px; height: 16px; }
 
-/* KONTEN UTAMA FULL-WIDTH TANPA BATAS MAKSIMAL */
+/* KONTEN UTAMA MEMENUHI KANAN DAN KIRI LAYAR */
 .main-content {
   width: 100%;
   margin: 0;
 }
 
-/* VISITS GRID MEMENUHI DINDING KANAN & KIRI LAYAR */
+/* VISITS GRID RESPONSIF TANPA BATAS TERHUBUNG KE PINGGIR LAYAR */
 .visits-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
