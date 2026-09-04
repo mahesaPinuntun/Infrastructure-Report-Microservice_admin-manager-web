@@ -34,9 +34,10 @@
     <!-- Main Landing Card -->
     <div class="landing-card">
       <div class="brand-header">
-        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
+        <!-- Logo Kanji 築 (Chiku) -->
+        <div class="kanji-logo-container">
+          <span class="kanji-logo-text">築</span>
+        </div>
         <h1>エサの ー Infrastructure Report</h1>
         <h2 class="subtitle">Page for Admin and Manager Control</h2>
         <p class="subtitle">Silakan pilih opsi akses untuk masuk ke sistem</p>
@@ -70,17 +71,22 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 const currentTheme = ref('light');
 
+const applyThemeToDOM = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+};
+
 const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   currentTheme.value = savedTheme;
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  applyThemeToDOM(savedTheme);
 };
 
 const toggleTheme = () => {
   const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
   currentTheme.value = newTheme;
   localStorage.setItem('user-theme', newTheme);
-  document.documentElement.setAttribute('data-theme', newTheme);
+  applyThemeToDOM(newTheme);
 };
 
 const navigateTo = (path) => {
@@ -94,6 +100,8 @@ onMounted(() => {
 
 <style scoped>
 :global(:root),
+:global(html),
+:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
@@ -107,7 +115,8 @@ onMounted(() => {
   --card-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.05), 0 10px 15px -5px rgba(0, 0, 0, 0.03);
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #f8fafc;
@@ -122,12 +131,14 @@ onMounted(() => {
 
 /* MENELIMINASI MARGIN/PADDING SELURUH LAYAR */
 :global(html),
-:global(body) {
+:global(body),
+:global(#app) {
   margin: 0 !important;
   padding: 0 !important;
-  width: 100vw !important;
+  width: 100% !important;
   height: 100vh !important;
   overflow: hidden !important;
+  background-color: var(--bg-main) !important;
 }
 
 .landing-wrapper {
@@ -142,11 +153,11 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   padding: 24px;
-  /* Transisi Gradasi Halus Saat Perubahan Warna Tema */
+  /* Transisi Halus Saat Perubahan Warna Tema */
   transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* POSISI & DESAIN FLUID SWITCH TOGGLE (Sesuai Gambar) */
+/* POSISI & DESAIN FLUID SWITCH TOGGLE */
 .theme-switch-container {
   position: absolute;
   top: 28px;
@@ -183,7 +194,6 @@ onMounted(() => {
   transform: translateX(0);
 }
 
-/* Tampilan Handle Saat Mode Dark Active */
 .theme-toggle-switch.is-dark .switch-handle {
   transform: translateX(34px);
 }
@@ -213,12 +223,30 @@ onMounted(() => {
   margin-bottom: 32px;
 }
 
-.brand-icon {
-  width: 46px;
-  height: 46px;
-  color: var(--primary-color);
-  margin-bottom: 12px;
-  transition: color 0.4s ease;
+/* STYLES DESAIN LOGO KANJI 築 */
+.kanji-logo-container {
+  width: 56px;
+  height: 56px;
+  background-color: var(--primary-color);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.35);
+  transition: background-color 0.4s ease, transform 0.3s ease;
+}
+
+.kanji-logo-container:hover {
+  transform: scale(1.05);
+}
+
+.kanji-logo-text {
+  font-family: 'sans-serif', 'Noto Sans JP';
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
 }
 
 .brand-header h1 {
