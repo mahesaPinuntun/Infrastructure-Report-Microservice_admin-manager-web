@@ -63,15 +63,39 @@
               </select>
             </div>
 
-            <!-- Dropdown 2: Filter Per Role -->
+            <!-- Dropdown Filter Per Role (Khusus Tabel Users) -->
             <div v-if="selectedTable === 'users'" class="dropdown-container">
               <label class="dropdown-label">Display Per Role:</label>
-              <select v-model="selectedRole" @change="handleRoleChange" class="table-select role-select">
+              <select v-model="selectedRole" class="table-select role-select">
                 <option value="ALL">Semua Role</option>
                 <option value="USER">User (Pelapor)</option>
                 <option value="ADMIN">Admin</option>
                 <option value="MANAGER">Manager</option>
                 <option value="TECHNICIAN">Technician</option>
+              </select>
+            </div>
+
+            <!-- Dropdown Filter Status Laporan (Khusus Tabel Reports) -->
+            <div v-if="selectedTable === 'reports'" class="dropdown-container">
+              <label class="dropdown-label">Status Laporan:</label>
+              <select v-model="selectedReportStatus" class="table-select">
+                <option value="ALL">Semua Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="RESOLVED">Resolved / Selesai</option>
+                <option value="REJECTED">Ditolak</option>
+              </select>
+            </div>
+
+            <!-- Dropdown Filter Kategori Laporan (Khusus Tabel Reports) -->
+            <div v-if="selectedTable === 'reports'" class="dropdown-container">
+              <label class="dropdown-label">Kategori:</label>
+              <select v-model="selectedReportCategory" class="table-select">
+                <option value="ALL">Semua Kategori</option>
+                <option value="Listrik">Listrik</option>
+                <option value="Jaringan">Jaringan / Internet</option>
+                <option value="Gedung">Gedung & Fasilitas</option>
+                <option value="Lainnya">Lainnya</option>
               </select>
             </div>
           </div>
@@ -86,7 +110,11 @@
       <!-- Dynamic Data Table Section -->
       <div v-if="selectedTable !== 'none'" class="table-section">
         <div class="table-header">
-          <h4>{{ tableTitle }} <span v-if="selectedTable === 'users'" class="role-tag">({{ selectedRole }})</span></h4>
+          <h4>
+            {{ tableTitle }}
+            <span v-if="selectedTable === 'users'" class="role-tag">({{ selectedRole }})</span>
+            <span v-if="selectedTable === 'reports'" class="role-tag">({{ selectedReportStatus }})</span>
+          </h4>
           <span v-if="tableLoading" class="table-loading-tag">Memuat data...</span>
         </div>
 
@@ -184,6 +212,9 @@ const currentTheme = ref('light');
 
 const selectedTable = ref('none');
 const selectedRole = ref('ALL');
+const selectedReportStatus = ref('ALL');
+const selectedReportCategory = ref('ALL');
+
 const rawTableData = ref([]);
 const tableLoading = ref(false);
 
@@ -243,29 +274,48 @@ const tableColumns = computed(() => {
   }
 });
 
-// FITUR FIX: Filter Fleksibel Toleran Terhadap Variasi String Role dari Backend
+// LOGIKA FILTERING DATA UNTUK USERS DAN REPORTS
 const filteredTableData = computed(() => {
-  if (selectedTable.value !== 'users' || selectedRole.value === 'ALL') {
-    return rawTableData.value;
+  let list = [...rawTableData.value];
+
+  // 1. FILTERING TIPE USERS BY ROLE
+  if (selectedTable.value === 'users' && selectedRole.value !== 'ALL') {
+    const targetRole = selectedRole.value.toString().trim().toUpperCase();
+    list = list.filter(item => {
+      const rawRole = item.role || item.roleName || '';
+      const itemRole = rawRole.toString().trim().toUpperCase();
+
+      if (targetRole === 'MANAGER') {
+        return (
+          itemRole === 'MANAGER' ||
+          itemRole === 'INFRASTRUCTURE_MANAGER' ||
+          itemRole.includes('MANAGER')
+        );
+      }
+      return itemRole === targetRole;
+    });
   }
 
-  const targetRole = selectedRole.value.toString().trim().toUpperCase();
-
-  return rawTableData.value.filter(item => {
-    // Toleransi jika role dikirim sebagai `role` atau `roleName`
-    const rawRole = item.role || item.roleName || '';
-    const itemRole = rawRole.toString().trim().toUpperCase();
-
-    if (targetRole === 'MANAGER') {
-      return (
-        itemRole === 'MANAGER' ||
-        itemRole === 'INFRASTRUCTURE_MANAGER' ||
-        itemRole.includes('MANAGER')
-      );
+  // 2. FILTERING TIPE REPORTS BY STATUS & CATEGORY
+  if (selectedTable.value === 'reports') {
+    if (selectedReportStatus.value !== 'ALL') {
+      const targetStatus = selectedReportStatus.value.toUpperCase();
+      list = list.filter(item => {
+        const itemStatus = (item.status || 'PENDING').toString().trim().toUpperCase();
+        return itemStatus === targetStatus;
+      });
     }
-    
-    return itemRole === targetRole;
-  });
+
+    if (selectedReportCategory.value !== 'ALL') {
+      const targetCat = selectedReportCategory.value.toLowerCase();
+      list = list.filter(item => {
+        const itemCat = (item.category || '').toString().trim().toLowerCase();
+        return itemCat.includes(targetCat);
+      });
+    }
+  }
+
+  return list;
 });
 
 const formatRoleDisplay = (role) => {
@@ -329,8 +379,6 @@ const handleTableChange = async () => {
     tableLoading.value = false;
   }
 };
-
-const handleRoleChange = () => {};
 
 const getTechnicianName = (item) => {
   if (Array.isArray(item.technicians) && item.technicians.length > 0) {
@@ -632,8 +680,9 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
-.status-badge.completed, .status-badge.active, .status-badge.good { background: #dcfce7; color: #15803d; }
+.status-badge.completed, .status-badge.active, .status-badge.good, .status-badge.resolved { background: #dcfce7; color: #15803d; }
 .status-badge.pending, .status-badge.in_progress, .status-badge.assigned { background: #fef3c7; color: #b45309; }
+.status-badge.rejected { background: #fee2e2; color: #b91c1c; }
 
 .priority-badge {
   font-size: 11px;
