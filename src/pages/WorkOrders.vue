@@ -3,7 +3,6 @@
     <!-- Header Section -->
     <header class="header-container no-print">
       <div class="header-title text-left">
-        <!-- Logo Kanji dengan aksi Back Route & Efek Flowing/Glowing -->
         <div 
           class="brand-badge brand-badge-link" 
           @click="navigateToManagerPortal" 
@@ -19,7 +18,7 @@
       </div>
 
       <div class="header-actions">
-        <!-- Tombol Buat Work Order Baru -->
+        <!-- Tombol Buka Popup Modal Buat Work Order -->
         <button @click="handleCreateWO" class="btn-create-wo" :title="t('createWo')">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -42,7 +41,7 @@
           <span>Manager Portal</span>
         </a>
 
-        <!-- Language Switcher (Pilihan Bahasa ID / EN) -->
+        <!-- Language Switcher -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
@@ -67,7 +66,6 @@
             aria-label="Toggle Theme"
           >
             <span class="switch-handle">
-              <!-- Icon Matahari (Light Mode) -->
               <svg v-if="activeTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="12" cy="12" r="4"/>
                 <line x1="12" y1="1" x2="12" y2="3"/>
@@ -79,8 +77,6 @@
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
               </svg>
-              
-              <!-- Icon Bulan (Dark Mode) -->
               <svg v-else class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
               </svg>
@@ -100,7 +96,6 @@
 
     <!-- Filter & Search Bar -->
     <div class="wo-filter-bar no-print">
-      <!-- Search Box -->
       <div class="search-box">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
           <circle cx="11" cy="11" r="8"></circle>
@@ -114,7 +109,6 @@
         />
       </div>
 
-      <!-- Status Filter Tabs (Hanya All, Assigned, Completed) -->
       <div class="status-tabs">
         <button 
           v-for="status in statusOptions" 
@@ -127,9 +121,7 @@
       </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- 1. SKELETON LOADING STATE -->
-    <!-- ================================================================= -->
+    <!-- SKELETON LOADING STATE -->
     <div v-if="loading" class="skeleton-wrapper no-print">
       <div class="desktop-only skeleton-table">
         <div v-for="i in 5" :key="i" class="skeleton-row">
@@ -153,9 +145,7 @@
       </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- 2. EMPTY STATE -->
-    <!-- ================================================================= -->
+    <!-- EMPTY STATE -->
     <div v-else-if="filteredWorkOrders.length === 0" class="empty-state no-print">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -166,9 +156,7 @@
       <p>{{ t('noWoFoundDesc') }}</p>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- 3. DATA DISPLAY (DESKTOP TABLE & MOBILE CARDS) -->
-    <!-- ================================================================= -->
+    <!-- DATA DISPLAY -->
     <div v-else class="data-wrapper no-print">
       <!-- DESKTOP TABLE -->
       <div class="desktop-only table-card">
@@ -253,19 +241,15 @@
       </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- 4. MODAL DETAIL WORK ORDER -->
-    <!-- ================================================================= -->
+    <!-- MODAL DETAIL WORK ORDER -->
     <div v-if="selectedWO" class="modal-backdrop" @click.self="closeDetailModal">
       <div class="modal-content">
-        <!-- Modal Header -->
         <div class="modal-header">
           <div>
             <span class="font-xs text-indigo font-bold">{{ t('modalTitle') }}</span>
             <h3>{{ selectedWO.woCode }}</h3>
           </div>
           <div class="modal-header-actions">
-            <!-- Tombol Download PDF Rapi -->
             <button 
               @click="downloadPDF" 
               class="btn-download-pdf" 
@@ -283,9 +267,7 @@
           </div>
         </div>
 
-        <!-- Modal Body (Area yang diekspor ke PDF) -->
         <div class="modal-body" ref="modalPdfRef">
-          <!-- Kop Header PDF (Logo di Kiri Atas) -->
           <div class="pdf-doc-header">
             <div class="pdf-brand">
               <div class="kanji-logo-badge pdf-logo flowing-glowing-icon">
@@ -302,7 +284,6 @@
             </div>
           </div>
 
-          <!-- Status Banner -->
           <div class="modal-status-banner avoid-break">
             <span>{{ t('modalStatus') }}:</span>
             <span :class="['status-badge', getStatusBadge(selectedWO.status).class]">
@@ -310,7 +291,6 @@
             </span>
           </div>
 
-          <!-- Informasi Umum -->
           <div class="info-grid avoid-break">
             <div class="text-left">
               <span class="label text-left">{{ t('modalLocation') }}</span>
@@ -322,13 +302,11 @@
             </div>
           </div>
 
-          <!-- Deskripsi / Pendahuluan -->
           <div class="avoid-break text-left">
             <span class="label text-left block mb-1">{{ t('modalDesc') }}</span>
             <div class="desc-box text-left">{{ selectedWO.introduction || '-' }}</div>
           </div>
 
-          <!-- Teknisi Lapangan -->
           <div class="avoid-break text-left">
             <span class="label uppercase text-left block mb-1">{{ t('modalTech') }}</span>
             <div class="tech-list">
@@ -345,7 +323,6 @@
             </div>
           </div>
 
-          <!-- Rincian Material & Biaya -->
           <div class="avoid-break text-left">
             <span class="label uppercase text-left block mb-1">{{ t('modalMaterial') }}</span>
             <table class="mini-table">
@@ -373,7 +350,6 @@
             </div>
           </div>
 
-          <!-- Galeri Foto Bukti Perbaikan -->
           <div class="avoid-break text-left">
             <span class="label uppercase text-left block mb-1">
               📷 {{ t('modalPhotos') }} ({{ selectedWO.progressImages?.length || 0 }})
@@ -398,26 +374,33 @@
           </div>
         </div>
 
-        <!-- Modal Footer -->
         <div class="modal-footer">
           <button @click="closeDetailModal" class="btn-secondary">{{ t('close') }}</button>
         </div>
       </div>
     </div>
+
+    <!-- MODAL POPUP FORM PEMBUATAN WORK ORDER BARU -->
+    <CreateWorkOrderModal 
+      v-if="showCreateModal" 
+      :current-lang="currentLang"
+      :manager-api-url="MANAGER_API_URL"
+      @close="showCreateModal = false" 
+      @success="handleWOCreated" 
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import axios from 'axios';
-
-const router = useRouter();
+import CreateWorkOrderModal from './CreateWorkOrderModal.vue';
 
 // STATE
 const workOrders = ref([]);
 const loading = ref(true);
 const isGeneratingPdf = ref(false);
+const showCreateModal = ref(false);
 const searchQuery = ref('');
 const selectedStatus = ref('ALL');
 const selectedWO = ref(null);
@@ -494,30 +477,27 @@ const translations = {
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
-// HANDLER PEMBUATAN WORK ORDER BARU
+// OPEN POPUP CREATE MODAL
 const handleCreateWO = () => {
-  // Jika menggunakan vue-router ke halaman formulir pembuatannya:
-  if (router) {
-    router.push('/work-orders/create');
-  } else {
-    // Fallback URL jika mengarahkan ke halaman/modal terpisah
-    window.location.href = `${MANAGER_PORTAL_URL}/work-orders/create`;
-  }
+  showCreateModal.value = true;
 };
 
-// NAVIGASI BACK ROUTE KE MANAGER PORTAL
+// HANDLER KETIKA WORK ORDER BERHASIL DIBUAT
+const handleWOCreated = () => {
+  showCreateModal.value = false;
+  fetchWorkOrders(); // Refresh data tabel
+};
+
 const navigateToManagerPortal = () => {
   window.location.href = MANAGER_PORTAL_URL;
 };
 
-// STATUS OPTIONS
 const statusOptions = computed(() => [
   { label: currentLang.value === 'id' ? 'Semua' : 'All', value: 'ALL' },
   { label: 'Assigned', value: 'ASSIGNED' },
   { label: 'Completed', value: 'COMPLETED' }
 ]);
 
-// LANGUAGE TOGGLE
 const initLanguage = () => {
   currentLang.value = localStorage.getItem('user-lang') || 'id';
 };
@@ -527,7 +507,6 @@ const toggleLanguage = () => {
   localStorage.setItem('user-lang', currentLang.value);
 };
 
-// THEME TOGGLE LOGIC
 const applyTheme = (theme) => {
   activeTheme.value = theme;
   document.documentElement.setAttribute('data-theme', theme);
@@ -545,7 +524,6 @@ const initTheme = () => {
   applyTheme(savedTheme);
 };
 
-// FETCH DATA
 const fetchWorkOrders = async () => {
   try {
     loading.value = true;
@@ -558,7 +536,6 @@ const fetchWorkOrders = async () => {
   }
 };
 
-// DOWNLOAD PDF FUNCTION
 const downloadPDF = async () => {
   if (!modalPdfRef.value || isGeneratingPdf.value || !selectedWO.value) return;
 
@@ -677,9 +654,6 @@ const closeDetailModal = () => { selectedWO.value = null; };
 </script>
 
 <style scoped>
-/* =========================================================================
-   FULL WIDTH LAYOUT & THEME VARIABLES
-   ========================================================================= */
 :global(:root),
 :global(html),
 :global(body),
@@ -741,7 +715,6 @@ const closeDetailModal = () => { selectedWO.value = null; };
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Header Section */
 .header-container {
   display: flex;
   justify-content: space-between;
@@ -806,15 +779,9 @@ const closeDetailModal = () => { selectedWO.value = null; };
 }
 
 @keyframes glowingPulse {
-  0% {
-    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4), 0 0 14px rgba(6, 182, 212, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 18px rgba(37, 99, 235, 0.8), 0 0 28px rgba(6, 182, 212, 0.6);
-  }
-  100% {
-    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4), 0 0 14px rgba(6, 182, 212, 0.3);
-  }
+  0% { box-shadow: 0 0 8px rgba(37, 99, 235, 0.4), 0 0 14px rgba(6, 182, 212, 0.3); }
+  50% { box-shadow: 0 0 18px rgba(37, 99, 235, 0.8), 0 0 28px rgba(6, 182, 212, 0.6); }
+  100% { box-shadow: 0 0 8px rgba(37, 99, 235, 0.4), 0 0 14px rgba(6, 182, 212, 0.3); }
 }
 
 .kanji-badge-text {
@@ -846,7 +813,6 @@ h1 {
 
 .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
-/* Tombol Buat Work Order */
 .btn-create-wo {
   display: inline-flex;
   align-items: center;
@@ -869,7 +835,6 @@ h1 {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
-/* Tombol Reroute External Link */
 .btn-reroute {
   display: inline-flex;
   align-items: center;
@@ -893,7 +858,6 @@ h1 {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
-/* Language Switcher */
 .lang-switch-wrapper { display: flex; align-items: center; flex-shrink: 0; }
 
 .lang-toggle-switch {
@@ -939,7 +903,6 @@ h1 {
 
 .lang-toggle-switch.is-en .lang-slider { transform: translateX(32px); }
 
-/* Theme Switch */
 .theme-switch-wrapper { display: flex; align-items: center; flex-shrink: 0; }
 
 .theme-toggle-switch {
@@ -972,12 +935,7 @@ h1 {
 
 .theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 
-.switch-icon {
-  width: 15px;
-  height: 15px;
-  color: var(--switch-icon-color);
-  transition: color 0.3s ease;
-}
+.switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); transition: color 0.3s ease; }
 
 .btn-refresh {
   display: inline-flex;
@@ -996,7 +954,6 @@ h1 {
 
 .btn-refresh:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
-/* Icon sizes */
 .icon-sm { width: 16px; height: 16px; flex-shrink: 0; }
 .search-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--text-muted); }
 .empty-icon { width: 48px; height: 48px; margin-bottom: 12px; color: var(--text-muted); }
@@ -1004,7 +961,6 @@ h1 {
 .spin-anim { animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* Filter Bar Full Width */
 .wo-filter-bar {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -1061,7 +1017,6 @@ h1 {
   border-color: var(--primary-color);
 }
 
-/* Status Badges */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -1080,7 +1035,6 @@ h1 {
 .badge-green { background-color: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25); }
 .badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; border-color: rgba(148, 163, 184, 0.25); }
 
-/* Full Width Table Component */
 .data-wrapper { width: 100%; }
 
 .table-card {
@@ -1096,7 +1050,6 @@ h1 {
 .wo-table th { background-color: var(--bg-main); padding: 14px 18px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
 .wo-table td { padding: 16px 18px; border-bottom: 1px solid var(--border-color); }
 
-/* Mobile Cards View */
 .cards-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
 .wo-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
@@ -1109,13 +1062,11 @@ h1 {
 .tech-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .tech-chip { background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
 
-/* Buttons */
 .btn-detail { background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-detail:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
 .btn-primary-sm { background-color: var(--primary-color); color: #ffffff; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-/* Modal */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1151,11 +1102,7 @@ h1 {
 }
 .modal-header h3 { margin: 0; font-size: 18px; color: var(--text-main); }
 
-.modal-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.modal-header-actions { display: flex; align-items: center; gap: 8px; }
 
 .btn-download-pdf {
   display: inline-flex;
@@ -1203,7 +1150,6 @@ h1 {
 .mini-table th, .mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); }
 .grand-total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-top: 8px; }
 
-/* Image Grid Rapi */
 .image-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
 .img-wrapper { 
   aspect-ratio: 1; 
@@ -1221,7 +1167,6 @@ h1 {
 .modal-footer { padding: 12px 20px; background: var(--bg-main); border-top: 1px solid var(--border-color); text-align: right; }
 .btn-secondary { background: var(--border-color); color: var(--text-main); border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-/* Kop Header khusus Dokumen/PDF */
 .pdf-doc-header {
   display: none;
   justify-content: space-between;
@@ -1238,7 +1183,6 @@ h1 {
 .pdf-code { font-size: 15px; font-weight: 800; color: #0f172a; }
 .pdf-date { font-size: 10px; color: #64748b; }
 
-/* Skeleton Loading Animation */
 .skeleton-wrapper { display: flex; flex-direction: column; gap: 12px; width: 100%; }
 .skeleton-table, .skeleton-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; }
 .skeleton-row { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
@@ -1247,7 +1191,6 @@ h1 {
 .w-16 { width: 60px; } .w-20 { width: 80px; } .w-24 { width: 100px; } .w-30 { width: 140px; } .w-40 { width: 180px; } .w-50 { width: 220px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* Style Khusus Ekspor PDF */
 .modal-body.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
@@ -1301,7 +1244,6 @@ h1 {
   border: 1px solid #cbd5e1 !important;
 }
 
-/* Responsive Helpers */
 @media (min-width: 768px) {
   .mobile-only { display: none !important; }
   .desktop-only { display: block !important; }
@@ -1332,7 +1274,6 @@ h1 {
 .py-2 { padding-top: 8px; padding-bottom: 8px; }
 .empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); width: 100%; box-sizing: border-box; }
 
-/* Media Print Optimization */
 @media print {
   .no-print { display: none !important; }
   .pdf-doc-header { display: flex !important; }
