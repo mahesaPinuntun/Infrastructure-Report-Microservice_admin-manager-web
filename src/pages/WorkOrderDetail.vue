@@ -2,7 +2,7 @@
   <div class="wo-detail-wrapper">
     <!-- Header Page Actions -->
     <header class="header-container no-print">
-      <div class="header-title">
+      <div class="header-title text-left">
         <button @click="goBack" class="btn-back">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -120,7 +120,7 @@
         <!-- Banner Status -->
         <div class="detail-card status-banner-card avoid-break">
           <div>
-            <span class="text-sub font-xs uppercase block mb-1">{{ t('statusLabel') }}</span>
+            <span class="text-sub font-xs uppercase block mb-1 text-left">{{ t('statusLabel') }}</span>
             <span :class="['status-badge', getStatusBadge(workOrder.status).class]">
               <span class="badge-dot"></span>
               {{ getStatusBadge(workOrder.status).label }}
@@ -138,7 +138,7 @@
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">{{ t('location') }}</span>
-              <span class="info-value">{{ workOrder.locationName }}</span>
+              <span class="info-value">{{ workOrder.locationName || 'Lokasi Belum Ditentukan' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">{{ t('executionDate') }}</span>
@@ -169,8 +169,8 @@
               <div class="tech-info">
                 <div class="avatar-circle">{{ tech.name?.charAt(0).toUpperCase() || 'T' }}</div>
                 <div class="text-left">
-                  <strong>{{ tech.name }}</strong>
-                  <span class="block text-sub font-xs">{{ tech.email || tech.phone || '-' }}</span>
+                  <strong class="block text-left">{{ tech.name }}</strong>
+                  <span class="block text-sub font-xs text-left">{{ tech.email || tech.phone || '-' }}</span>
                 </div>
               </div>
               <span class="tech-fee font-bold text-main">{{ formatCurrency(tech.fee) }}</span>
@@ -339,12 +339,41 @@ const fetchWorkOrderDetail = async () => {
     return;
   }
 
+  loading.value = true;
+  errorMessage.value = '';
+
+  // 1. Coba fetch ke endpoint detail single Work Order
   try {
-    loading.value = true;
     const response = await axios.get(`${MANAGER_API_URL}/api/manager/work-orders/${woId}`);
-    workOrder.value = response.data?.data || response.data?.workOrder || response.data;
+    const resData = response.data?.data || response.data?.workOrder || response.data;
+    if (resData && (resData._id || resData.id || resData.woCode)) {
+      workOrder.value = resData;
+      loading.value = false;
+      return;
+    }
   } catch (err) {
-    console.error('Error fetching WO detail:', err);
+    console.warn('Direct WO detail fetch failed, trying list fallback...', err?.message);
+  }
+
+  // 2. Fallback: Jika endpoint single WO 404/error, fetch list lengkap & cari item yang cocok
+  try {
+    const resList = await axios.get(`${MANAGER_API_URL}/api/manager/work-orders`);
+    const listData = resList.data?.workOrders || resList.data?.data || resList.data || [];
+    
+    if (Array.isArray(listData) && listData.length > 0) {
+      const found = listData.find(
+        (item) => item._id === woId || item.id === woId || item.woCode === woId
+      );
+
+      if (found) {
+        workOrder.value = found;
+        loading.value = false;
+        return;
+      }
+    }
+    errorMessage.value = 'Data Work Order tidak ditemukan di dalam sistem.';
+  } catch (errFallback) {
+    console.error('Error fetching fallback list:', errFallback);
     errorMessage.value = 'Gagal memuat rincian Work Order dari server.';
   } finally {
     loading.value = false;
@@ -364,7 +393,7 @@ const downloadPDF = async () => {
     try {
       html2pdfModule = (await import('html2pdf.js')).default;
     } catch (e) {
-      console.warn('html2pdf.js tidak dapat diimpor via npm, fallback window.print()');
+      console.warn('html2pdf.js tidak terpasang, fallback window.print()');
     }
 
     if (html2pdfModule) {
@@ -540,12 +569,14 @@ onMounted(() => {
   border-radius: 8px;
   border: none;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 .btn-download-pdf:hover:not(:disabled) {
   background-color: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 .btn-download-pdf:disabled {
   opacity: 0.6;
