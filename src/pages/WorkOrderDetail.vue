@@ -11,7 +11,7 @@
           <span>{{ t('backToList') }}</span>
         </button>
 
-        <div class="brand-badge mt-2">
+        <div class="brand-badge mt-1">
           <div class="kanji-logo-badge">
             <span class="kanji-badge-text">築</span>
           </div>
@@ -82,11 +82,11 @@
     <!-- Loading State Skeleton -->
     <div v-if="loading" class="detail-content-grid">
       <div class="detail-card skeleton-card">
-        <div class="skeleton-block w-40 h-24 mb-4"></div>
-        <div class="skeleton-block w-full h-12 mb-3"></div>
+        <div class="skeleton-block w-40 h-24 mb-2"></div>
+        <div class="skeleton-block w-full h-12 mb-2"></div>
       </div>
       <div class="detail-card skeleton-card">
-        <div class="skeleton-block w-full h-12 mb-3"></div>
+        <div class="skeleton-block w-full h-12 mb-2"></div>
         <div class="skeleton-block w-full h-32"></div>
       </div>
     </div>
@@ -139,7 +139,7 @@
             </div>
           </div>
 
-          <div v-if="workOrder.mapsUrl" class="mt-2 text-left no-print">
+          <div v-if="workOrder.mapsUrl" class="mt-1 text-left no-print">
             <a :href="workOrder.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
               📍 <span>{{ t('openMaps') }}</span>
             </a>
@@ -148,7 +148,7 @@
 
         <!-- Description / Introduction -->
         <div class="detail-card avoid-break">
-          <span class="section-subheading text-left block mb-2">{{ t('description') }}</span>
+          <span class="section-subheading text-left block mb-1">{{ t('description') }}</span>
           <div class="desc-box text-left">
             {{ workOrder.introduction || 'Tidak ada deskripsi penugasan.' }}
           </div>
@@ -168,7 +168,7 @@
               <span class="tech-fee font-bold text-right">{{ formatCurrency(tech.fee) }}</span>
             </div>
           </div>
-          <p v-else class="text-muted font-xs italic text-left py-2">{{ t('noTechs') }}</p>
+          <p v-else class="text-muted font-xs italic text-left py-1">{{ t('noTechs') }}</p>
         </div>
 
         <!-- Material & Cost Breakdown -->
@@ -187,7 +187,7 @@
               </thead>
               <tbody>
                 <tr v-if="!workOrder.resources || workOrder.resources.length === 0">
-                  <td colspan="3" class="text-center text-muted font-xs py-3">{{ t('noResources') }}</td>
+                  <td colspan="3" class="text-center text-muted font-xs py-2">{{ t('noResources') }}</td>
                 </tr>
                 <tr v-for="(item, idx) in workOrder.resources" :key="idx">
                   <td class="font-medium text-main text-left">{{ item.name }}</td>
@@ -341,7 +341,6 @@ const initTheme = () => {
   applyTheme(savedTheme);
 };
 
-// Mengubah URL Gambar menjadi Data Base64 untuk menghindari masalah CORS & blank di PDF
 const convertUrlToBase64 = async (url) => {
   try {
     const res = await fetch(url, { mode: 'cors' });
@@ -437,7 +436,7 @@ const downloadPDF = async () => {
 
     if (html2pdfModule) {
       const opt = {
-        margin: [8, 8, 8, 8],
+        margin: [6, 8, 6, 8],
         filename: `${workOrder.value?.woCode || 'WorkOrder'}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
@@ -583,7 +582,7 @@ onMounted(() => {
   box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
-  padding: 24px 20px;
+  padding: 20px 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   overflow-y: visible;
@@ -593,10 +592,10 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   width: 100%;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 }
 
 .header-title { text-align: left; }
@@ -613,7 +612,7 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   transition: all 0.2s;
 }
 .btn-back:hover {
@@ -651,7 +650,7 @@ onMounted(() => {
   text-transform: uppercase;
   color: var(--primary-color);
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .kanji-logo-badge {
@@ -716,40 +715,42 @@ h1 {
 .pdf-printable-container {
   width: 100%;
   background: var(--bg-card);
-  padding: 24px;
+  padding: 16px 20px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   box-sizing: border-box;
 }
 
+/* Jarak Header PDF & Garis Pembatas Dibuat Presisi */
 .pdf-doc-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 12px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.pdf-brand { display: flex; align-items: center; gap: 12px; }
-.pdf-logo { width: 32px; height: 32px; border-radius: 6px; }
-.pdf-brand-title { font-size: 16px; font-weight: 800; margin: 0; color: #2563eb; letter-spacing: 0.5px; }
-.pdf-brand-sub { font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0; }
+.pdf-brand { display: flex; align-items: center; gap: 10px; }
+.pdf-logo { width: 30px; height: 30px; border-radius: 5px; }
+.pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: #2563eb; letter-spacing: 0.5px; }
+.pdf-brand-sub { font-size: 10px; color: var(--text-muted); margin: 1px 0 0 0; }
 .pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
-.pdf-code { font-size: 15px; font-weight: 800; color: var(--text-main); }
-.pdf-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.pdf-code { font-size: 14px; font-weight: 800; color: var(--text-main); }
+.pdf-date { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
 
+/* Grid Konten Lebih Rapat */
 .detail-content-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   width: 100%;
 }
 
 .detail-card {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 14px;
+  padding-bottom: 8px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -759,20 +760,20 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 4px 0;
 }
 
 .section-subheading {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
 }
 
 .section-bar-header {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 .section-bar-header h3 {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -783,18 +784,18 @@ h1 {
 .info-grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 .info-item { display: flex; flex-direction: column; }
-.info-label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
-.info-label-bold { font-size: 13px; font-weight: 700; color: var(--text-main); }
-.info-value-bold { font-size: 14px; font-weight: 700; color: var(--text-main); }
+.info-label { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-bottom: 2px; }
+.info-label-bold { font-size: 12px; font-weight: 700; color: var(--text-main); }
+.info-value-bold { font-size: 13px; font-weight: 700; color: var(--text-main); }
 
 .maps-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--primary-color);
   text-decoration: none;
@@ -803,45 +804,45 @@ h1 {
 .desc-box {
   background: var(--bg-main);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 12px;
-  line-height: 1.6;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--text-main);
   white-space: pre-line;
   word-break: break-word;
 }
 
-.tech-list { display: flex; flex-direction: column; gap: 8px; }
+.tech-list { display: flex; flex-direction: column; gap: 4px; }
 .tech-item-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 4px 0;
   border-bottom: 1px solid var(--border-color);
 }
 .tech-item-row:last-child { border-bottom: none; }
-.tech-name { font-size: 13px; color: var(--text-main); }
-.tech-email { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-.tech-fee { font-size: 13px; color: var(--text-main); }
+.tech-name { font-size: 12px; color: var(--text-main); }
+.tech-email { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.tech-fee { font-size: 12px; color: var(--text-main); }
 
 .table-responsive { overflow-x: auto; width: 100%; }
-.minimal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.minimal-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .minimal-table th {
-  padding: 8px 0;
-  font-size: 11px;
+  padding: 6px 0;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-color);
 }
-.minimal-table td { padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+.minimal-table td { padding: 6px 0; border-bottom: 1px solid var(--border-color); }
 
 .grand-total-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 12px;
-  font-size: 14px;
+  padding-top: 8px;
+  font-size: 13px;
 }
 .total-label { font-weight: 800; color: var(--text-main); }
 .total-amount { font-weight: 800; color: var(--text-main); }
@@ -849,14 +850,14 @@ h1 {
 .image-grid { 
   display: grid; 
   grid-template-columns: repeat(3, 1fr); 
-  gap: 12px; 
-  margin-top: 8px;
+  gap: 10px; 
+  margin-top: 6px;
   page-break-inside: avoid !important;
   break-inside: avoid !important;
 }
 .img-wrapper { 
   aspect-ratio: 4 / 3; 
-  border-radius: 8px; 
+  border-radius: 6px; 
   overflow: hidden; 
   border: 1px solid var(--border-color); 
   background-color: var(--bg-main);
@@ -868,12 +869,12 @@ h1 {
 }
 .img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .no-images-box { 
-  padding: 12px; 
+  padding: 10px; 
   background: var(--bg-main); 
-  border-radius: 8px; 
+  border-radius: 6px; 
   border: 1px solid var(--border-color); 
   color: var(--text-muted); 
-  font-size: 12px; 
+  font-size: 11px; 
   font-style: italic; 
 }
 
@@ -881,9 +882,9 @@ h1 {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 14px;
-  border-radius: 16px;
-  font-size: 12px;
+  padding: 3px 12px;
+  border-radius: 14px;
+  font-size: 11px;
   font-weight: 700;
 }
 .badge-blue { background-color: rgba(37, 99, 235, 0.12); color: #2563eb; }
@@ -899,32 +900,34 @@ h1 {
 
 .font-bold { font-weight: 700; }
 .font-medium { font-weight: 500; }
-.font-xs { font-size: 11px; }
+.font-xs { font-size: 10px; }
 .text-main { color: var(--text-main); }
 .text-muted { color: var(--text-muted); }
 .block { display: block; }
+.mt-1 { margin-top: 4px; }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
+.mb-1 { margin-bottom: 4px; }
 .mb-2 { margin-bottom: 8px; }
+.py-1 { padding-top: 4px; padding-bottom: 4px; }
 .py-2 { padding-top: 8px; padding-bottom: 8px; }
-.py-3 { padding-top: 12px; padding-bottom: 12px; }
 
-.empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); }
+.empty-state { text-align: center; padding: 30px 16px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); }
 .btn-primary { background: var(--primary-color); color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
 .spin-anim { animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-.skeleton-card { display: flex; flex-direction: column; min-height: 120px; }
+.skeleton-card { display: flex; flex-direction: column; min-height: 100px; }
 .skeleton-block { background: var(--border-color); border-radius: 6px; animation: pulse 1.5s infinite ease-in-out; }
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* PDF Output Override Styles - Memastikan Putih Murni & Kecerahan Konsisten */
+/* PDF Export - Padding Ringkas & Presisi */
 .pdf-printable-container.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
-  padding: 20px !important;
+  padding: 12px 16px !important;
   width: 100% !important;
   border: none !important;
 }
