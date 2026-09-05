@@ -1,6 +1,6 @@
 <template>
   <div class="wo-detail-wrapper">
-    <!-- Header Page Actions (Diabaikan Saat Print/PDF) -->
+    <!-- Header Page Actions (Khusus Layar Web) -->
     <header class="header-container no-print">
       <div class="header-title text-left">
         <button @click="goBack" class="btn-back">
@@ -79,7 +79,7 @@
       </div>
     </header>
 
-    <!-- Loading State Skeleton -->
+    <!-- Loading Skeleton -->
     <div v-if="loading" class="detail-content-grid">
       <div class="detail-card skeleton-card">
         <div class="skeleton-block w-40 h-24 mb-2"></div>
@@ -100,7 +100,7 @@
 
     <!-- Printable & Exportable Content Area -->
     <div v-else-if="workOrder" ref="pdfContentRef" class="pdf-printable-container">
-      <!-- PDF Document Header -->
+      <!-- PDF Document Header (HANYA MUNCUL SAAT DOWNLOAD PDF / PRINT) -->
       <div class="pdf-doc-header">
         <div class="pdf-brand">
           <div class="kanji-logo-badge pdf-logo">
@@ -139,7 +139,7 @@
             </div>
           </div>
 
-          <div v-if="workOrder.mapsUrl" class="mt-1 text-left no-print">
+          <div v-if="workOrder.mapsUrl" class="mt-2 text-left no-print">
             <a :href="workOrder.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
               📍 <span>{{ t('openMaps') }}</span>
             </a>
@@ -592,7 +592,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   width: 100%;
   flex-wrap: wrap;
   gap: 12px;
@@ -711,46 +711,33 @@ h1 {
 .theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 .switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
 
-/* PDF Document Area */
+/* Area Utama Tampilan Web */
 .pdf-printable-container {
   width: 100%;
   background: var(--bg-card);
-  padding: 16px 20px;
+  padding: 20px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   box-sizing: border-box;
 }
 
-/* Jarak Header PDF & Garis Pembatas Dibuat Presisi */
+/* SEMBUNYIKAN HEADER DOKUMEN PDF DARI TAMPILAN LAYAR WEB */
 .pdf-doc-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
+  display: none;
 }
 
-.pdf-brand { display: flex; align-items: center; gap: 10px; }
-.pdf-logo { width: 30px; height: 30px; border-radius: 5px; }
-.pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: #2563eb; letter-spacing: 0.5px; }
-.pdf-brand-sub { font-size: 10px; color: var(--text-muted); margin: 1px 0 0 0; }
-.pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
-.pdf-code { font-size: 14px; font-weight: 800; color: var(--text-main); }
-.pdf-date { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
-
-/* Grid Konten Lebih Rapat */
+/* Grid Konten Web View */
 .detail-content-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   width: 100%;
 }
 
 .detail-card {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 8px;
+  padding-bottom: 12px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -770,7 +757,7 @@ h1 {
 }
 
 .section-bar-header {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .section-bar-header h3 {
   font-size: 11px;
@@ -805,20 +792,20 @@ h1 {
   background: var(--bg-main);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 11px;
-  line-height: 1.5;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
   color: var(--text-main);
   white-space: pre-line;
   word-break: break-word;
 }
 
-.tech-list { display: flex; flex-direction: column; gap: 4px; }
+.tech-list { display: flex; flex-direction: column; gap: 6px; }
 .tech-item-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border-color);
 }
 .tech-item-row:last-child { border-bottom: none; }
@@ -835,13 +822,13 @@ h1 {
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-color);
 }
-.minimal-table td { padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+.minimal-table td { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
 
 .grand-total-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 8px;
+  padding-top: 10px;
   font-size: 13px;
 }
 .total-label { font-weight: 800; color: var(--text-main); }
@@ -923,7 +910,7 @@ h1 {
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* PDF Export - Padding Ringkas & Presisi */
+/* KHUSUS DOKUMEN HASIL EKSPOR PDF & PRINT */
 .pdf-printable-container.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
@@ -931,6 +918,23 @@ h1 {
   width: 100% !important;
   border: none !important;
 }
+
+.pdf-printable-container.is-exporting-pdf .pdf-doc-header {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.pdf-brand { display: flex; align-items: center; gap: 10px; }
+.pdf-logo { width: 30px; height: 30px; border-radius: 5px; background-color: #2563eb !important; }
+.pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: #2563eb !important; letter-spacing: 0.5px; }
+.pdf-brand-sub { font-size: 10px; color: #64748b !important; margin: 1px 0 0 0; }
+.pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
+.pdf-code { font-size: 14px; font-weight: 800; color: #0f172a !important; }
+.pdf-date { font-size: 10px; color: #64748b !important; margin-top: 1px; }
 
 .pdf-printable-container.is-exporting-pdf * {
   color: #0f172a !important;
@@ -948,6 +952,8 @@ h1 {
 
 @media print {
   .no-print { display: none !important; }
+  .pdf-doc-header { display: flex !important; border-bottom: 1px solid #cbd5e1 !important; }
+  .pdf-brand-title { color: #2563eb !important; }
   .wo-detail-wrapper { padding: 0 !important; background: #ffffff !important; color: #000000 !important; }
   .pdf-printable-container { border: none !important; padding: 0 !important; background: #ffffff !important; }
   .detail-card { border-bottom: 1px solid #cbd5e1 !important; }
