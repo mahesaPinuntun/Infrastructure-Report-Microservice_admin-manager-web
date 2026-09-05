@@ -82,12 +82,16 @@
       </div>
     </header>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="detail-card skeleton-card">
-      <div class="skeleton-block w-40 h-24 mb-4"></div>
-      <div class="skeleton-block w-full h-12 mb-3"></div>
-      <div class="skeleton-block w-full h-12 mb-3"></div>
-      <div class="skeleton-block w-full h-32"></div>
+    <!-- Loading State (Matched Layout Skeleton to Prevent Refresh Jumps) -->
+    <div v-if="loading" class="detail-content-grid">
+      <div class="detail-card skeleton-card">
+        <div class="skeleton-block w-40 h-24 mb-4"></div>
+        <div class="skeleton-block w-full h-12 mb-3"></div>
+      </div>
+      <div class="detail-card skeleton-card">
+        <div class="skeleton-block w-full h-12 mb-3"></div>
+        <div class="skeleton-block w-full h-32"></div>
+      </div>
     </div>
 
     <!-- Error State -->
@@ -232,7 +236,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 
@@ -305,6 +309,14 @@ const calculatedGrandTotal = computed(() => {
   return techTotal + resourceTotal;
 });
 
+const resetScrollPosition = () => {
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+  }
+};
+
 const initLanguage = () => {
   currentLang.value = localStorage.getItem('user-lang') || 'id';
 };
@@ -342,20 +354,20 @@ const fetchWorkOrderDetail = async () => {
   loading.value = true;
   errorMessage.value = '';
 
-  // 1. Coba fetch ke endpoint detail single Work Order
   try {
     const response = await axios.get(`${MANAGER_API_URL}/api/manager/work-orders/${woId}`);
     const resData = response.data?.data || response.data?.workOrder || response.data;
     if (resData && (resData._id || resData.id || resData.woCode)) {
       workOrder.value = resData;
       loading.value = false;
+      await nextTick();
+      resetScrollPosition();
       return;
     }
   } catch (err) {
     console.warn('Direct WO detail fetch failed, trying list fallback...', err?.message);
   }
 
-  // 2. Fallback: Jika endpoint single WO 404/error, fetch list lengkap & cari item yang cocok
   try {
     const resList = await axios.get(`${MANAGER_API_URL}/api/manager/work-orders`);
     const listData = resList.data?.workOrders || resList.data?.data || resList.data || [];
@@ -368,6 +380,8 @@ const fetchWorkOrderDetail = async () => {
       if (found) {
         workOrder.value = found;
         loading.value = false;
+        await nextTick();
+        resetScrollPosition();
         return;
       }
     }
@@ -423,6 +437,7 @@ const downloadPDF = async () => {
     if (element) {
       element.classList.remove('is-exporting-pdf');
     }
+    resetScrollPosition();
     isGeneratingPdf.value = false;
   }
 };
@@ -470,7 +485,17 @@ const formatCurrentDate = () => {
   });
 };
 
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) {
+      fetchWorkOrderDetail();
+    }
+  }
+);
+
 onMounted(() => {
+  resetScrollPosition();
   initTheme();
   initLanguage();
   fetchWorkOrderDetail();
@@ -514,8 +539,20 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
+/* Base Body/HTML Overflow Normalization */
+:global(html),
+:global(body) {
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
 .wo-detail-wrapper {
   min-height: 100vh;
+  height: auto;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -523,6 +560,8 @@ onMounted(() => {
   color: var(--text-main);
   padding: 24px 32px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .header-container {
@@ -805,7 +844,7 @@ h1 {
 .spin-anim { animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-.skeleton-card { height: 300px; display: flex; flex-direction: column; }
+.skeleton-card { display: flex; flex-direction: column; min-height: 120px; }
 .skeleton-block { background: var(--border-color); border-radius: 6px; animation: pulse 1.5s infinite ease-in-out; }
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
