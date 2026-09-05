@@ -1,6 +1,6 @@
 <template>
   <div class="wo-dashboard-wrapper">
-    <!-- Header Section (Sesuai Referensi) -->
+    <!-- Header Section -->
     <header class="header-container">
       <div class="header-title">
         <div class="brand-badge">
@@ -87,7 +87,7 @@
         />
       </div>
 
-      <!-- Status Filter Tabs -->
+      <!-- Status Filter Tabs (Hanya Assigned - Completed) -->
       <div class="status-tabs">
         <button 
           v-for="status in statusOptions" 
@@ -142,7 +142,7 @@
     <!-- ================================================================= -->
     <!-- 3. DATA DISPLAY (DESKTOP TABLE & MOBILE CARDS) -->
     <!-- ================================================================= -->
-    <div v-else>
+    <div v-else class="data-wrapper">
       <!-- DESKTOP TABLE -->
       <div class="desktop-only table-card">
         <table class="wo-table">
@@ -340,7 +340,7 @@ const currentLang = ref('id');
 
 const MANAGER_API_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
-// KAMUS TRANSLASI i18n
+// TRANSLATION i18n
 const translations = {
   id: {
     workOrdersTitle: 'Daftar Work Order',
@@ -398,13 +398,13 @@ const translations = {
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
+// STATUS OPTIONS: Dibatasi hanya dari ASSIGNED hingga COMPLETED
 const statusOptions = computed(() => [
   { label: currentLang.value === 'id' ? 'Semua' : 'All', value: 'ALL' },
   { label: 'Assigned', value: 'ASSIGNED' },
   { label: 'Accepted', value: 'ACCEPTED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Cancelled', value: 'CANCELLED' }
+  { label: 'Completed', value: 'COMPLETED' }
 ]);
 
 // LANGUAGE TOGGLE
@@ -460,7 +460,12 @@ onMounted(() => {
 
 const filteredWorkOrders = computed(() => {
   return workOrders.value.filter((wo) => {
-    const matchesStatus = selectedStatus.value === 'ALL' || wo.status === selectedStatus.value;
+    // Mengecualikan status CANCELLED secara otomatis
+    const isNotCancelled = wo.status !== 'CANCELLED';
+    const matchesStatus = selectedStatus.value === 'ALL' 
+      ? isNotCancelled 
+      : wo.status === selectedStatus.value;
+
     const query = searchQuery.value.toLowerCase();
     const matchesQuery = 
       !query || 
@@ -477,7 +482,6 @@ const getStatusBadge = (status) => {
     case 'ACCEPTED': return { label: 'Accepted', class: 'badge-amber' };
     case 'IN_PROGRESS': return { label: 'In Progress', class: 'badge-cyan' };
     case 'COMPLETED': return { label: 'Completed', class: 'badge-green' };
-    case 'CANCELLED': return { label: 'Cancelled', class: 'badge-red' };
     default: return { label: status || 'Unknown', class: 'badge-gray' };
   }
 };
@@ -506,7 +510,7 @@ const closeDetailModal = () => { selectedWO.value = null; };
 
 <style scoped>
 /* =========================================================================
-   PALETTE & CSS VARIABLES
+   FULL WIDTH LAYOUT & THEME VARIABLES
    ========================================================================= */
 :global(:root),
 :global(html),
@@ -544,9 +548,24 @@ const closeDetailModal = () => { selectedWO.value = null; };
   --lang-text-active: #3b82f6;
 }
 
+/* Force Full Width Body and Parent Containers */
+:global(html),
+:global(body),
+:global(#app) {
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
 .wo-dashboard-wrapper {
   min-height: 100vh;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -662,7 +681,7 @@ h1 {
 
 .lang-toggle-switch.is-en .lang-slider { transform: translateX(32px); }
 
-/* Fluid Theme Switch */
+/* Theme Switch */
 .theme-switch-wrapper { display: flex; align-items: center; flex-shrink: 0; }
 
 .theme-toggle-switch {
@@ -719,7 +738,7 @@ h1 {
 
 .btn-refresh:hover { background-color: var(--primary-hover); }
 
-/* Controlled SVG Dimensions */
+/* Icon sizes */
 .icon-sm { width: 16px; height: 16px; flex-shrink: 0; }
 .search-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--text-muted); }
 .empty-icon { width: 48px; height: 48px; margin-bottom: 12px; color: var(--text-muted); }
@@ -727,17 +746,19 @@ h1 {
 .spin-anim { animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* Filter Bar */
+/* Filter Bar Full Width */
 .wo-filter-bar {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 12px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
   margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
   flex-wrap: wrap;
 }
 
@@ -768,7 +789,7 @@ h1 {
   background-color: var(--bg-main);
   color: var(--text-muted);
   border: 1px solid var(--border-color);
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -799,24 +820,27 @@ h1 {
 .badge-amber { background-color: rgba(217, 119, 6, 0.12); color: #d97706; border-color: rgba(217, 119, 6, 0.25); }
 .badge-cyan { background-color: rgba(6, 182, 212, 0.12); color: #0891b2; border-color: rgba(6, 182, 212, 0.25); }
 .badge-green { background-color: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25); }
-.badge-red { background-color: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.25); }
 .badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; border-color: rgba(148, 163, 184, 0.25); }
 
-/* Table Styling */
+/* Full Width Table Component */
+.data-wrapper { width: 100%; }
+
 .table-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .wo-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-.wo-table th { background-color: var(--bg-main); padding: 12px 16px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
-.wo-table td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); }
+.wo-table th { background-color: var(--bg-main); padding: 14px 18px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+.wo-table td { padding: 16px 18px; border-bottom: 1px solid var(--border-color); }
 
 /* Mobile Cards View */
-.cards-list { display: flex; flex-direction: column; gap: 12px; }
-.wo-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
+.cards-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.wo-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .card-tag { font-size: 10px; font-weight: 700; color: var(--primary-color); display: block; }
 .card-code { font-size: 16px; font-weight: 700; color: var(--text-main); margin: 2px 0 0 0; }
@@ -887,8 +911,8 @@ h1 {
 .btn-secondary { background: var(--border-color); color: var(--text-main); border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
 /* Skeleton Loading Animation */
-.skeleton-wrapper { display: flex; flex-direction: column; gap: 12px; }
-.skeleton-table, .skeleton-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
+.skeleton-wrapper { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.skeleton-table, .skeleton-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; }
 .skeleton-row { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
 .skeleton-block { height: 16px; background: var(--border-color); border-radius: 4px; animation: pulse 1.5s infinite ease-in-out; }
 .skeleton-block.badge { height: 24px; border-radius: 12px; }
@@ -907,6 +931,7 @@ h1 {
   .info-grid { grid-template-columns: 1fr; }
   .search-box { max-width: 100%; }
   .header-actions { width: 100%; justify-content: space-between; }
+  .wo-dashboard-wrapper { padding: 16px; }
 }
 
 .text-right { text-align: right; }
@@ -919,5 +944,5 @@ h1 {
 .text-indigo { color: var(--primary-color); }
 .block { display: block; }
 .uppercase { text-transform: uppercase; }
-.empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); }
+.empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); width: 100%; box-sizing: border-box; }
 </style>
