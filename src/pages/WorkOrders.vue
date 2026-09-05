@@ -3,9 +3,13 @@
     <!-- Header Section -->
     <header class="header-container no-print">
       <div class="header-title">
-        <div class="brand-badge">
-          <!-- Logo Kanji 築 (Chiku) Small Badge -->
-          <div class="kanji-logo-badge">
+        <!-- Logo Kanji dengan aksi Back Route & Efek Flowing/Glowing -->
+        <div 
+          class="brand-badge brand-badge-link" 
+          @click="navigateToManagerPortal" 
+          title="Kembali ke Portal Manager"
+        >
+          <div class="kanji-logo-badge flowing-glowing-icon">
             <span class="kanji-badge-text">築</span>
           </div>
           <span>Manager Field System</span>
@@ -15,6 +19,20 @@
       </div>
 
       <div class="header-actions">
+        <!-- Tombol Reroute ke Manager Portal -->
+        <a 
+          href="https://infrastructure-report-microservice-admin-manager.vercel.app/manager" 
+          class="btn-reroute"
+          title="Kembali ke Portal Manager"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          <span>Manager Portal</span>
+        </a>
+
         <!-- Language Switcher (Pilihan Bahasa ID / EN) -->
         <div class="lang-switch-wrapper">
           <button 
@@ -261,7 +279,7 @@
           <!-- Kop / Branding Header Khusus Output PDF -->
           <div class="pdf-doc-header">
             <div class="pdf-brand">
-              <div class="kanji-logo-badge pdf-logo">
+              <div class="kanji-logo-badge pdf-logo flowing-glowing-icon">
                 <span class="kanji-badge-text">築</span>
               </div>
               <div class="text-left">
@@ -397,6 +415,7 @@ const modalPdfRef = ref(null);
 const activeTheme = ref('light');
 const currentLang = ref('id');
 
+const MANAGER_PORTAL_URL = 'https://infrastructure-report-microservice-admin-manager.vercel.app/manager';
 const MANAGER_API_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
 // TRANSLATION i18n
@@ -461,7 +480,12 @@ const translations = {
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
-// STATUS OPTIONS: Dibatasi hanya ALL, ASSIGNED, dan COMPLETED
+// NAVIGASI BACK ROUTE KE MANAGER PORTAL
+const navigateToManagerPortal = () => {
+  window.location.href = MANAGER_PORTAL_URL;
+};
+
+// STATUS OPTIONS
 const statusOptions = computed(() => [
   { label: currentLang.value === 'id' ? 'Semua' : 'All', value: 'ALL' },
   { label: 'Assigned', value: 'ASSIGNED' },
@@ -698,36 +722,67 @@ const closeDetailModal = () => { selectedWO.value = null; };
   gap: 16px;
 }
 
-.brand-badge {
+/* Brand Badge Clickable Link */
+.brand-badge-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--primary-color);
   letter-spacing: 0.5px;
   margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.kanji-logo-badge {
-  width: 24px;
-  height: 24px;
-  background-color: var(--primary-color);
-  border-radius: 6px;
+.brand-badge-link:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Flowing & Glowing Animation for Kanji Logo Badge */
+.flowing-glowing-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px -1px rgba(37, 99, 235, 0.3);
   flex-shrink: 0;
+  position: relative;
+  background: linear-gradient(135deg, #2563eb, #3b82f6, #06b6d4, #3b82f6, #2563eb);
+  background-size: 300% 300%;
+  animation: flowingGradient 4s ease infinite, glowingPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes flowingGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glowingPulse {
+  0% {
+    box-shadow: 0 0 6px rgba(37, 99, 235, 0.4), 0 0 12px rgba(6, 182, 212, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.8), 0 0 24px rgba(6, 182, 212, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 6px rgba(37, 99, 235, 0.4), 0 0 12px rgba(6, 182, 212, 0.3);
+  }
 }
 
 .kanji-badge-text {
   font-family: 'sans-serif', 'Noto Sans JP';
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   color: #ffffff;
   line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 h1 {
@@ -746,7 +801,31 @@ h1 {
 
 .subtitle strong { color: var(--text-main); }
 
-.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Tombol Reroute External Link */
+.btn-reroute {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-card);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-reroute:hover {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
 
 /* Language Switcher */
 .lang-switch-wrapper { display: flex; align-items: center; flex-shrink: 0; }
