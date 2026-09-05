@@ -1,6 +1,6 @@
 <template>
   <div class="wo-detail-wrapper">
-    <!-- Header Page Actions -->
+    <!-- Header Page Actions (Diabaikan Saat Print/PDF) -->
     <header class="header-container no-print">
       <div class="header-title text-left">
         <button @click="goBack" class="btn-back">
@@ -22,7 +22,6 @@
 
       <!-- Controls & Download Button -->
       <div class="header-actions">
-        <!-- Download PDF Button -->
         <button 
           @click="downloadPDF" 
           class="btn-download-pdf" 
@@ -37,13 +36,12 @@
           <span>{{ isGeneratingPdf ? t('generatingPdf') : t('downloadPdf') }}</span>
         </button>
 
-        <!-- Language Switcher -->
+        <!-- Switch Language -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
             class="lang-toggle-switch"
             :class="{ 'is-en': currentLang === 'en' }"
-            :title="currentLang === 'id' ? 'Switch to English' : 'Ubah ke Bahasa Indonesia'"
             aria-label="Toggle Language"
           >
             <span class="lang-option" :class="{ active: currentLang === 'id' }">ID</span>
@@ -52,13 +50,12 @@
           </button>
         </div>
 
-        <!-- Theme Switcher -->
+        <!-- Switch Theme -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
             class="theme-toggle-switch" 
             :class="{ 'is-dark': activeTheme === 'dark' }"
-            :title="activeTheme === 'light' ? 'Dark Mode' : 'Light Mode'"
             aria-label="Toggle Theme"
           >
             <span class="switch-handle">
@@ -82,7 +79,7 @@
       </div>
     </header>
 
-    <!-- Loading State (Matched Layout Skeleton to Prevent Refresh Jumps) -->
+    <!-- Loading State Skeleton -->
     <div v-if="loading" class="detail-content-grid">
       <div class="detail-card skeleton-card">
         <div class="skeleton-block w-40 h-24 mb-4"></div>
@@ -101,7 +98,7 @@
       <button @click="goBack" class="btn-primary mt-3">{{ t('backToList') }}</button>
     </div>
 
-    <!-- Printable Content Area -->
+    <!-- Printable & Exportable Content Area -->
     <div v-else-if="workOrder" ref="pdfContentRef" class="pdf-printable-container">
       <!-- PDF Document Header -->
       <div class="pdf-doc-header">
@@ -109,89 +106,82 @@
           <div class="kanji-logo-badge pdf-logo">
             <span class="kanji-badge-text">築</span>
           </div>
-          <div class="text-left">
+          <div class="pdf-brand-text text-left">
             <h2 class="pdf-brand-title">MANAGER FIELD SYSTEM</h2>
             <p class="pdf-brand-sub">Official Work Order Document Report</p>
           </div>
         </div>
-        <div class="pdf-doc-meta">
+        <div class="pdf-doc-meta text-right">
           <span class="pdf-code">{{ workOrder.woCode }}</span>
           <span class="pdf-date">Printed: {{ formatCurrentDate() }}</span>
         </div>
       </div>
 
       <div class="detail-content-grid">
-        <!-- Banner Status -->
+        <!-- Job Status Bar -->
         <div class="detail-card status-banner-card avoid-break">
-          <div>
-            <span class="text-sub font-xs uppercase block mb-1 text-left">{{ t('statusLabel') }}</span>
-            <span :class="['status-badge', getStatusBadge(workOrder.status).class]">
-              <span class="badge-dot"></span>
-              {{ getStatusBadge(workOrder.status).label }}
-            </span>
-          </div>
-          <div class="text-right">
-            <span class="text-sub font-xs uppercase block mb-1">{{ t('grandTotal') }}</span>
-            <span class="font-bold text-indigo font-lg">{{ formatCurrency(calculatedGrandTotal) }}</span>
-          </div>
+          <span class="info-label-bold text-left">{{ t('statusLabel') }}:</span>
+          <span :class="['status-badge', getStatusBadge(workOrder.status).class]">
+            {{ getStatusBadge(workOrder.status).label }}
+          </span>
         </div>
 
-        <!-- Ringkasan Informasi & Pendahuluan -->
+        <!-- Location & Execution Date -->
         <div class="detail-card avoid-break">
-          <h3 class="card-title">📍 {{ t('generalInfo') }}</h3>
-          <div class="info-grid">
-            <div class="info-item">
+          <div class="info-grid-2col">
+            <div class="info-item text-left">
               <span class="info-label">{{ t('location') }}</span>
-              <span class="info-value">{{ workOrder.locationName || 'Lokasi Belum Ditentukan' }}</span>
+              <span class="info-value-bold">{{ workOrder.locationName || 'Lokasi Belum Ditentukan' }}</span>
             </div>
-            <div class="info-item">
+            <div class="info-item text-left">
               <span class="info-label">{{ t('executionDate') }}</span>
-              <span class="info-value">🗓️ {{ formatDate(workOrder.executionDate) }}</span>
+              <span class="info-value-bold">{{ formatDate(workOrder.executionDate) }}</span>
             </div>
           </div>
 
-          <div v-if="workOrder.mapsUrl" class="mt-3 text-left">
+          <div v-if="workOrder.mapsUrl" class="mt-2 text-left no-print">
             <a :href="workOrder.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
               📍 <span>{{ t('openMaps') }}</span>
             </a>
           </div>
+        </div>
 
-          <!-- Section Pendahuluan / Deskripsi Tugas -->
-          <div class="mt-4 intro-section">
-            <span class="info-label text-left block mb-1">{{ t('description') }}</span>
-            <div class="desc-box text-left">
-              {{ workOrder.introduction || '-' }}
-            </div>
+        <!-- Description / Introduction -->
+        <div class="detail-card avoid-break">
+          <span class="section-subheading text-left block mb-2">{{ t('description') }}</span>
+          <div class="desc-box text-left">
+            {{ workOrder.introduction || 'Tidak ada deskripsi penugasan.' }}
           </div>
         </div>
 
-        <!-- Daftar Teknisi -->
+        <!-- Field Technicians -->
         <div class="detail-card avoid-break">
-          <h3 class="card-title">👥 {{ t('assignedTechs') }}</h3>
+          <div class="section-bar-header text-left">
+            <h3>{{ t('assignedTechs') }}</h3>
+          </div>
           <div v-if="workOrder.technicians && workOrder.technicians.length > 0" class="tech-list">
             <div v-for="(tech, idx) in workOrder.technicians" :key="idx" class="tech-item-row">
-              <div class="tech-info">
-                <div class="avatar-circle">{{ tech.name?.charAt(0).toUpperCase() || 'T' }}</div>
-                <div class="text-left">
-                  <strong class="block text-left">{{ tech.name }}</strong>
-                  <span class="block text-sub font-xs text-left">{{ tech.email || tech.phone || '-' }}</span>
-                </div>
+              <div class="tech-info text-left">
+                <strong class="block tech-name">{{ tech.name }}</strong>
+                <span class="block tech-email">{{ tech.email || tech.phone || '-' }}</span>
               </div>
-              <span class="tech-fee font-bold text-main">{{ formatCurrency(tech.fee) }}</span>
+              <span class="tech-fee font-bold text-right">{{ formatCurrency(tech.fee) }}</span>
             </div>
           </div>
-          <p v-else class="text-muted font-xs italic text-left">{{ t('noTechs') }}</p>
+          <p v-else class="text-muted font-xs italic text-left py-2">{{ t('noTechs') }}</p>
         </div>
 
-        <!-- Tabel Rincian Material & Biaya -->
+        <!-- Material & Cost Breakdown -->
         <div class="detail-card avoid-break">
-          <h3 class="card-title">📦 {{ t('resourcesTitle') }}</h3>
+          <div class="section-bar-header text-left">
+            <h3>{{ t('resourcesTitle') }}</h3>
+          </div>
           <div class="table-responsive">
             <table class="minimal-table">
               <thead>
                 <tr>
-                  <th class="text-left">Item / Material</th>
-                  <th class="text-left">Quantity</th>
+                  <th class="text-left">Item</th>
+                  <th class="text-left">Qty</th>
                   <th class="text-right">Subtotal</th>
                 </tr>
               </thead>
@@ -207,21 +197,28 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Grand Total Row -->
+          <div class="grand-total-row text-right">
+            <span class="total-label">Grand Total:</span>
+            <span class="total-amount">{{ formatCurrency(calculatedGrandTotal) }}</span>
+          </div>
         </div>
 
-        <!-- Galeri Foto Bukti Perbaikan -->
+        <!-- Proof Photos Grid -->
         <div class="detail-card avoid-break">
-          <h3 class="card-title">📷 {{ t('proofPhotos') }} ({{ workOrder.progressImages?.length || 0 }})</h3>
-          <div v-if="workOrder.progressImages && workOrder.progressImages.length > 0" class="image-grid">
+          <div class="section-bar-header text-left">
+            <h3>📷 {{ t('proofPhotos') }} ({{ processedImages.length }})</h3>
+          </div>
+          <div v-if="processedImages.length > 0" class="image-grid avoid-break">
             <div 
-              v-for="(imgUrl, idx) in workOrder.progressImages" 
+              v-for="(imgUrl, idx) in processedImages" 
               :key="idx" 
-              class="img-wrapper"
+              class="img-wrapper avoid-break"
             >
               <img 
                 :src="imgUrl" 
                 alt="Foto Bukti Perbaikan" 
-                crossorigin="anonymous" 
                 loading="eager"
               />
             </div>
@@ -248,6 +245,7 @@ const loading = ref(true);
 const isGeneratingPdf = ref(false);
 const errorMessage = ref('');
 const pdfContentRef = ref(null);
+const processedImages = ref([]);
 
 const activeTheme = ref('light');
 const currentLang = ref('id');
@@ -261,18 +259,18 @@ const translations = {
     notFoundTitle: 'Work Order tidak ditemukan',
     downloadPdf: 'Download PDF',
     generatingPdf: 'Proses PDF...',
-    statusLabel: 'Status Pekerjaan',
-    grandTotal: 'Grand Total Biaya',
+    statusLabel: 'Job Status',
+    grandTotal: 'Grand Total',
     generalInfo: 'Informasi Umum',
-    location: 'Lokasi Perbaikan',
-    executionDate: 'Tanggal Eksekusi',
+    location: 'Repair Location',
+    executionDate: 'Execution Date',
     openMaps: 'Buka Lokasi di Google Maps',
-    description: 'Pendahuluan / Catatan Tugas',
-    assignedTechs: 'Teknisi Ditugaskan',
+    description: 'Description / Introduction',
+    assignedTechs: 'FIELD TECHNICIANS',
     noTechs: 'Belum ada teknisi yang dialokasikan.',
-    resourcesTitle: 'Rincian Material & Biaya',
+    resourcesTitle: 'MATERIAL & COST BREAKDOWN',
     noResources: 'Tidak ada item material dalam Work Order ini.',
-    proofPhotos: 'Foto Bukti Perbaikan',
+    proofPhotos: 'PROOF PHOTOS',
     noPhotos: 'Belum ada foto bukti perbaikan yang diunggah oleh teknisi lapangan.'
   },
   en: {
@@ -282,17 +280,17 @@ const translations = {
     downloadPdf: 'Download PDF',
     generatingPdf: 'Generating PDF...',
     statusLabel: 'Job Status',
-    grandTotal: 'Grand Total Cost',
+    grandTotal: 'Grand Total',
     generalInfo: 'General Information',
     location: 'Repair Location',
     executionDate: 'Execution Date',
     openMaps: 'Open Location in Google Maps',
-    description: 'Introduction / Task Notes',
-    assignedTechs: 'Assigned Technicians',
+    description: 'Description / Introduction',
+    assignedTechs: 'FIELD TECHNICIANS',
     noTechs: 'No technicians assigned yet.',
-    resourcesTitle: 'Materials & Cost Breakdown',
+    resourcesTitle: 'MATERIAL & COST BREAKDOWN',
     noResources: 'No material items in this Work Order.',
-    proofPhotos: 'Proof Photos',
+    proofPhotos: 'PROOF PHOTOS',
     noPhotos: 'No repair proof photos uploaded by field technicians yet.'
   }
 };
@@ -343,6 +341,31 @@ const initTheme = () => {
   applyTheme(savedTheme);
 };
 
+// Mengubah URL Gambar menjadi Data Base64 untuk menghindari masalah CORS & blank di PDF
+const convertUrlToBase64 = async (url) => {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    return url;
+  }
+};
+
+const prepareImages = async (imageList) => {
+  if (!Array.isArray(imageList) || imageList.length === 0) {
+    processedImages.value = [];
+    return;
+  }
+  const converted = await Promise.all(imageList.map((url) => convertUrlToBase64(url)));
+  processedImages.value = converted;
+};
+
 const fetchWorkOrderDetail = async () => {
   const woId = route.params.id;
   if (!woId) {
@@ -359,6 +382,7 @@ const fetchWorkOrderDetail = async () => {
     const resData = response.data?.data || response.data?.workOrder || response.data;
     if (resData && (resData._id || resData.id || resData.woCode)) {
       workOrder.value = resData;
+      await prepareImages(resData.progressImages || []);
       loading.value = false;
       await nextTick();
       resetScrollPosition();
@@ -379,6 +403,7 @@ const fetchWorkOrderDetail = async () => {
 
       if (found) {
         workOrder.value = found;
+        await prepareImages(found.progressImages || []);
         loading.value = false;
         await nextTick();
         resetScrollPosition();
@@ -412,8 +437,8 @@ const downloadPDF = async () => {
 
     if (html2pdfModule) {
       const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `WO_${workOrder.value?.woCode || 'Detail'}.pdf`,
+        margin: [8, 8, 8, 8],
+        filename: `${workOrder.value?.woCode || 'WorkOrder'}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 2, 
@@ -451,7 +476,7 @@ const getStatusBadge = (status) => {
     case 'ASSIGNED': return { label: 'Assigned', class: 'badge-blue' };
     case 'ACCEPTED': return { label: 'Accepted', class: 'badge-amber' };
     case 'IN_PROGRESS': return { label: 'In Progress', class: 'badge-cyan' };
-    case 'COMPLETED': return { label: 'Completed', class: 'badge-green' };
+    case 'COMPLETED': return { label: 'Completed', class: 'badge-completed' };
     default: return { label: status || 'Pending', class: 'badge-gray' };
   }
 };
@@ -539,7 +564,6 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
-/* Base Body/HTML Overflow Normalization */
 :global(html),
 :global(body) {
   overflow-x: hidden;
@@ -554,11 +578,12 @@ onMounted(() => {
   min-height: 100vh;
   height: auto;
   width: 100%;
-  max-width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
   box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
-  padding: 24px 32px;
+  padding: 24px 20px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   overflow-y: visible;
@@ -568,15 +593,13 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   width: 100%;
   flex-wrap: wrap;
   gap: 16px;
 }
 
-.header-title {
-  text-align: left;
-}
+.header-title { text-align: left; }
 
 .btn-back {
   display: inline-flex;
@@ -591,7 +614,7 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   margin-bottom: 8px;
-  transition: border-color 0.2s, color 0.2s;
+  transition: all 0.2s;
 }
 .btn-back:hover {
   border-color: var(--primary-color);
@@ -617,10 +640,7 @@ onMounted(() => {
   background-color: var(--primary-hover);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
-.btn-download-pdf:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-download-pdf:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .brand-badge {
   display: inline-flex;
@@ -637,8 +657,8 @@ onMounted(() => {
 .kanji-logo-badge {
   width: 22px;
   height: 22px;
-  background-color: var(--primary-color);
-  border-radius: 6px;
+  background-color: #2563eb;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -653,7 +673,7 @@ onMounted(() => {
 }
 
 h1 {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   margin: 0;
   color: var(--text-main);
@@ -692,24 +712,32 @@ h1 {
 .theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 .switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
 
-.pdf-printable-container { width: 100%; }
+/* PDF Document Area */
+.pdf-printable-container {
+  width: 100%;
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
 
 .pdf-doc-header {
-  display: none;
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
   border-bottom: 2px solid var(--border-color);
 }
 
 .pdf-brand { display: flex; align-items: center; gap: 12px; }
-.pdf-logo { width: 36px; height: 36px; border-radius: 8px; }
-.pdf-brand-title { font-size: 16px; font-weight: 800; margin: 0; color: var(--primary-color); letter-spacing: 0.5px; }
+.pdf-logo { width: 32px; height: 32px; border-radius: 6px; }
+.pdf-brand-title { font-size: 16px; font-weight: 800; margin: 0; color: #2563eb; letter-spacing: 0.5px; }
 .pdf-brand-sub { font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0; }
 .pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
-.pdf-code { font-size: 16px; font-weight: 800; color: var(--text-main); }
-.pdf-date { font-size: 11px; color: var(--text-muted); }
+.pdf-code { font-size: 15px; font-weight: 800; color: var(--text-main); }
+.pdf-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 .detail-content-grid {
   display: flex;
@@ -720,77 +748,114 @@ h1 {
 
 .detail-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 14px;
   width: 100%;
   box-sizing: border-box;
 }
+.detail-card:last-child { border-bottom: none; }
 
-.status-banner-card { display: flex; justify-content: space-between; align-items: center; }
-.card-title { font-size: 16px; font-weight: 700; margin: 0 0 16px 0; color: var(--text-main); text-align: left; }
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+.status-banner-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
 }
-.info-item { display: flex; flex-direction: column; text-align: left; }
-.info-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-.info-value { font-size: 14px; font-weight: 600; color: var(--text-main); text-align: left; }
+
+.section-subheading {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.section-bar-header {
+  margin-bottom: 12px;
+}
+.section-bar-header h3 {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.info-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.info-item { display: flex; flex-direction: column; }
+.info-label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+.info-label-bold { font-size: 13px; font-weight: 700; color: var(--text-main); }
+.info-value-bold { font-size: 14px; font-weight: 700; color: var(--text-main); }
 
 .maps-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--primary-color);
   text-decoration: none;
 }
-.maps-link:hover { text-decoration: underline; }
-
-.intro-section { text-align: left; }
 
 .desc-box {
   background: var(--bg-main);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 14px;
-  font-size: 13px;
+  padding: 12px 14px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--text-main);
-  text-align: left;
   white-space: pre-line;
   word-break: break-word;
 }
 
 .tech-list { display: flex; flex-direction: column; gap: 8px; }
 .tech-item-row {
-  display: flex; justify-content: space-between; align-items: center;
-  background: var(--bg-main); border: 1px solid var(--border-color);
-  padding: 10px 14px; border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
 }
-.tech-info { display: flex; align-items: center; gap: 10px; }
-.avatar-circle {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--primary-color); color: #ffffff;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 13px; flex-shrink: 0;
-}
+.tech-item-row:last-child { border-bottom: none; }
+.tech-name { font-size: 13px; color: var(--text-main); }
+.tech-email { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.tech-fee { font-size: 13px; color: var(--text-main); }
 
 .table-responsive { overflow-x: auto; width: 100%; }
-.minimal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.minimal-table th { background: var(--bg-main); padding: 10px 12px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
-.minimal-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+.minimal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.minimal-table th {
+  padding: 8px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+.minimal-table td { padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+
+.grand-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  font-size: 14px;
+}
+.total-label { font-weight: 800; color: var(--text-main); }
+.total-amount { font-weight: 800; color: var(--text-main); }
 
 .image-grid { 
   display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+  grid-template-columns: repeat(3, 1fr); 
   gap: 12px; 
+  margin-top: 8px;
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
 }
 .img-wrapper { 
-  aspect-ratio: 1; 
+  aspect-ratio: 4 / 3; 
   border-radius: 8px; 
   overflow: hidden; 
   border: 1px solid var(--border-color); 
@@ -798,27 +863,36 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
 }
 .img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .no-images-box { 
-  text-align: left; 
-  padding: 16px; 
+  padding: 12px; 
   background: var(--bg-main); 
   border-radius: 8px; 
   border: 1px solid var(--border-color); 
   color: var(--text-muted); 
-  font-size: 13px; 
+  font-size: 12px; 
   font-style: italic; 
 }
 
-.status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1px solid transparent; }
-.badge-dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; }
-.badge-blue { background-color: rgba(37, 99, 235, 0.12); color: #2563eb; border-color: rgba(37, 99, 235, 0.25); }
-.badge-amber { background-color: rgba(217, 119, 6, 0.12); color: #d97706; border-color: rgba(217, 119, 6, 0.25); }
-.badge-cyan { background-color: rgba(6, 182, 212, 0.12); color: #0891b2; border-color: rgba(6, 182, 212, 0.25); }
-.badge-green { background-color: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25); }
-.badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; border-color: rgba(148, 163, 184, 0.25); }
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge-blue { background-color: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.badge-amber { background-color: rgba(217, 119, 6, 0.12); color: #d97706; }
+.badge-cyan { background-color: rgba(6, 182, 212, 0.12); color: #0891b2; }
+.badge-completed { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+.badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; }
 
+.avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
 .text-left { text-align: left !important; }
 .text-right { text-align: right !important; }
 .text-center { text-align: center !important; }
@@ -826,18 +900,15 @@ h1 {
 .font-bold { font-weight: 700; }
 .font-medium { font-weight: 500; }
 .font-xs { font-size: 11px; }
-.font-lg { font-size: 18px; }
 .text-main { color: var(--text-main); }
-.text-sub { color: var(--text-muted); }
 .text-muted { color: var(--text-muted); }
-.text-indigo { color: var(--primary-color); }
-.uppercase { text-transform: uppercase; }
 .block { display: block; }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
-.mt-4 { margin-top: 16px; }
-.mb-1 { margin-bottom: 4px; }
+.mb-2 { margin-bottom: 8px; }
+.py-2 { padding-top: 8px; padding-bottom: 8px; }
 .py-3 { padding-top: 12px; padding-bottom: 12px; }
+
 .empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); }
 .btn-primary { background: var(--primary-color); color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
@@ -849,42 +920,35 @@ h1 {
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* PDF Output Override Styles */
+/* PDF Output Override Styles - Memastikan Putih Murni & Kecerahan Konsisten */
 .pdf-printable-container.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
-  padding: 24px !important;
+  padding: 20px !important;
   width: 100% !important;
-}
-
-.pdf-printable-container.is-exporting-pdf .pdf-doc-header {
-  display: flex !important;
-  border-bottom: 2px solid #e2e8f0 !important;
+  border: none !important;
 }
 
 .pdf-printable-container.is-exporting-pdf * {
   color: #0f172a !important;
   background-color: transparent !important;
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
   text-shadow: none !important;
   box-shadow: none !important;
 }
 
-.pdf-printable-container.is-exporting-pdf .detail-card,
 .pdf-printable-container.is-exporting-pdf .desc-box,
-.pdf-printable-container.is-exporting-pdf .tech-item-row,
-.pdf-printable-container.is-exporting-pdf .img-wrapper,
-.pdf-printable-container.is-exporting-pdf .no-images-box {
+.pdf-printable-container.is-exporting-pdf .img-wrapper {
   background-color: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
 }
 
 @media print {
   .no-print { display: none !important; }
-  .pdf-doc-header { display: flex !important; }
   .wo-detail-wrapper { padding: 0 !important; background: #ffffff !important; color: #000000 !important; }
-  .detail-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; background: #ffffff !important; }
-  .avoid-break { page-break-inside: avoid !important; }
+  .pdf-printable-container { border: none !important; padding: 0 !important; background: #ffffff !important; }
+  .detail-card { border-bottom: 1px solid #cbd5e1 !important; }
+  .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
   .image-grid { grid-template-columns: repeat(3, 1fr) !important; }
 }
 </style>
