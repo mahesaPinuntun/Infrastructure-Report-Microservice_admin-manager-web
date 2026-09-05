@@ -1,6 +1,6 @@
 <template>
   <div class="wo-detail-wrapper">
-    <!-- Header Page Actions (Non-Printable Header) -->
+    <!-- Header Page Actions -->
     <header class="header-container no-print">
       <div class="header-title">
         <button @click="goBack" class="btn-back">
@@ -99,13 +99,13 @@
 
     <!-- Printable Content Area -->
     <div v-else-if="workOrder" ref="pdfContentRef" class="pdf-printable-container">
-      <!-- PDF Document Header (Tampil khusus dokumen/PDF) -->
+      <!-- PDF Document Header -->
       <div class="pdf-doc-header">
         <div class="pdf-brand">
           <div class="kanji-logo-badge pdf-logo">
             <span class="kanji-badge-text">築</span>
           </div>
-          <div>
+          <div class="text-left">
             <h2 class="pdf-brand-title">MANAGER FIELD SYSTEM</h2>
             <p class="pdf-brand-sub">Official Work Order Document Report</p>
           </div>
@@ -128,11 +128,11 @@
           </div>
           <div class="text-right">
             <span class="text-sub font-xs uppercase block mb-1">{{ t('grandTotal') }}</span>
-            <span class="font-bold text-indigo font-lg">{{ formatCurrency(workOrder.grandTotal) }}</span>
+            <span class="font-bold text-indigo font-lg">{{ formatCurrency(calculatedGrandTotal) }}</span>
           </div>
         </div>
 
-        <!-- Ringkasan Informasi & Pendahuluan (Align Left) -->
+        <!-- Ringkasan Informasi & Pendahuluan -->
         <div class="detail-card avoid-break">
           <h3 class="card-title">📍 {{ t('generalInfo') }}</h3>
           <div class="info-grid">
@@ -146,7 +146,13 @@
             </div>
           </div>
 
-          <!-- Section Pendahuluan / Deskripsi Tugas (Align Left) -->
+          <div v-if="workOrder.mapsUrl" class="mt-3 text-left">
+            <a :href="workOrder.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
+              📍 <span>{{ t('openMaps') }}</span>
+            </a>
+          </div>
+
+          <!-- Section Pendahuluan / Deskripsi Tugas -->
           <div class="mt-4 intro-section">
             <span class="info-label text-left block mb-1">{{ t('description') }}</span>
             <div class="desc-box text-left">
@@ -161,7 +167,7 @@
           <div v-if="workOrder.technicians && workOrder.technicians.length > 0" class="tech-list">
             <div v-for="(tech, idx) in workOrder.technicians" :key="idx" class="tech-item-row">
               <div class="tech-info">
-                <div class="avatar-circle">{{ tech.name?.charAt(0).toUpperCase() }}</div>
+                <div class="avatar-circle">{{ tech.name?.charAt(0).toUpperCase() || 'T' }}</div>
                 <div class="text-left">
                   <strong>{{ tech.name }}</strong>
                   <span class="block text-sub font-xs">{{ tech.email || tech.phone || '-' }}</span>
@@ -192,14 +198,14 @@
                 <tr v-for="(item, idx) in workOrder.resources" :key="idx">
                   <td class="font-medium text-main text-left">{{ item.name }}</td>
                   <td class="text-left">{{ item.quantity }} {{ item.unit }}</td>
-                  <td class="text-right font-bold text-main">{{ formatCurrency(item.subtotal) }}</td>
+                  <td class="text-right font-bold text-main">{{ formatCurrency(item.subtotal || (item.quantity * item.price)) }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Galeri Foto Bukti Perbaikan (Display Gambar Rapi) -->
+        <!-- Galeri Foto Bukti Perbaikan -->
         <div class="detail-card avoid-break">
           <h3 class="card-title">📷 {{ t('proofPhotos') }} ({{ workOrder.progressImages?.length || 0 }})</h3>
           <div v-if="workOrder.progressImages && workOrder.progressImages.length > 0" class="image-grid">
@@ -226,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 
@@ -256,6 +262,7 @@ const translations = {
     generalInfo: 'Informasi Umum',
     location: 'Lokasi Perbaikan',
     executionDate: 'Tanggal Eksekusi',
+    openMaps: 'Buka Lokasi di Google Maps',
     description: 'Pendahuluan / Catatan Tugas',
     assignedTechs: 'Teknisi Ditugaskan',
     noTechs: 'Belum ada teknisi yang dialokasikan.',
@@ -275,6 +282,7 @@ const translations = {
     generalInfo: 'General Information',
     location: 'Repair Location',
     executionDate: 'Execution Date',
+    openMaps: 'Open Location in Google Maps',
     description: 'Introduction / Task Notes',
     assignedTechs: 'Assigned Technicians',
     noTechs: 'No technicians assigned yet.',
@@ -286,6 +294,16 @@ const translations = {
 };
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
+
+const calculatedGrandTotal = computed(() => {
+  if (!workOrder.value) return 0;
+  if (typeof workOrder.value.grandTotal === 'number' && workOrder.value.grandTotal > 0) {
+    return workOrder.value.grandTotal;
+  }
+  const techTotal = (workOrder.value.technicians || []).reduce((s, t) => s + (Number(t.fee) || 0), 0);
+  const resourceTotal = (workOrder.value.resources || []).reduce((s, r) => s + (Number(r.subtotal) || (Number(r.quantity || 1) * Number(r.price || 0))), 0);
+  return techTotal + resourceTotal;
+});
 
 const initLanguage = () => {
   currentLang.value = localStorage.getItem('user-lang') || 'id';
@@ -333,23 +351,23 @@ const fetchWorkOrderDetail = async () => {
   }
 };
 
-// DOWNLOAD PDF FUNCTION
 const downloadPDF = async () => {
   if (!pdfContentRef.value || isGeneratingPdf.value) return;
 
+  const element = pdfContentRef.value;
+
   try {
     isGeneratingPdf.value = true;
+    element.classList.add('is-exporting-pdf');
 
-    // Memuat pustaka html2pdf secara dinamis
     let html2pdfModule;
     try {
       html2pdfModule = (await import('html2pdf.js')).default;
     } catch (e) {
-      console.warn('html2pdf.js belum terpasang via npm, menggunakan pemanggil window.print()');
+      console.warn('html2pdf.js tidak dapat diimpor via npm, fallback window.print()');
     }
 
     if (html2pdfModule) {
-      const element = pdfContentRef.value;
       const opt = {
         margin: [10, 10, 10, 10],
         filename: `WO_${workOrder.value?.woCode || 'Detail'}.pdf`,
@@ -358,6 +376,7 @@ const downloadPDF = async () => {
           scale: 2, 
           useCORS: true, 
           allowTaint: true,
+          backgroundColor: '#ffffff',
           logging: false 
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -372,12 +391,15 @@ const downloadPDF = async () => {
     console.error('Error generating PDF:', error);
     window.print();
   } finally {
+    if (element) {
+      element.classList.remove('is-exporting-pdf');
+    }
     isGeneratingPdf.value = false;
   }
 };
 
 const goBack = () => {
-  router.push('/work-orders');
+  router.push('/visit');
 };
 
 const getStatusBadge = (status) => {
@@ -386,7 +408,7 @@ const getStatusBadge = (status) => {
     case 'ACCEPTED': return { label: 'Accepted', class: 'badge-amber' };
     case 'IN_PROGRESS': return { label: 'In Progress', class: 'badge-cyan' };
     case 'COMPLETED': return { label: 'Completed', class: 'badge-green' };
-    default: return { label: status || 'Unknown', class: 'badge-gray' };
+    default: return { label: status || 'Pending', class: 'badge-gray' };
   }
 };
 
@@ -427,7 +449,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Base Variables */
 :global(:root),
 :global(html),
 :global(body),
@@ -475,7 +496,6 @@ onMounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Header Container */
 .header-container {
   display: flex;
   justify-content: space-between;
@@ -484,6 +504,10 @@ onMounted(() => {
   width: 100%;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.header-title {
+  text-align: left;
 }
 
 .btn-back {
@@ -563,11 +587,11 @@ h1 {
   font-weight: 800;
   margin: 0;
   color: var(--text-main);
+  text-align: left;
 }
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
 
-/* Language & Theme Switcher */
 .lang-switch-wrapper, .theme-switch-wrapper { display: flex; align-items: center; }
 
 .lang-toggle-switch {
@@ -598,10 +622,7 @@ h1 {
 .theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 .switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
 
-/* Printable Container & PDF Document Header */
-.pdf-printable-container {
-  width: 100%;
-}
+.pdf-printable-container { width: 100%; }
 
 .pdf-doc-header {
   display: none;
@@ -612,50 +633,14 @@ h1 {
   border-bottom: 2px solid var(--border-color);
 }
 
-.pdf-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.pdf-brand { display: flex; align-items: center; gap: 12px; }
+.pdf-logo { width: 36px; height: 36px; border-radius: 8px; }
+.pdf-brand-title { font-size: 16px; font-weight: 800; margin: 0; color: var(--primary-color); letter-spacing: 0.5px; }
+.pdf-brand-sub { font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0; }
+.pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
+.pdf-code { font-size: 16px; font-weight: 800; color: var(--text-main); }
+.pdf-date { font-size: 11px; color: var(--text-muted); }
 
-.pdf-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-}
-
-.pdf-brand-title {
-  font-size: 16px;
-  font-weight: 800;
-  margin: 0;
-  color: var(--primary-color);
-  letter-spacing: 0.5px;
-}
-
-.pdf-brand-sub {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 2px 0 0 0;
-}
-
-.pdf-doc-meta {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-}
-
-.pdf-code {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.pdf-date {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* Detail Cards Grid */
 .detail-content-grid {
   display: flex;
   flex-direction: column;
@@ -672,21 +657,9 @@ h1 {
   box-sizing: border-box;
 }
 
-.status-banner-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.status-banner-card { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 16px; font-weight: 700; margin: 0 0 16px 0; color: var(--text-main); text-align: left; }
 
-.card-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 16px 0;
-  color: var(--text-main);
-  text-align: left;
-}
-
-/* Info Grid & Pendahuluan (Align Left) */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -696,9 +669,18 @@ h1 {
 .info-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
 .info-value { font-size: 14px; font-weight: 600; color: var(--text-main); text-align: left; }
 
-.intro-section {
-  text-align: left;
+.maps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-decoration: none;
 }
+.maps-link:hover { text-decoration: underline; }
+
+.intro-section { text-align: left; }
 
 .desc-box {
   background: var(--bg-main);
@@ -713,7 +695,6 @@ h1 {
   word-break: break-word;
 }
 
-/* Tech List */
 .tech-list { display: flex; flex-direction: column; gap: 8px; }
 .tech-item-row {
   display: flex; justify-content: space-between; align-items: center;
@@ -728,13 +709,11 @@ h1 {
   font-weight: 700; font-size: 13px; flex-shrink: 0;
 }
 
-/* Minimal Table */
 .table-responsive { overflow-x: auto; width: 100%; }
 .minimal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .minimal-table th { background: var(--bg-main); padding: 10px 12px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
 .minimal-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
 
-/* Images Grid (Display Gambar Rapi) */
 .image-grid { 
   display: grid; 
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
@@ -750,12 +729,7 @@ h1 {
   align-items: center;
   justify-content: center;
 }
-.img-wrapper img { 
-  width: 100%; 
-  height: 100%; 
-  object-fit: cover; 
-  display: block;
-}
+.img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .no-images-box { 
   text-align: left; 
   padding: 16px; 
@@ -767,7 +741,6 @@ h1 {
   font-style: italic; 
 }
 
-/* Status Badges */
 .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1px solid transparent; }
 .badge-dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; }
 .badge-blue { background-color: rgba(37, 99, 235, 0.12); color: #2563eb; border-color: rgba(37, 99, 235, 0.25); }
@@ -776,12 +749,10 @@ h1 {
 .badge-green { background-color: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25); }
 .badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; border-color: rgba(148, 163, 184, 0.25); }
 
-/* Align Helper Classes */
 .text-left { text-align: left !important; }
 .text-right { text-align: right !important; }
 .text-center { text-align: center !important; }
 
-/* Utility */
 .font-bold { font-weight: 700; }
 .font-medium { font-weight: 500; }
 .font-xs { font-size: 11px; }
@@ -800,41 +771,50 @@ h1 {
 .empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); }
 .btn-primary { background: var(--primary-color); color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
-/* Spin Animation */
 .spin-anim { animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* Skeleton */
 .skeleton-card { height: 300px; display: flex; flex-direction: column; }
 .skeleton-block { background: var(--border-color); border-radius: 6px; animation: pulse 1.5s infinite ease-in-out; }
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* =========================================================================
-   MEDIA PRINT STYLES (Optimisasi Cetak & PDF Output)
-   ========================================================================= */
+/* PDF Output Override Styles */
+.pdf-printable-container.is-exporting-pdf {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  padding: 24px !important;
+  width: 100% !important;
+}
+
+.pdf-printable-container.is-exporting-pdf .pdf-doc-header {
+  display: flex !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.pdf-printable-container.is-exporting-pdf * {
+  color: #0f172a !important;
+  background-color: transparent !important;
+  border-color: #cbd5e1 !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.pdf-printable-container.is-exporting-pdf .detail-card,
+.pdf-printable-container.is-exporting-pdf .desc-box,
+.pdf-printable-container.is-exporting-pdf .tech-item-row,
+.pdf-printable-container.is-exporting-pdf .img-wrapper,
+.pdf-printable-container.is-exporting-pdf .no-images-box {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  .pdf-doc-header {
-    display: flex !important;
-  }
-  .wo-detail-wrapper {
-    padding: 0 !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-  .detail-card {
-    border: 1px solid #cbd5e1 !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-  }
-  .avoid-break {
-    page-break-inside: avoid !important;
-  }
-  .image-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
+  .no-print { display: none !important; }
+  .pdf-doc-header { display: flex !important; }
+  .wo-detail-wrapper { padding: 0 !important; background: #ffffff !important; color: #000000 !important; }
+  .detail-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; background: #ffffff !important; }
+  .avoid-break { page-break-inside: avoid !important; }
+  .image-grid { grid-template-columns: repeat(3, 1fr) !important; }
 }
 </style>
