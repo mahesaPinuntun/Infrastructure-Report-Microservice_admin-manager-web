@@ -82,8 +82,6 @@
             <select v-model="form.role" class="input-control select-control">
               <option value="ADMIN">Administrator</option>
               <option value="MANAGER">Manager Field</option>
-              <option value="TECHNICIAN">Teknisi Lapangan</option>
-              <option value="USER">User / Pelapor</option>
             </select>
           </div>
 
