@@ -3,7 +3,7 @@
     <!-- Header Section -->
     <header class="header-container no-print">
       <div class="header-title text-left">
-        <!-- Logo Kanji dengan aksi Back Route & Efek Flowing/Glowing (Ukuran Diperbesar & Align Left) -->
+        <!-- Logo Kanji dengan aksi Back Route & Efek Flowing/Glowing -->
         <div 
           class="brand-badge brand-badge-link" 
           @click="navigateToManagerPortal" 
@@ -19,6 +19,15 @@
       </div>
 
       <div class="header-actions">
+        <!-- Tombol Buat Work Order Baru -->
+        <button @click="handleCreateWO" class="btn-create-wo" :title="t('createWo')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>{{ t('createWo') }}</span>
+        </button>
+
         <!-- Tombol Reroute ke Manager Portal -->
         <a 
           href="https://infrastructure-report-microservice-admin-manager.vercel.app/manager" 
@@ -400,7 +409,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
+
+const router = useRouter();
 
 // STATE
 const workOrders = ref([]);
@@ -423,6 +435,7 @@ const translations = {
   id: {
     workOrdersTitle: 'Daftar Work Order',
     welcome: 'Selamat datang kembali',
+    createWo: 'Buat Work Order',
     refreshData: 'Refresh Data',
     searchPlaceholder: 'Cari Kode WO, Lokasi...',
     noWoFound: 'Tidak ada Work Order ditemukan',
@@ -451,6 +464,7 @@ const translations = {
   en: {
     workOrdersTitle: 'Work Orders List',
     welcome: 'Welcome back',
+    createWo: 'Create Work Order',
     refreshData: 'Refresh Data',
     searchPlaceholder: 'Search WO Code, Location...',
     noWoFound: 'No Work Orders found',
@@ -479,6 +493,17 @@ const translations = {
 };
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
+
+// HANDLER PEMBUATAN WORK ORDER BARU
+const handleCreateWO = () => {
+  // Jika menggunakan vue-router ke halaman formulir pembuatannya:
+  if (router) {
+    router.push('/work-orders/create');
+  } else {
+    // Fallback URL jika mengarahkan ke halaman/modal terpisah
+    window.location.href = `${MANAGER_PORTAL_URL}/work-orders/create`;
+  }
+};
 
 // NAVIGASI BACK ROUTE KE MANAGER PORTAL
 const navigateToManagerPortal = () => {
@@ -533,7 +558,7 @@ const fetchWorkOrders = async () => {
   }
 };
 
-// DOWNLOAD PDF FUNCTION (Isolasi Tema Dark Mode & Hanya Mengambil Konten Modal)
+// DOWNLOAD PDF FUNCTION
 const downloadPDF = async () => {
   if (!modalPdfRef.value || isGeneratingPdf.value || !selectedWO.value) return;
 
@@ -541,8 +566,6 @@ const downloadPDF = async () => {
 
   try {
     isGeneratingPdf.value = true;
-
-    // Aktifkan mode khusus ekspor PDF (Force background putih & teks hitam)
     element.classList.add('is-exporting-pdf');
 
     let html2pdfModule;
@@ -693,7 +716,6 @@ const closeDetailModal = () => { selectedWO.value = null; };
   --lang-text-active: #3b82f6;
 }
 
-/* Force Full Width Body and Parent Containers */
 :global(html),
 :global(body),
 :global(#app) {
@@ -737,7 +759,6 @@ const closeDetailModal = () => { selectedWO.value = null; };
   align-items: flex-start;
 }
 
-/* Brand Badge Clickable Link (Align Left & Larger Size) */
 .brand-badge-link {
   display: inline-flex;
   align-items: center;
@@ -764,7 +785,6 @@ const closeDetailModal = () => { selectedWO.value = null; };
   font-weight: 800;
 }
 
-/* Flowing & Glowing Animation for Kanji Logo Badge (Diperbesar) */
 .flowing-glowing-icon {
   width: 40px;
   height: 40px;
@@ -825,6 +845,29 @@ h1 {
 .subtitle strong { color: var(--text-main); }
 
 .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Tombol Buat Work Order */
+.btn-create-wo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.btn-create-wo:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
 
 /* Tombol Reroute External Link */
 .btn-reroute {
@@ -940,18 +983,18 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--primary-color);
-  color: #ffffff;
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
   padding: 8px 16px;
   border-radius: 8px;
-  border: none;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.btn-refresh:hover { background-color: var(--primary-hover); }
+.btn-refresh:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
 /* Icon sizes */
 .icon-sm { width: 16px; height: 16px; flex-shrink: 0; }
@@ -1204,9 +1247,7 @@ h1 {
 .w-16 { width: 60px; } .w-20 { width: 80px; } .w-24 { width: 100px; } .w-30 { width: 140px; } .w-40 { width: 180px; } .w-50 { width: 220px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* =========================================================================
-   STYLE KHUSUS MODE EKSPOR PDF (OVERRIDE DARK MODE & TEMA APPS)
-   ========================================================================= */
+/* Style Khusus Ekspor PDF */
 .modal-body.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
