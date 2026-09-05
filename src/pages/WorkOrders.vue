@@ -30,7 +30,7 @@
           </button>
         </div>
 
-        <!-- Fluid Theme Switch (Desain Kapsul Animasi) -->
+        <!-- Fluid Theme Switch -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
@@ -87,7 +87,7 @@
         />
       </div>
 
-      <!-- Status Filter Tabs (Hanya Assigned - Completed) -->
+      <!-- Status Filter Tabs (Hanya All, Assigned, Completed) -->
       <div class="status-tabs">
         <button 
           v-for="status in statusOptions" 
@@ -398,12 +398,10 @@ const translations = {
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
-// STATUS OPTIONS: Dibatasi hanya dari ASSIGNED hingga COMPLETED
+// STATUS OPTIONS: Dibatasi hanya ALL, ASSIGNED, dan COMPLETED
 const statusOptions = computed(() => [
   { label: currentLang.value === 'id' ? 'Semua' : 'All', value: 'ALL' },
   { label: 'Assigned', value: 'ASSIGNED' },
-  { label: 'Accepted', value: 'ACCEPTED' },
-  { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' }
 ]);
 
@@ -460,7 +458,6 @@ onMounted(() => {
 
 const filteredWorkOrders = computed(() => {
   return workOrders.value.filter((wo) => {
-    // Mengecualikan status CANCELLED secara otomatis
     const isNotCancelled = wo.status !== 'CANCELLED';
     const matchesStatus = selectedStatus.value === 'ALL' 
       ? isNotCancelled 
