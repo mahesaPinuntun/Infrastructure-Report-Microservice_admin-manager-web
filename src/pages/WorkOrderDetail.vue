@@ -1,22 +1,26 @@
 <template>
-  <div class="page-container">
-    <header class="header-section">
-      <div class="header-left">
-        <button @click="goBack" class="btn-back" title="Kembali">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"/>
-            <polyline points="12 19 5 12 12 5"/>
-          </svg>
-          <span>{{ t('btnBack') }}</span>
-        </button>
+  <div class="wo-dashboard-wrapper">
+    <!-- Header Section -->
+    <header class="header-container">
+      <div class="header-title">
+        <div class="brand-badge">
+          <div class="kanji-logo-badge">
+            <span class="kanji-badge-text">築</span>
+          </div>
+          <span>Manager Field System</span>
+        </div>
+        <h1>{{ t('workOrdersTitle') }}</h1>
+        <p class="subtitle">{{ t('welcome') }}, <strong>{{ user?.name || user?.email || 'Manager' }}</strong></p>
       </div>
 
-      <div class="header-right-actions">
+      <div class="header-actions">
+        <!-- Language Switcher -->
         <div class="lang-switch-wrapper">
           <button 
             @click="toggleLanguage" 
             class="lang-toggle-switch"
             :class="{ 'is-en': currentLang === 'en' }"
+            :title="currentLang === 'id' ? 'Switch to English' : 'Ubah ke Bahasa Indonesia'"
             aria-label="Toggle Language"
           >
             <span class="lang-option" :class="{ active: currentLang === 'id' }">ID</span>
@@ -25,15 +29,17 @@
           </button>
         </div>
 
+        <!-- Fluid Theme Switch -->
         <div class="theme-switch-wrapper">
           <button 
             @click="toggleTheme" 
             class="theme-toggle-switch" 
-            :class="{ 'is-dark': currentTheme === 'dark' }"
+            :class="{ 'is-dark': activeTheme === 'dark' }"
+            :title="activeTheme === 'light' ? 'Dark Mode' : 'Light Mode'"
             aria-label="Toggle Theme"
           >
             <span class="switch-handle">
-              <svg v-if="currentTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg v-if="activeTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="12" cy="12" r="4"/>
                 <line x1="12" y1="1" x2="12" y2="3"/>
                 <line x1="12" y1="21" x2="12" y2="23"/>
@@ -50,236 +56,160 @@
             </span>
           </button>
         </div>
+
+        <!-- Refresh Data Button -->
+        <button @click="fetchWorkOrders" class="btn-refresh" :disabled="loading">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm" :class="{ 'spin-anim': loading }">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span>{{ t('refreshData') }}</span>
+        </button>
       </div>
     </header>
 
-    <div v-if="feedbackMessage" :class="['feedback-alert', feedbackType]">
-      {{ feedbackMessage }}
-    </div>
-
-    <div class="centered-content-wrapper">
-      <div v-if="loading" class="detail-card skeleton-card">
-        <div class="skeleton-header">
-          <div class="skeleton-line skeleton-title"></div>
-          <div class="skeleton-line skeleton-badge"></div>
-        </div>
-        <div class="skeleton-grid">
-          <div v-for="n in 3" :key="'sk-grid-' + n" class="skeleton-line skeleton-box"></div>
-        </div>
-        <div class="skeleton-line skeleton-desc"></div>
-        <div class="skeleton-line skeleton-sub"></div>
-        <div class="skeleton-line skeleton-sub"></div>
-        <div class="skeleton-line skeleton-action"></div>
-      </div>
-
-      <div v-else-if="!wo" class="state-card empty-state">
-        <svg class="icon-lg text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="17"/>
+    <!-- Filter & Search Bar -->
+    <div class="wo-filter-bar">
+      <div class="search-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <p>{{ t('emptyMessage') }}</p>
-        <button @click="fetchWorkOrderDetail" class="btn-retry">{{ t('btnRetry') }}</button>
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          :placeholder="t('searchPlaceholder')" 
+          class="search-input"
+        />
       </div>
 
-      <div v-else class="detail-card">
-        <div class="card-header-section">
-          <div class="title-meta">
-            <span class="wo-code-badge">{{ wo.woCode || 'WO-UNTITLED' }}</span>
-            <h2 class="wo-title">{{ wo.locationName || 'Lokasi Field Work Order' }}</h2>
-            <span class="company-tag">{{ wo.companyName || 'Infrastructure_Report' }}</span>
-          </div>
-          <span :class="['status-badge', (wo.status || 'PENDING').toLowerCase()]">
-            {{ wo.status || 'PENDING' }}
-          </span>
+      <div class="status-tabs">
+        <button 
+          v-for="status in statusOptions" 
+          :key="status.value"
+          @click="selectedStatus = status.value"
+          :class="['tab-btn', { active: selectedStatus === status.value }]"
+        >
+          {{ status.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- SKELETON LOADING STATE -->
+    <div v-if="loading" class="skeleton-wrapper">
+      <div class="desktop-only skeleton-table">
+        <div v-for="i in 5" :key="i" class="skeleton-row">
+          <div class="skeleton-block w-20"></div>
+          <div class="skeleton-block w-40"></div>
+          <div class="skeleton-block w-30"></div>
+          <div class="skeleton-block w-24 badge"></div>
+          <div class="skeleton-block w-24"></div>
+          <div class="skeleton-block w-16"></div>
         </div>
-
-        <p v-if="wo.introduction" class="wo-intro">{{ wo.introduction }}</p>
-
-        <div class="info-grid">
-          <div class="info-item">
-            <label>{{ t('labelWoId') }}</label>
-            <p class="code-text">{{ wo._id || wo.id || route.params.id }}</p>
+      </div>
+      <div class="mobile-only skeleton-cards">
+        <div v-for="i in 3" :key="i" class="skeleton-card">
+          <div class="sk-header">
+            <div class="skeleton-block w-30"></div>
+            <div class="skeleton-block w-20 badge"></div>
           </div>
-          <div class="info-item">
-            <label>{{ t('labelExecDate') }}</label>
-            <p>{{ formatDate(wo.executionDate) }}</p>
-          </div>
-          <div class="info-item">
-            <label>{{ t('labelCreatedBy') }}</label>
-            <p>{{ wo.createdBy || '-' }} ({{ wo.createdByEmail || '-' }})</p>
-          </div>
-          <div class="info-item">
-            <label>{{ t('labelCreatedDate') }}</label>
-            <p>{{ formatDate(wo.createdAt) }}</p>
-          </div>
-        </div>
-
-        <div v-if="wo.mapsUrl" class="section-box">
-          <label>{{ t('labelMaps') }}</label>
-          <a :href="wo.mapsUrl" target="_blank" rel="noopener noreferrer" class="maps-link">
-            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span>Buka di Google Maps &rarr;</span>
-          </a>
-        </div>
-
-        <div class="section-box">
-          <label>{{ t('labelTechnicians') }} ({{ wo.technicians?.length || 0 }})</label>
-          <div class="sub-list">
-            <div v-for="tech in wo.technicians" :key="tech._id || tech.technicianId" class="sub-item">
-              <div class="item-main">
-                <span class="item-name">{{ tech.name || 'Teknisi' }}</span>
-                <span class="item-subtext">{{ tech.phone }} &bull; {{ tech.email }}</span>
-              </div>
-              <span class="item-price">{{ formatCurrency(tech.fee) }}</span>
-            </div>
-            <div v-if="!wo.technicians || wo.technicians.length === 0" class="no-data-text">
-              Belum ada teknisi ditugaskan.
-            </div>
-          </div>
-        </div>
-
-        <div v-if="wo.resources && wo.resources.length > 0" class="section-box">
-          <label>{{ t('labelResources') }} ({{ wo.resources.length }})</label>
-          <div class="sub-list">
-            <div v-for="res in wo.resources" :key="res._id" class="sub-item">
-              <div class="item-main">
-                <span class="item-name">{{ res.name }}</span>
-                <span class="item-subtext">{{ res.quantity }} {{ res.unit }} &times; {{ formatCurrency(res.price) }}</span>
-              </div>
-              <span class="item-price">{{ formatCurrency(res.subtotal) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="cost-summary-box">
-          <div class="cost-row">
-            <span>Total Biaya Teknisi:</span>
-            <strong>{{ formatCurrency(wo.totalTechnicianFee) }}</strong>
-          </div>
-          <div class="cost-row">
-            <span>Total Biaya Material:</span>
-            <strong>{{ formatCurrency(wo.totalResourceCost) }}</strong>
-          </div>
-          <div class="cost-row grand-total-row">
-            <span>Grand Total:</span>
-            <strong class="grand-total-val">{{ formatCurrency(wo.grandTotal) }}</strong>
-          </div>
-        </div>
-
-        <div class="section-box">
-          <label>{{ t('labelDocument') }}</label>
-          <button @click="generatePDF" class="doc-link-btn" :disabled="downloading">
-            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            <span>{{ downloading ? 'Memproses PDF...' : 'Unduh / Buka Dokumen Bukti WO (PDF)' }}</span>
-          </button>
-        </div>
-
-        <div v-if="isAuthenticated" class="action-panel">
-          <h3>{{ t('panelTitle') }}</h3>
-          <div class="action-form">
-            <select v-model="selectedStatus" class="input-select">
-              <option value="PENDING">PENDING</option>
-              <option value="ASSIGNED">ASSIGNED</option>
-              <option value="IN_PROGRESS">IN_PROGRESS</option>
-              <option value="COMPLETED">COMPLETED / RESOLVED</option>
-              <option value="REJECTED">REJECTED</option>
-            </select>
-            <button @click="updateWoStatus" :disabled="updating" class="btn-primary">
-              {{ updating ? t('btnSaving') : t('btnSave') }}
-            </button>
-          </div>
+          <div class="skeleton-block w-50"></div>
+          <div class="skeleton-block w-40"></div>
         </div>
       </div>
     </div>
 
-    <div class="pdf-offscreen-container">
-      <div v-if="wo" id="dynamic-pdf-area-detail" class="pdf-document">
-        <div class="pdf-header">
-          <h2>SURAT TUGAS WORK ORDER</h2>
-          <h3>{{ wo.companyName || 'Infrastructure_Report' }}</h3>
-          <p><strong>ID Surat:</strong> {{ wo.woCode }}</p>
-        </div>
-        <hr class="pdf-divider" />
-        <div class="pdf-meta">
-          <div>
-            <strong>Nama Pembuat Surat:</strong> {{ wo.createdBy || '-' }}
-            <span v-if="wo.createdByEmail"> ({{ wo.createdByEmail }})</span>
+    <!-- EMPTY STATE -->
+    <div v-else-if="filteredWorkOrders.length === 0" class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+      </svg>
+      <h3>{{ t('noWoFound') }}</h3>
+      <p>{{ t('noWoFoundDesc') }}</p>
+    </div>
+
+    <!-- DATA DISPLAY -->
+    <div v-else class="data-wrapper">
+      <!-- DESKTOP TABLE -->
+      <div class="desktop-only table-card">
+        <table class="wo-table">
+          <thead>
+            <tr>
+              <th>{{ t('colWoCode') }}</th>
+              <th>{{ t('colLocation') }}</th>
+              <th>{{ t('colTech') }}</th>
+              <th>{{ t('colStatus') }}</th>
+              <th>{{ t('colTotal') }}</th>
+              <th class="text-right">{{ t('colAction') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="wo in filteredWorkOrders" :key="wo._id">
+              <td class="font-bold text-main">{{ wo.woCode }}</td>
+              <td>
+                <div class="font-medium">{{ wo.locationName }}</div>
+                <div class="text-sub font-xs">🗓️ {{ formatDate(wo.executionDate) }}</div>
+              </td>
+              <td>
+                <div class="tech-chips">
+                  <span v-for="(tech, idx) in wo.technicians" :key="idx" class="tech-chip">
+                    👤 {{ tech.name }}
+                  </span>
+                  <span v-if="!wo.technicians || wo.technicians.length === 0" class="text-muted font-xs">
+                    {{ t('unassigned') }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span :class="['status-badge', getStatusBadge(wo.status).class]">
+                  <span class="badge-dot"></span>
+                  {{ getStatusBadge(wo.status).label }}
+                </span>
+              </td>
+              <td class="font-bold text-main">{{ formatCurrency(wo.grandTotal) }}</td>
+              <td class="text-right">
+                <button @click="goToDetail(wo._id)" class="btn-detail">{{ t('detail') }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MOBILE CARDS -->
+      <div class="mobile-only cards-list">
+        <div v-for="wo in filteredWorkOrders" :key="wo._id" class="wo-card">
+          <div class="card-header">
+            <div>
+              <span class="card-tag">WORK ORDER</span>
+              <h4 class="card-code">{{ wo.woCode }}</h4>
+            </div>
+            <span :class="['status-badge', getStatusBadge(wo.status).class]">
+              {{ getStatusBadge(wo.status).label }}
+            </span>
           </div>
-          <div>
-            <strong>Tanggal Pembuatan:</strong> {{ formatDate(wo.createdAt) }}<br />
-            <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(wo.executionDate || wo.createdAt) }}
+
+          <div class="card-body">
+            <div class="card-info">📍 <strong>{{ wo.locationName }}</strong></div>
+            <div class="card-info text-sub">🗓️ {{ formatDate(wo.executionDate) }}</div>
           </div>
-        </div>
 
-        <div class="pdf-section">
-          <h4>1. Pendahuluan</h4>
-          <p>{{ wo.introduction || '-' }}</p>
-        </div>
+          <div class="card-techs">
+            <span class="text-muted font-xs">{{ t('colTech') }}:</span>
+            <div class="tech-chips">
+              <span v-for="(tech, idx) in wo.technicians" :key="idx" class="tech-chip">
+                {{ tech.name }}
+              </span>
+            </div>
+          </div>
 
-        <div class="pdf-section">
-          <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
-          <p><strong>Nama Tempat:</strong> {{ wo.locationName || '-' }}</p>
-          <p><strong>Tanggal Pelaksanaan:</strong> {{ formatDate(wo.executionDate || wo.createdAt) }}</p>
-          <p v-if="wo.mapsUrl"><strong>Google Maps URL:</strong> {{ wo.mapsUrl }}</p>
-        </div>
-
-        <div class="pdf-section">
-          <h4>3. List Teknisi yang Dipekerjakan</h4>
-          <table class="pdf-table">
-            <thead>
-              <tr>
-                <th>Nama Teknisi</th>
-                <th>Email Teknisi</th>
-                <th>Nomor Handphone</th>
-                <th>Bayaran</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(tItem, idx) in (wo.technicians || [])" :key="idx">
-                <td>{{ tItem.name }}</td>
-                <td>{{ tItem.email }}</td>
-                <td>{{ tItem.phone || tItem.phoneNumber || '-' }}</td>
-                <td>{{ formatCurrency(tItem.fee) }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>{{ formatCurrency(wo.totalTechnicianFee) }}</strong></p>
-        </div>
-
-        <div class="pdf-section">
-          <h4>4. List Biaya Resource</h4>
-          <table class="pdf-table">
-            <thead>
-              <tr>
-                <th>Nama Sumber Daya</th>
-                <th>Jumlah</th>
-                <th>Satuan</th>
-                <th>Harga Satuan</th>
-                <th>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, idx) in (wo.resources || [])" :key="idx">
-                <td>{{ r.name }}</td>
-                <td>{{ r.quantity }}</td>
-                <td>{{ r.unit }}</td>
-                <td>{{ formatCurrency(r.price) }}</td>
-                <td>{{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="pdf-subtotal">Total Biaya Resource: <strong>{{ formatCurrency(wo.totalResourceCost) }}</strong></p>
-        </div>
-
-        <div class="pdf-footer-summary">
-          GRAND TOTAL BIAYA: {{ formatCurrency(wo.grandTotal) }}
+          <div class="card-footer">
+            <div>
+              <span class="font-xs text-muted block">{{ t('colTotal') }}</span>
+              <span class="font-bold text-main">{{ formatCurrency(wo.grandTotal) }}</span>
+            </div>
+            <button @click="goToDetail(wo._id)" class="btn-primary-sm">{{ t('detail') }}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -287,257 +217,67 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
-import html2pdf from 'html2pdf.js';
-import { adminApi, managerApi } from '../services/api';
 
-const route = useRoute();
 const router = useRouter();
 
-const MANAGER_SERVICE_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
-
-const wo = ref(null);
+const workOrders = ref([]);
 const loading = ref(true);
-const updating = ref(false);
-const downloading = ref(false);
-const selectedStatus = ref('PENDING');
+const searchQuery = ref('');
+const selectedStatus = ref('ALL');
+const user = ref(null);
 
-const feedbackMessage = ref('');
-const feedbackType = ref('success');
-const currentTheme = ref('light');
+const activeTheme = ref('light');
 const currentLang = ref('id');
+
+const MANAGER_API_URL = import.meta.env.VITE_MANAGER_SERVICE_URL || 'https://infrastructure-report-microservice-manager-service.vercel.app';
 
 const translations = {
   id: {
-    btnBack: 'Kembali',
-    labelWoId: 'ID Work Order',
-    labelExecDate: 'Tanggal Eksekusi',
-    labelCreatedBy: 'Dibuat Oleh',
-    labelCreatedDate: 'Tanggal Dibuat',
-    labelMaps: 'Lokasi Google Maps',
-    labelTechnicians: 'Teknisi Ditugaskan',
-    labelResources: 'Material & Equipment',
-    labelDocument: 'Dokumen Bukti Resmi',
-    panelTitle: 'Update Status Work Order',
-    btnSave: 'Simpan Status',
-    btnSaving: 'Menyimpan...',
-    btnRetry: 'Coba Lagi',
-    emptyMessage: 'Detail Work Order tidak ditemukan atau gagal dimuat dari server.'
+    workOrdersTitle: 'Daftar Work Order',
+    welcome: 'Selamat datang kembali',
+    refreshData: 'Refresh Data',
+    searchPlaceholder: 'Cari Kode WO, Lokasi...',
+    noWoFound: 'Tidak ada Work Order ditemukan',
+    noWoFoundDesc: 'Coba ubah kata kunci pencarian atau pilih filter status lainnya.',
+    colWoCode: 'Kode WO',
+    colLocation: 'Lokasi & Eksekusi',
+    colTech: 'Teknisi Ditugaskan',
+    colStatus: 'Status',
+    colTotal: 'Grand Total',
+    colAction: 'Aksi',
+    unassigned: 'Belum ada',
+    detail: 'Detail'
   },
   en: {
-    btnBack: 'Back',
-    labelWoId: 'Work Order ID',
-    labelExecDate: 'Execution Date',
-    labelCreatedBy: 'Created By',
-    labelCreatedDate: 'Created Date',
-    labelMaps: 'Google Maps Location',
-    labelTechnicians: 'Assigned Technicians',
-    labelResources: 'Material & Equipment',
-    labelDocument: 'Official Proof Document',
-    panelTitle: 'Update Work Order Status',
-    btnSave: 'Save Status',
-    btnSaving: 'Saving...',
-    btnRetry: 'Try Again',
-    emptyMessage: 'Work Order details not found or failed to load from server.'
+    workOrdersTitle: 'Work Orders List',
+    welcome: 'Welcome back',
+    refreshData: 'Refresh Data',
+    searchPlaceholder: 'Search WO Code, Location...',
+    noWoFound: 'No Work Orders found',
+    noWoFoundDesc: 'Try changing search keywords or choosing another status filter.',
+    colWoCode: 'WO Code',
+    colLocation: 'Location & Execution',
+    colTech: 'Assigned Technicians',
+    colStatus: 'Status',
+    colTotal: 'Grand Total',
+    colAction: 'Action',
+    unassigned: 'Unassigned',
+    detail: 'Details'
   }
 };
 
 const t = (key) => translations[currentLang.value]?.[key] || key;
 
-const isAuthenticated = computed(() => {
-  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-  return !!token;
-});
-
-const goBack = () => {
-  if (window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/visit');
-  }
-};
-
-const getUserRole = () => {
-  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const rawRole = (storedUser.role || '').toString().trim().toUpperCase();
-  return rawRole.includes('MANAGER') ? 'MANAGER' : rawRole;
-};
-
-const getApiClient = () => {
-  const role = getUserRole();
-  return role === 'ADMIN' ? adminApi : managerApi;
-};
-
-const showFeedback = (msg, type = 'success') => {
-  feedbackMessage.value = msg;
-  feedbackType.value = type;
-  setTimeout(() => {
-    feedbackMessage.value = '';
-  }, 4000);
-};
-
-// GENERATE PDF DINAMIS VIA HTML2PDF
-const generatePDF = async () => {
-  if (!wo.value) return;
-
-  downloading.value = true;
-  await nextTick();
-
-  const element = document.getElementById('dynamic-pdf-area-detail');
-  if (!element) {
-    downloading.value = false;
-    showFeedback('Gagal menyiapkan elemen PDF.', 'error');
-    return;
-  }
-
-  const pdfName = `WorkOrder_${wo.value.woCode || wo.value._id}.pdf`;
-
-  const opt = {
-    margin: 10,
-    filename: pdfName,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  try {
-    await html2pdf().set(opt).from(element).save();
-    showFeedback('PDF Berhasil diunduh!', 'success');
-  } catch (error) {
-    console.error('Gagal merender PDF:', error);
-    showFeedback('Gagal membuat dokumen PDF.', 'error');
-  } finally {
-    downloading.value = false;
-  }
-};
-
-const fetchWorkOrderDetail = async () => {
-  const woId = route.params.id;
-  if (!woId) return;
-
-  loading.value = true;
-  feedbackMessage.value = '';
-
-  let foundWo = null;
-
-  if (isAuthenticated.value) {
-    const role = getUserRole();
-    const api = getApiClient();
-    const authEndpoints = role === 'ADMIN'
-      ? [`/api/admin/work-orders/${woId}`, `/api/manager/work-orders/${woId}`, `/api/manager/work-orders`]
-      : [`/api/manager/work-orders/${woId}`, `/api/admin/work-orders/${woId}`, `/api/manager/work-orders`];
-
-    for (const endpoint of authEndpoints) {
-      try {
-        const res = await api.get(endpoint);
-        let data = res?.data?.workOrder || res?.data?.data || res?.data?.workOrders || res?.data;
-
-        if (Array.isArray(data)) {
-          foundWo = data.find(item => (item._id || item.id || item.woCode) === woId);
-        } else if (data && typeof data === 'object') {
-          foundWo = data;
-        }
-
-        if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) break;
-      } catch {
-        // Abaikan error endpoint
-      }
-    }
-  }
-
-  if (!foundWo) {
-    try {
-      const publicEndpoints = [
-        `${MANAGER_SERVICE_URL}/api/manager/work-orders/${woId}`,
-        `${MANAGER_SERVICE_URL}/api/manager/work-orders`
-      ];
-
-      for (const url of publicEndpoints) {
-        try {
-          const res = await axios.get(url);
-          let data = res?.data?.workOrder || res?.data?.data || res?.data?.workOrders || res?.data;
-
-          if (Array.isArray(data)) {
-            foundWo = data.find(item => (item._id || item.id || item.woCode) === woId);
-          } else if (data && typeof data === 'object') {
-            foundWo = data;
-          }
-
-          if (foundWo && (foundWo._id || foundWo.woCode || foundWo.id)) break;
-        } catch {
-          // Abaikan error endpoint publik
-        }
-      }
-    } catch (err) {
-      console.error('Gagal memuat detail publik:', err);
-    }
-  }
-
-  if (foundWo) {
-    wo.value = foundWo;
-    if (wo.value.status) {
-      selectedStatus.value = wo.value.status.toString().toUpperCase();
-    }
-  } else {
-    wo.value = null;
-    showFeedback(t('emptyMessage'), 'error');
-  }
-
-  loading.value = false;
-};
-
-const updateWoStatus = async () => {
-  if (!selectedStatus.value) return;
-  updating.value = true;
-
-  try {
-    const role = getUserRole();
-    const woId = route.params.id;
-    const api = getApiClient();
-
-    const endpoint = role === 'ADMIN'
-      ? `/api/admin/work-orders/${woId}/status`
-      : `/api/manager/work-orders/${woId}/status`;
-
-    try {
-      await api.patch(endpoint, { status: selectedStatus.value });
-    } catch {
-      await api.put(endpoint, { status: selectedStatus.value });
-    }
-
-    if (wo.value) {
-      wo.value.status = selectedStatus.value;
-    }
-
-    showFeedback('Status Work Order berhasil diperbarui!', 'success');
-  } catch (err) {
-    console.error('Gagal memperbarui status WO:', err);
-    showFeedback(err.response?.data?.error || 'Gagal memperbarui status Work Order.', 'error');
-  } finally {
-    updating.value = false;
-  }
-};
-
-const formatCurrency = (val) => {
-  if (typeof val !== 'number') val = Number(val) || 0;
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  try {
-    const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
-    return new Date(dateStr).toLocaleDateString(locale, {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  } catch {
-    return dateStr;
-  }
-};
+const statusOptions = computed(() => [
+  { label: currentLang.value === 'id' ? 'Semua' : 'All', value: 'ALL' },
+  { label: 'Assigned', value: 'ASSIGNED' },
+  { label: 'Accepted', value: 'ACCEPTED' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Completed', value: 'COMPLETED' }
+]);
 
 const initLanguage = () => {
   currentLang.value = localStorage.getItem('user-lang') || 'id';
@@ -548,69 +288,127 @@ const toggleLanguage = () => {
   localStorage.setItem('user-lang', currentLang.value);
 };
 
-const applyThemeToDOM = (theme) => {
+const applyTheme = (theme) => {
+  activeTheme.value = theme;
   document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
 };
 
-const initTheme = () => {
-  currentTheme.value = localStorage.getItem('user-theme') || 'light';
-  applyThemeToDOM(currentTheme.value);
-};
-
 const toggleTheme = () => {
-  currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light';
-  localStorage.setItem('user-theme', currentTheme.value);
-  applyThemeToDOM(currentTheme.value);
+  const nextTheme = activeTheme.value === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('user-theme', nextTheme);
+  applyTheme(nextTheme);
 };
 
-watch(
-  () => route.params.id,
-  (newId) => {
-    if (newId) fetchWorkOrderDetail();
+const initTheme = () => {
+  const savedTheme = localStorage.getItem('user-theme') || 'light';
+  applyTheme(savedTheme);
+};
+
+const fetchWorkOrders = async () => {
+  try {
+    loading.value = true;
+    const response = await axios.get(`${MANAGER_API_URL}/api/manager/work-orders`);
+    workOrders.value = response.data?.data || response.data?.workOrders || [];
+  } catch (error) {
+    console.error('Error fetching work orders:', error);
+  } finally {
+    loading.value = false;
   }
-);
+};
+
+const goToDetail = (id) => {
+  router.push(`/work-orders/${id}`);
+};
 
 onMounted(() => {
   initTheme();
   initLanguage();
-  fetchWorkOrderDetail();
+  const storedUser = localStorage.getItem('user');
+  if (storedUser) {
+    try { user.value = JSON.parse(storedUser); } catch (e) {}
+  }
+  fetchWorkOrders();
 });
+
+const filteredWorkOrders = computed(() => {
+  return workOrders.value.filter((wo) => {
+    const isNotCancelled = wo.status !== 'CANCELLED';
+    const matchesStatus = selectedStatus.value === 'ALL' 
+      ? isNotCancelled 
+      : wo.status === selectedStatus.value;
+
+    const query = searchQuery.value.toLowerCase();
+    const matchesQuery = 
+      !query || 
+      wo.woCode?.toLowerCase().includes(query) || 
+      wo.locationName?.toLowerCase().includes(query);
+
+    return matchesStatus && matchesQuery;
+  });
+});
+
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'ASSIGNED': return { label: 'Assigned', class: 'badge-blue' };
+    case 'ACCEPTED': return { label: 'Accepted', class: 'badge-amber' };
+    case 'IN_PROGRESS': return { label: 'In Progress', class: 'badge-cyan' };
+    case 'COMPLETED': return { label: 'Completed', class: 'badge-green' };
+    default: return { label: status || 'Unknown', class: 'badge-gray' };
+  }
+};
+
+const formatCurrency = (val) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(val || 0);
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
+  return new Date(dateStr).toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+};
 </script>
 
 <style scoped>
 :global(:root),
+:global(html),
+:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --text-main: #0f172a;
-  --text-muted: #475569;
+  --text-muted: #64748b;
   --border-color: #e2e8f0;
-  --box-bg: #f8fafc;
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --switch-bg: #2d3748;
   --switch-handle-bg: #ffffff;
   --switch-icon-color: #0f172a;
-  --skeleton-bg: #e2e8f0;
   --lang-btn-bg: #e2e8f0;
   --lang-btn-active: #ffffff;
   --lang-text-active: #2563eb;
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
-  --text-main: #ffffff;
-  --text-muted: #cbd5e1;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
   --border-color: #334155;
-  --box-bg: #0f172a;
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
   --switch-bg: #020617;
   --switch-handle-bg: #1e293b;
   --switch-icon-color: #f8fafc;
-  --skeleton-bg: #334155;
   --lang-btn-bg: #334155;
   --lang-btn-active: #1e293b;
   --lang-text-active: #3b82f6;
@@ -619,368 +417,90 @@ onMounted(() => {
 :global(html),
 :global(body),
 :global(#app) {
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
-  min-height: 100vh !important;
-  background-color: var(--bg-main) !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
   overflow-x: hidden !important;
 }
 
-.page-container {
-  width: 100%;
+.wo-dashboard-wrapper {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
-  padding: 24px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 24px 32px;
   transition: background-color 0.4s ease, color 0.4s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: 850px;
-  margin-bottom: 24px;
-}
-
-.btn-back {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: var(--bg-card);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-back:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.header-right-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.centered-content-wrapper {
-  width: 100%;
-  max-width: 850px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.feedback-alert {
-  width: 100%;
-  max-width: 850px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 700;
-  box-sizing: border-box;
-}
-
-.feedback-alert.success { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-.feedback-alert.error { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-
-.detail-card {
-  width: 100%;
-  background: var(--bg-card);
-  border-radius: 14px;
-  border: 1px solid var(--border-color);
-  padding: 28px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  transition: background-color 0.4s ease, border-color 0.4s ease;
-}
-
-.card-header-section {
+.header-container {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 1px dashed var(--border-color);
-  padding-bottom: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
-.title-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.wo-code-badge {
-  font-family: monospace;
-  font-weight: 800;
-  font-size: 14px;
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
   color: var(--primary-color);
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
-.wo-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.company-tag {
-  font-size: 11px;
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--primary-color);
-  padding: 3px 8px;
+.kanji-logo-badge {
+  width: 24px;
+  height: 24px;
+  background-color: var(--primary-color);
   border-radius: 6px;
-  font-weight: 700;
-  width: fit-content;
-}
-
-.status-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.status-badge.assigned { background-color: #dbeafe; color: #1e40af; }
-.status-badge.in_progress, .status-badge.pending { background-color: #fef3c7; color: #b45309; }
-.status-badge.completed, .status-badge.done { background-color: #dcfce7; color: #15803d; }
-.status-badge.rejected { background-color: #fee2e2; color: #b91c1c; }
-
-.wo-intro {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-main);
-  line-height: 1.6;
-  background-color: var(--box-bg);
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  background-color: var(--box-bg);
-  padding: 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-}
-
-.info-item label {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.info-item p {
-  margin: 4px 0 0 0;
-  font-size: 13px;
-  color: var(--text-main);
-  font-weight: 700;
-}
-
-.code-text {
-  font-family: monospace;
-  color: var(--primary-color) !important;
-}
-
-.section-box {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.section-box label {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.sub-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sub-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background-color: var(--box-bg);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  font-size: 13px;
+  justify-content: center;
+  box-shadow: 0 2px 6px -1px rgba(37, 99, 235, 0.3);
+  flex-shrink: 0;
 }
 
-.item-main { display: flex; flex-direction: column; }
-.item-name { font-weight: 700; color: var(--text-main); }
-.item-subtext { font-size: 11px; color: var(--text-muted); }
-.item-price { font-weight: 800; color: var(--primary-color); }
-
-.no-data-text { font-size: 12px; color: var(--text-muted); font-style: italic; }
-
-.cost-summary-box {
-  background: rgba(37, 99, 235, 0.04);
-  border: 1px dashed var(--primary-color);
-  padding: 16px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.kanji-badge-text {
+  font-family: 'sans-serif', 'Noto Sans JP';
   font-size: 13px;
-}
-
-.cost-row { display: flex; justify-content: space-between; color: var(--text-muted); }
-.grand-total-row {
-  margin-top: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-color);
   font-weight: 800;
-  color: var(--text-main);
-  font-size: 15px;
-}
-.grand-total-val { color: #10b981; }
-
-.maps-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: var(--box-bg);
-  color: var(--primary-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  width: fit-content;
-}
-
-.doc-link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: var(--box-bg);
-  color: var(--primary-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: fit-content;
-}
-
-.doc-link-btn:hover:not(:disabled) {
-  background-color: var(--bg-card);
-  border-color: var(--primary-color);
-}
-
-.doc-link-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.maps-link:hover { text-decoration: underline; }
-
-.action-panel {
-  background: var(--box-bg);
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-}
-
-.action-panel h3 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: var(--text-main);
-  font-weight: 800;
-}
-
-.action-form { display: flex; gap: 12px; flex-wrap: wrap; }
-
-.input-select {
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  font-size: 14px;
-  background-color: var(--bg-card);
-  color: var(--text-main);
-  outline: none;
-  font-weight: 600;
-  flex: 1;
-  min-width: 200px;
-}
-
-.btn-primary {
-  padding: 10px 20px;
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* SKELETON */
-.skeleton-card { min-height: 450px; animation: pulse 1.5s infinite ease-in-out; }
-.skeleton-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-.skeleton-line { background-color: var(--skeleton-bg); border-radius: 6px; }
-.skeleton-title { height: 28px; width: 60%; }
-.skeleton-badge { height: 24px; width: 20%; }
-.skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-.skeleton-box { height: 50px; width: 100%; }
-.skeleton-desc { height: 80px; width: 100%; margin-bottom: 16px; }
-.skeleton-sub { height: 60px; width: 100%; margin-bottom: 12px; }
-.skeleton-action { height: 70px; width: 100%; }
-
-.state-card {
-  width: 100%;
-  text-align: center;
-  padding: 48px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  color: var(--text-muted);
-  box-sizing: border-box;
-}
-
-.btn-retry {
-  margin-top: 14px;
-  padding: 8px 18px;
-  background-color: var(--primary-color);
   color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
+  line-height: 1;
 }
+
+h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.subtitle strong { color: var(--text-main); }
+
+.header-actions { display: flex; align-items: center; gap: 12px; }
+
+/* Language Switcher */
+.lang-switch-wrapper { display: flex; align-items: center; flex-shrink: 0; }
 
 .lang-toggle-switch {
   position: relative;
@@ -994,6 +514,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: background-color 0.3s ease;
 }
 
 .lang-option {
@@ -1004,6 +525,7 @@ onMounted(() => {
   width: 28px;
   text-align: center;
   color: var(--text-muted);
+  transition: color 0.3s ease;
 }
 
 .lang-option.active { color: var(--lang-text-active); }
@@ -1016,11 +538,15 @@ onMounted(() => {
   height: 24px;
   background-color: var(--lang-btn-active);
   border-radius: 50px;
-  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 1;
 }
 
 .lang-toggle-switch.is-en .lang-slider { transform: translateX(32px); }
+
+/* Theme Switch */
+.theme-switch-wrapper { display: flex; align-items: center; flex-shrink: 0; }
 
 .theme-toggle-switch {
   position: relative;
@@ -1033,6 +559,8 @@ onMounted(() => {
   cursor: pointer;
   display: flex;
   align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.4s ease;
 }
 
 .switch-handle {
@@ -1043,48 +571,178 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.4s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+  transform: translateX(0);
 }
 
 .theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 
-.switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
-.icon-sm { width: 16px; height: 16px; }
-.icon-xs { width: 14px; height: 14px; }
-.icon-lg { width: 40px; height: 40px; margin-bottom: 10px; }
-
-/* PDF OFFSCREEN CONTAINER */
-.pdf-offscreen-container {
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-  width: 210mm;
-  background: #ffffff;
+.switch-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--switch-icon-color);
+  transition: color 0.3s ease;
 }
 
-.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
-.pdf-header { text-align: center; }
-.pdf-header h2 { margin: 0; font-size: 18px; color: #000000; }
-.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333333; }
-.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
-.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #000000; }
-.pdf-section { margin-bottom: 16px; color: #000000; }
-.pdf-section h4 { margin-bottom: 6px; font-size: 14px; color: #000000; }
-.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
-.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #000000; }
-.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
-
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-@media (max-width: 600px) {
-  .page-container { padding: 16px; }
-  .detail-card { padding: 20px; }
-  .action-form { flex-direction: column; }
-  .btn-primary { width: 100%; }
+.btn-refresh:hover { background-color: var(--primary-hover); }
+
+.icon-sm { width: 16px; height: 16px; flex-shrink: 0; }
+.search-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--text-muted); }
+.empty-icon { width: 48px; height: 48px; margin-bottom: 12px; color: var(--text-muted); }
+
+.spin-anim { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+.wo-filter-bar {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
 }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+  color: var(--text-main);
+}
+
+.status-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+
+.tab-btn {
+  background-color: var(--bg-main);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; }
+.badge-blue { background-color: rgba(37, 99, 235, 0.12); color: #2563eb; border-color: rgba(37, 99, 235, 0.25); }
+.badge-amber { background-color: rgba(217, 119, 6, 0.12); color: #d97706; border-color: rgba(217, 119, 6, 0.25); }
+.badge-cyan { background-color: rgba(6, 182, 212, 0.12); color: #0891b2; border-color: rgba(6, 182, 212, 0.25); }
+.badge-green { background-color: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25); }
+.badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; border-color: rgba(148, 163, 184, 0.25); }
+
+.data-wrapper { width: 100%; }
+
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wo-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.wo-table th { background-color: var(--bg-main); padding: 14px 18px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+.wo-table td { padding: 16px 18px; border-bottom: 1px solid var(--border-color); }
+
+.cards-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.wo-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.card-tag { font-size: 10px; font-weight: 700; color: var(--primary-color); display: block; }
+.card-code { font-size: 16px; font-weight: 700; color: var(--text-main); margin: 2px 0 0 0; }
+.card-body { font-size: 13px; margin-bottom: 12px; }
+.card-techs { border-top: 1px solid var(--border-color); padding-top: 8px; margin-bottom: 12px; }
+.card-footer { border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+.tech-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tech-chip { background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+
+.btn-detail { background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-detail:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+.btn-primary-sm { background-color: var(--primary-color); color: #ffffff; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+.skeleton-wrapper { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.skeleton-table, .skeleton-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; }
+.skeleton-row { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.skeleton-block { height: 16px; background: var(--border-color); border-radius: 4px; animation: pulse 1.5s infinite ease-in-out; }
+.skeleton-block.badge { height: 24px; border-radius: 12px; }
+.w-16 { width: 60px; } .w-20 { width: 80px; } .w-24 { width: 100px; } .w-30 { width: 140px; } .w-40 { width: 180px; } .w-50 { width: 220px; }
+@keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
+
+@media (min-width: 768px) {
+  .mobile-only { display: none !important; }
+  .desktop-only { display: block !important; }
+}
+
+@media (max-width: 767px) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+  .search-box { max-width: 100%; }
+  .header-actions { width: 100%; justify-content: space-between; }
+  .wo-dashboard-wrapper { padding: 16px; }
+}
+
+.text-right { text-align: right; }
+.font-bold { font-weight: 700; }
+.font-medium { font-weight: 500; }
+.font-xs { font-size: 11px; }
+.text-main { color: var(--text-main); }
+.text-sub { color: var(--text-muted); }
+.text-muted { color: var(--text-muted); }
+.block { display: block; }
+.empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); width: 100%; box-sizing: border-box; }
 </style>
