@@ -91,11 +91,10 @@
         <p>{{ t('emptyData') }}</p>
       </div>
 
-      <!-- List Work Orders (Ringkas: Nama Tempat & Tanggal Eksekusi) -->
+      <!-- List Work Orders -->
       <div v-else class="wo-vertical-list">
-        <article v-for="wo in workOrders" :key="wo._id || wo.woCode" class="wo-card">
+        <article v-for="wo in workOrders" :key="wo._id || wo.id || wo.woCode" class="wo-card">
           <div class="wo-simple-info">
-            <!-- Nama Tempat -->
             <div class="location-info">
               <h3 class="location-title">
                 <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -104,23 +103,36 @@
                 </svg>
                 <span>{{ wo.locationName || 'Lokasi Belum Ditentukan' }}</span>
               </h3>
+              <span :class="['status-badge', getStatusBadge(wo.status).class]">
+                <span class="badge-dot"></span>
+                {{ getStatusBadge(wo.status).label }}
+              </span>
             </div>
 
-            <!-- Tanggal Eksekusi -->
-            <div class="exec-date-badge">
-              <span class="meta-label">{{ t('colExecDate') }}:</span>
-              <strong class="meta-value">{{ formatDate(wo.executionDate) }}</strong>
+            <div class="meta-row">
+              <div class="exec-date-badge">
+                <span class="meta-label">{{ t('colExecDate') }}:</span>
+                <strong class="meta-value">{{ formatDate(wo.executionDate) }}</strong>
+              </div>
+              <div class="code-badge">
+                <span class="meta-label">Kode WO:</span>
+                <span class="font-bold">{{ wo.woCode || '-' }}</span>
+              </div>
             </div>
           </div>
 
-          <!-- Tombol Aksi Navigasi ke Detail -->
+          <!-- Tombol Aksi -->
           <div class="card-action-bar">
-            <button @click="generateAndDownloadPDF(wo)" class="btn-doc">
-              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button 
+              @click="generateAndDownloadPDF(wo)" 
+              class="btn-doc" 
+              :disabled="generatingPdfId === (wo._id || wo.id)"
+            >
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'spin-anim': generatingPdfId === (wo._id || wo.id) }">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
-              <span>{{ t('btnDocument') }}</span>
+              <span>{{ generatingPdfId === (wo._id || wo.id) ? 'Proses...' : t('btnDocument') }}</span>
             </button>
 
             <button @click="navigateToDetail(wo)" class="btn-detail">
@@ -141,65 +153,64 @@
         <div class="pdf-header">
           <h2>SURAT TUGAS WORK ORDER</h2>
           <h3>{{ activePdfItem.companyName || 'Infrastructure_Report' }}</h3>
-          <p><strong>ID Surat:</strong> {{ activePdfItem.woCode }}</p>
+          <p><strong>Kode WO:</strong> {{ activePdfItem.woCode }}</p>
         </div>
         <hr class="pdf-divider" />
         <div class="pdf-meta">
           <div>
-            <strong>Nama Pembuat Surat:</strong> {{ activePdfItem.createdBy || '-' }}
+            <strong>Penerbit:</strong> {{ activePdfItem.createdBy || 'Manager Field System' }}
             <span v-if="activePdfItem.createdByEmail"> ({{ activePdfItem.createdByEmail }})</span>
           </div>
           <div>
-            <strong>Tanggal Pembuatan:</strong> {{ formatDate(activePdfItem.createdAt) }}<br />
             <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}
           </div>
         </div>
 
         <div class="pdf-section">
-          <h4>1. Pendahuluan</h4>
-          <p>{{ activePdfItem.introduction || '-' }}</p>
+          <h4>1. Pendahuluan & Deskripsi Tugas</h4>
+          <p class="pdf-desc">{{ activePdfItem.introduction || '-' }}</p>
         </div>
 
         <div class="pdf-section">
-          <h4>2. Lokasi Perbaikan & Tanggal Pelaksanaan</h4>
+          <h4>2. Lokasi Perbaikan</h4>
           <p><strong>Nama Tempat:</strong> {{ activePdfItem.locationName || '-' }}</p>
-          <p><strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}</p>
-          <p v-if="activePdfItem.mapsUrl"><strong>Google Maps URL:</strong> {{ activePdfItem.mapsUrl }}</p>
+          <p v-if="activePdfItem.mapsUrl"><strong>Google Maps:</strong> {{ activePdfItem.mapsUrl }}</p>
         </div>
 
         <div class="pdf-section">
-          <h4>3. List Teknisi yang Dipekerjakan</h4>
+          <h4>3. Daftar Teknisi</h4>
           <table class="pdf-table">
             <thead>
               <tr>
                 <th>Nama Teknisi</th>
-                <th>Email Teknisi</th>
-                <th>Nomor Handphone</th>
-                <th>Bayaran</th>
+                <th>Email / Kontak</th>
+                <th class="text-right">Biaya / Fee</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(tItem, idx) in (activePdfItem.technicians || [])" :key="idx">
                 <td>{{ tItem.name }}</td>
-                <td>{{ tItem.email }}</td>
-                <td>{{ tItem.phone || tItem.phoneNumber || '-' }}</td>
-                <td>{{ formatCurrency(tItem.fee) }}</td>
+                <td>{{ tItem.email || tItem.phone || '-' }}</td>
+                <td class="text-right">{{ formatCurrency(tItem.fee) }}</td>
+              </tr>
+              <tr v-if="!activePdfItem.technicians || activePdfItem.technicians.length === 0">
+                <td colspan="3" class="text-center italic">Belum ada teknisi ditugaskan.</td>
               </tr>
             </tbody>
           </table>
-          <p class="pdf-subtotal">Total Bayaran Teknisi: <strong>{{ formatCurrency(activePdfItem.totalTechnicianFee) }}</strong></p>
+          <p class="pdf-subtotal">Total Fee Teknisi: <strong>{{ formatCurrency(getTechTotal(activePdfItem)) }}</strong></p>
         </div>
 
         <div class="pdf-section">
-          <h4>4. List Biaya Resource</h4>
+          <h4>4. Daftar Material & Resource</h4>
           <table class="pdf-table">
             <thead>
               <tr>
-                <th>Nama Sumber Daya</th>
+                <th>Nama Material</th>
                 <th>Jumlah</th>
                 <th>Satuan</th>
-                <th>Harga Satuan</th>
-                <th>Subtotal</th>
+                <th class="text-right">Harga Satuan</th>
+                <th class="text-right">Subtotal</th>
               </tr>
             </thead>
             <tbody>
@@ -207,16 +218,19 @@
                 <td>{{ r.name }}</td>
                 <td>{{ r.quantity }}</td>
                 <td>{{ r.unit }}</td>
-                <td>{{ formatCurrency(r.price) }}</td>
-                <td>{{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
+                <td class="text-right">{{ formatCurrency(r.price) }}</td>
+                <td class="text-right">{{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
+              </tr>
+              <tr v-if="!activePdfItem.resources || activePdfItem.resources.length === 0">
+                <td colspan="5" class="text-center italic">Tidak ada rincian material.</td>
               </tr>
             </tbody>
           </table>
-          <p class="pdf-subtotal">Total Biaya Resource: <strong>{{ formatCurrency(activePdfItem.totalResourceCost) }}</strong></p>
+          <p class="pdf-subtotal">Total Material: <strong>{{ formatCurrency(getResourceTotal(activePdfItem)) }}</strong></p>
         </div>
 
         <div class="pdf-footer-summary">
-          GRAND TOTAL BIAYA: {{ formatCurrency(activePdfItem.grandTotal) }}
+          GRAND TOTAL BIAYA: {{ formatCurrency(getGrandTotal(activePdfItem)) }}
         </div>
       </div>
     </div>
@@ -227,13 +241,13 @@
 import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-import html2pdf from 'html2pdf.js';
 
 const router = useRouter();
 const workOrders = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const activePdfItem = ref(null);
+const generatingPdfId = ref(null);
 const currentTheme = ref('light');
 const currentLang = ref('id');
 
@@ -269,32 +283,77 @@ const goToWorkflow = () => router.push('/workflow');
 
 const navigateToDetail = (wo) => {
   const targetId = wo._id || wo.id;
-  if (targetId) router.push(`/work-orders/${targetId}`);
+  if (targetId) {
+    router.push(`/work-orders/${targetId}`);
+  }
+};
+
+const getTechTotal = (wo) => {
+  if (!wo || !wo.technicians) return 0;
+  return wo.technicians.reduce((sum, t) => sum + (Number(t.fee) || 0), 0);
+};
+
+const getResourceTotal = (wo) => {
+  if (!wo || !wo.resources) return 0;
+  return wo.resources.reduce((sum, r) => sum + (Number(r.subtotal) || (Number(r.quantity || 1) * Number(r.price || 0))), 0);
+};
+
+const getGrandTotal = (wo) => {
+  if (!wo) return 0;
+  if (typeof wo.grandTotal === 'number' && wo.grandTotal > 0) return wo.grandTotal;
+  return getTechTotal(wo) + getResourceTotal(wo);
 };
 
 const generateAndDownloadPDF = async (item) => {
+  const itemId = item._id || item.id;
+  generatingPdfId.value = itemId;
   activePdfItem.value = item;
   await nextTick();
 
   const element = document.getElementById('dynamic-pdf-area-visit');
-  if (!element) return;
+  if (!element) {
+    generatingPdfId.value = null;
+    return;
+  }
 
-  const pdfName = `WorkOrder_${item.woCode || item._id}.pdf`;
+  const pdfName = `WorkOrder_${item.woCode || itemId}.pdf`;
 
   const opt = {
-    margin: 10,
+    margin: [10, 10, 10, 10],
     filename: pdfName,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
-    await html2pdf().set(opt).from(element).save();
+    let html2pdfModule;
+    try {
+      html2pdfModule = (await import('html2pdf.js')).default;
+    } catch (e) {
+      console.warn('html2pdf.js tidak dapat diimpor, fallback print.');
+    }
+
+    if (html2pdfModule) {
+      await html2pdfModule().set(opt).from(element).save();
+    } else {
+      window.print();
+    }
   } catch (error) {
     console.error('Gagal merender PDF:', error);
   } finally {
     activePdfItem.value = null;
+    generatingPdfId.value = null;
+  }
+};
+
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'ASSIGNED': return { label: 'Assigned', class: 'badge-blue' };
+    case 'ACCEPTED': return { label: 'Accepted', class: 'badge-amber' };
+    case 'IN_PROGRESS': return { label: 'In Progress', class: 'badge-cyan' };
+    case 'COMPLETED': return { label: 'Completed', class: 'badge-green' };
+    default: return { label: status || 'Pending', class: 'badge-gray' };
   }
 };
 
@@ -399,20 +458,9 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
-:global(html),
-:global(body),
-:global(#app) {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  min-height: 100vh !important;
-  background-color: var(--bg-main) !important;
-  overflow-x: hidden !important;
-}
-
 .page-container {
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   min-height: 100vh;
   background-color: var(--bg-main);
@@ -479,14 +527,13 @@ onMounted(() => {
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
-  animation: jumpGlow 2s infinite ease-in-out;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-flow-featured:hover {
-  transform: translateY(-4px) scale(1.03);
-  box-shadow: 0 0 25px rgba(16, 185, 129, 0.85);
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.7);
 }
 
 .header-content h1.page-title {
@@ -494,12 +541,14 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 800;
   color: var(--text-main);
+  text-align: left;
 }
 
 .subtitle {
   margin: 4px 0 0 0;
   font-size: 13px;
   color: var(--text-muted);
+  text-align: left;
 }
 
 .header-right-actions {
@@ -532,9 +581,7 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-.lang-option.active {
-  color: var(--lang-text-active);
-}
+.lang-option.active { color: var(--lang-text-active); }
 
 .lang-slider {
   position: absolute;
@@ -548,9 +595,7 @@ onMounted(() => {
   z-index: 1;
 }
 
-.lang-toggle-switch.is-en .lang-slider {
-  transform: translateX(32px);
-}
+.lang-toggle-switch.is-en .lang-slider { transform: translateX(32px); }
 
 .theme-toggle-switch {
   position: relative;
@@ -576,9 +621,7 @@ onMounted(() => {
   transition: transform 0.4s ease;
 }
 
-.theme-toggle-switch.is-dark .switch-handle {
-  transform: translateX(28px);
-}
+.theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 
 .switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
 .icon-sm { width: 16px; height: 16px; }
@@ -604,32 +647,46 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  transition: background-color 0.4s ease, border-color 0.4s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
   flex-wrap: wrap;
 }
 
 .wo-simple-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  text-align: left;
+}
+
+.location-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .location-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.exec-date-badge {
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.exec-date-badge, .code-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: var(--text-muted);
 }
 
 .meta-label {
@@ -664,7 +721,8 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.btn-doc:hover { border-color: var(--primary); color: var(--primary); }
+.btn-doc:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.btn-doc:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-detail {
   display: flex;
@@ -683,6 +741,15 @@ onMounted(() => {
 }
 
 .btn-detail:hover { background-color: var(--primary-hover); }
+
+/* Status Badges */
+.status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; }
+.badge-blue { background-color: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.badge-amber { background-color: rgba(217, 119, 6, 0.12); color: #d97706; }
+.badge-cyan { background-color: rgba(6, 182, 212, 0.12); color: #0891b2; }
+.badge-green { background-color: rgba(16, 185, 129, 0.12); color: #10b981; }
+.badge-gray { background-color: rgba(148, 163, 184, 0.12); color: #64748b; }
 
 .state-card {
   padding: 40px 16px;
@@ -725,33 +792,41 @@ onMounted(() => {
   background: #ffffff;
 }
 
-.pdf-document { padding: 24px; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+.pdf-document {
+  padding: 24px;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-family: Arial, sans-serif;
+  text-align: left;
+}
 .pdf-header { text-align: center; }
-.pdf-header h2 { margin: 0; font-size: 18px; color: #000000; }
-.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #333333; }
-.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #333; }
-.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #000000; }
-.pdf-section { margin-bottom: 16px; color: #000000; }
-.pdf-section h4 { margin-bottom: 6px; font-size: 14px; color: #000000; }
+.pdf-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
+.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #334155; }
+.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #334155; }
+.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #0f172a; }
+.pdf-section { margin-bottom: 16px; color: #0f172a; text-align: left; }
+.pdf-section h4 { margin-bottom: 6px; font-size: 13px; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+.pdf-desc { font-size: 12px; white-space: pre-line; line-height: 1.5; color: #334155; }
 .pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; color: #000000; }
-.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #000000; }
-.pdf-footer-summary { text-align: right; font-size: 15px; font-weight: bold; padding: 12px; background: #e2e8f0; margin-top: 20px; color: #000000; }
+.pdf-table th, .pdf-table td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 11px; text-align: left; color: #0f172a; }
+.pdf-table th { background-color: #f1f5f9; font-weight: 700; }
+.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #0f172a; }
+.pdf-footer-summary { text-align: right; font-size: 14px; font-weight: bold; padding: 10px 14px; background: #e2e8f0; margin-top: 20px; color: #0f172a; border-radius: 6px; }
 
-@keyframes jumpGlow {
-  0%, 100% { transform: translateY(0); box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
-  50% { transform: translateY(-6px); box-shadow: 0 0 22px rgba(16, 185, 129, 0.85); }
-}
+.spin-anim { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+.font-bold { font-weight: 700; }
+.italic { font-style: italic; }
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
+
+@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
 @media (max-width: 600px) {
   .page-container { padding: 16px; }
   .wo-card { flex-direction: column; align-items: flex-start; }
   .card-action-bar { width: 100%; justify-content: flex-end; }
+  .meta-row { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
 </style>
