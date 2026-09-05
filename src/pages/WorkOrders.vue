@@ -2,8 +2,8 @@
   <div class="wo-dashboard-wrapper">
     <!-- Header Section -->
     <header class="header-container no-print">
-      <div class="header-title">
-        <!-- Logo Kanji dengan aksi Back Route & Efek Flowing/Glowing -->
+      <div class="header-title text-left">
+        <!-- Logo Kanji dengan aksi Back Route & Efek Flowing/Glowing (Ukuran Diperbesar & Align Left) -->
         <div 
           class="brand-badge brand-badge-link" 
           @click="navigateToManagerPortal" 
@@ -12,7 +12,7 @@
           <div class="kanji-logo-badge flowing-glowing-icon">
             <span class="kanji-badge-text">築</span>
           </div>
-          <span>Manager Field System</span>
+          <span class="brand-title-text">Manager Field System</span>
         </div>
         <h1>{{ t('workOrdersTitle') }}</h1>
         <p class="subtitle">{{ t('welcome') }}, <strong>{{ user?.name || user?.email || 'Manager' }}</strong></p>
@@ -245,7 +245,7 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- 4. MODAL DETAIL WORK ORDER (LENGKAP TOMBOL DOWNLOAD PDF) -->
+    <!-- 4. MODAL DETAIL WORK ORDER -->
     <!-- ================================================================= -->
     <div v-if="selectedWO" class="modal-backdrop" @click.self="closeDetailModal">
       <div class="modal-content">
@@ -274,9 +274,9 @@
           </div>
         </div>
 
-        <!-- Modal Body (Ref untuk ekspor PDF) -->
+        <!-- Modal Body (Area yang diekspor ke PDF) -->
         <div class="modal-body" ref="modalPdfRef">
-          <!-- Kop / Branding Header Khusus Output PDF -->
+          <!-- Kop Header PDF (Logo di Kiri Atas) -->
           <div class="pdf-doc-header">
             <div class="pdf-brand">
               <div class="kanji-logo-badge pdf-logo flowing-glowing-icon">
@@ -313,7 +313,7 @@
             </div>
           </div>
 
-          <!-- Deskripsi / Pendahuluan (Align Left) -->
+          <!-- Deskripsi / Pendahuluan -->
           <div class="avoid-break text-left">
             <span class="label text-left block mb-1">{{ t('modalDesc') }}</span>
             <div class="desc-box text-left">{{ selectedWO.introduction || '-' }}</div>
@@ -364,7 +364,7 @@
             </div>
           </div>
 
-          <!-- Galeri Foto Bukti Perbaikan (Display Rapi untuk PDF & Screen) -->
+          <!-- Galeri Foto Bukti Perbaikan -->
           <div class="avoid-break text-left">
             <span class="label uppercase text-left block mb-1">
               📷 {{ t('modalPhotos') }} ({{ selectedWO.progressImages?.length || 0 }})
@@ -533,12 +533,17 @@ const fetchWorkOrders = async () => {
   }
 };
 
-// DOWNLOAD PDF FUNCTION
+// DOWNLOAD PDF FUNCTION (Isolasi Tema Dark Mode & Hanya Mengambil Konten Modal)
 const downloadPDF = async () => {
   if (!modalPdfRef.value || isGeneratingPdf.value || !selectedWO.value) return;
 
+  const element = modalPdfRef.value;
+
   try {
     isGeneratingPdf.value = true;
+
+    // Aktifkan mode khusus ekspor PDF (Force background putih & teks hitam)
+    element.classList.add('is-exporting-pdf');
 
     let html2pdfModule;
     try {
@@ -548,7 +553,6 @@ const downloadPDF = async () => {
     }
 
     if (html2pdfModule) {
-      const element = modalPdfRef.value;
       const opt = {
         margin: [10, 10, 10, 10],
         filename: `WO_${selectedWO.value.woCode || 'Detail'}.pdf`,
@@ -557,6 +561,7 @@ const downloadPDF = async () => {
           scale: 2, 
           useCORS: true, 
           allowTaint: true,
+          backgroundColor: '#ffffff',
           logging: false 
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -571,6 +576,9 @@ const downloadPDF = async () => {
     console.error('Error generating PDF:', error);
     window.print();
   } finally {
+    if (element) {
+      element.classList.remove('is-exporting-pdf');
+    }
     isGeneratingPdf.value = false;
   }
 };
@@ -722,17 +730,25 @@ const closeDetailModal = () => { selectedWO.value = null; };
   gap: 16px;
 }
 
-/* Brand Badge Clickable Link */
+.header-title {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Brand Badge Clickable Link (Align Left & Larger Size) */
 .brand-badge-link {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
+  justify-content: flex-start;
+  gap: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--primary-color);
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   cursor: pointer;
   user-select: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -743,11 +759,16 @@ const closeDetailModal = () => { selectedWO.value = null; };
   transform: translateY(-1px);
 }
 
-/* Flowing & Glowing Animation for Kanji Logo Badge */
+.brand-title-text {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Flowing & Glowing Animation for Kanji Logo Badge (Diperbesar) */
 .flowing-glowing-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -766,23 +787,23 @@ const closeDetailModal = () => { selectedWO.value = null; };
 
 @keyframes glowingPulse {
   0% {
-    box-shadow: 0 0 6px rgba(37, 99, 235, 0.4), 0 0 12px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4), 0 0 14px rgba(6, 182, 212, 0.3);
   }
   50% {
-    box-shadow: 0 0 16px rgba(37, 99, 235, 0.8), 0 0 24px rgba(6, 182, 212, 0.6);
+    box-shadow: 0 0 18px rgba(37, 99, 235, 0.8), 0 0 28px rgba(6, 182, 212, 0.6);
   }
   100% {
-    box-shadow: 0 0 6px rgba(37, 99, 235, 0.4), 0 0 12px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4), 0 0 14px rgba(6, 182, 212, 0.3);
   }
 }
 
 .kanji-badge-text {
   font-family: 'sans-serif', 'Noto Sans JP';
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 800;
   color: #ffffff;
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 h1 {
@@ -791,12 +812,14 @@ h1 {
   margin: 0;
   letter-spacing: -0.5px;
   color: var(--text-main);
+  text-align: left;
 }
 
 .subtitle {
   color: var(--text-muted);
   font-size: 14px;
   margin-top: 4px;
+  text-align: left;
 }
 
 .subtitle strong { color: var(--text-main); }
@@ -1164,13 +1187,13 @@ h1 {
   margin-bottom: 12px;
   border-bottom: 2px solid var(--border-color);
 }
-.pdf-brand { display: flex; align-items: center; gap: 10px; }
-.pdf-logo { width: 32px; height: 32px; border-radius: 6px; }
-.pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: var(--primary-color); letter-spacing: 0.5px; }
-.pdf-brand-sub { font-size: 10px; color: var(--text-muted); margin: 2px 0 0 0; }
+.pdf-brand { display: flex; align-items: center; gap: 12px; justify-content: flex-start; }
+.pdf-logo { width: 36px; height: 36px; border-radius: 8px; }
+.pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: #1d4ed8; letter-spacing: 0.5px; }
+.pdf-brand-sub { font-size: 10px; color: #64748b; margin: 2px 0 0 0; }
 .pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
-.pdf-code { font-size: 15px; font-weight: 800; color: var(--text-main); }
-.pdf-date { font-size: 10px; color: var(--text-muted); }
+.pdf-code { font-size: 15px; font-weight: 800; color: #0f172a; }
+.pdf-date { font-size: 10px; color: #64748b; }
 
 /* Skeleton Loading Animation */
 .skeleton-wrapper { display: flex; flex-direction: column; gap: 12px; width: 100%; }
@@ -1180,6 +1203,62 @@ h1 {
 .skeleton-block.badge { height: 24px; border-radius: 12px; }
 .w-16 { width: 60px; } .w-20 { width: 80px; } .w-24 { width: 100px; } .w-30 { width: 140px; } .w-40 { width: 180px; } .w-50 { width: 220px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
+
+/* =========================================================================
+   STYLE KHUSUS MODE EKSPOR PDF (OVERRIDE DARK MODE & TEMA APPS)
+   ========================================================================= */
+.modal-body.is-exporting-pdf {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  padding: 24px !important;
+  width: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+
+.modal-body.is-exporting-pdf .pdf-doc-header {
+  display: flex !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.modal-body.is-exporting-pdf * {
+  color: #0f172a !important;
+  background-color: transparent !important;
+  border-color: #cbd5e1 !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.modal-body.is-exporting-pdf .label,
+.modal-body.is-exporting-pdf .text-sub,
+.modal-body.is-exporting-pdf .text-muted,
+.modal-body.is-exporting-pdf .pdf-brand-sub,
+.modal-body.is-exporting-pdf .pdf-date {
+  color: #475569 !important;
+}
+
+.modal-body.is-exporting-pdf .pdf-brand-title {
+  color: #1d4ed8 !important;
+}
+
+.modal-body.is-exporting-pdf .desc-box,
+.modal-body.is-exporting-pdf .modal-status-banner,
+.modal-body.is-exporting-pdf .tech-item,
+.modal-body.is-exporting-pdf .img-wrapper,
+.modal-body.is-exporting-pdf .no-images {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.modal-body.is-exporting-pdf .kanji-badge-text {
+  color: #ffffff !important;
+}
+
+.modal-body.is-exporting-pdf .status-badge {
+  border: 1px solid #cbd5e1 !important;
+}
 
 /* Responsive Helpers */
 @media (min-width: 768px) {
