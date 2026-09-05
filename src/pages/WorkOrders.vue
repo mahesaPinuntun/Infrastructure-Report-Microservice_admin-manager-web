@@ -1,7 +1,7 @@
 <template>
   <div class="wo-dashboard-wrapper">
     <!-- Header Section -->
-    <header class="header-container">
+    <header class="header-container no-print">
       <div class="header-title">
         <div class="brand-badge">
           <!-- Logo Kanji 築 (Chiku) Small Badge -->
@@ -72,7 +72,7 @@
     </header>
 
     <!-- Filter & Search Bar -->
-    <div class="wo-filter-bar">
+    <div class="wo-filter-bar no-print">
       <!-- Search Box -->
       <div class="search-box">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
@@ -103,7 +103,7 @@
     <!-- ================================================================= -->
     <!-- 1. SKELETON LOADING STATE -->
     <!-- ================================================================= -->
-    <div v-if="loading" class="skeleton-wrapper">
+    <div v-if="loading" class="skeleton-wrapper no-print">
       <div class="desktop-only skeleton-table">
         <div v-for="i in 5" :key="i" class="skeleton-row">
           <div class="skeleton-block w-20"></div>
@@ -129,7 +129,7 @@
     <!-- ================================================================= -->
     <!-- 2. EMPTY STATE -->
     <!-- ================================================================= -->
-    <div v-else-if="filteredWorkOrders.length === 0" class="empty-state">
+    <div v-else-if="filteredWorkOrders.length === 0" class="empty-state no-print">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
@@ -142,7 +142,7 @@
     <!-- ================================================================= -->
     <!-- 3. DATA DISPLAY (DESKTOP TABLE & MOBILE CARDS) -->
     <!-- ================================================================= -->
-    <div v-else class="data-wrapper">
+    <div v-else class="data-wrapper no-print">
       <!-- DESKTOP TABLE -->
       <div class="desktop-only table-card">
         <table class="wo-table">
@@ -227,70 +227,116 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- 4. MODAL DETAIL WORK ORDER -->
+    <!-- 4. MODAL DETAIL WORK ORDER (LENGKAP TOMBOL DOWNLOAD PDF) -->
     <!-- ================================================================= -->
     <div v-if="selectedWO" class="modal-backdrop" @click.self="closeDetailModal">
       <div class="modal-content">
+        <!-- Modal Header -->
         <div class="modal-header">
           <div>
             <span class="font-xs text-indigo font-bold">{{ t('modalTitle') }}</span>
             <h3>{{ selectedWO.woCode }}</h3>
           </div>
-          <button @click="closeDetailModal" class="btn-close">&times;</button>
+          <div class="modal-header-actions">
+            <!-- Tombol Download PDF Rapi -->
+            <button 
+              @click="downloadPDF" 
+              class="btn-download-pdf" 
+              :disabled="isGeneratingPdf"
+              :title="t('downloadPdf')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{ 'spin-anim': isGeneratingPdf }">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>{{ isGeneratingPdf ? t('generatingPdf') : t('downloadPdf') }}</span>
+            </button>
+            <button @click="closeDetailModal" class="btn-close">&times;</button>
+          </div>
         </div>
 
-        <div class="modal-body">
-          <div class="modal-status-banner">
+        <!-- Modal Body (Ref untuk ekspor PDF) -->
+        <div class="modal-body" ref="modalPdfRef">
+          <!-- Kop / Branding Header Khusus Output PDF -->
+          <div class="pdf-doc-header">
+            <div class="pdf-brand">
+              <div class="kanji-logo-badge pdf-logo">
+                <span class="kanji-badge-text">築</span>
+              </div>
+              <div class="text-left">
+                <h2 class="pdf-brand-title">MANAGER FIELD SYSTEM</h2>
+                <p class="pdf-brand-sub">Official Work Order Document Report</p>
+              </div>
+            </div>
+            <div class="pdf-doc-meta">
+              <span class="pdf-code">{{ selectedWO.woCode }}</span>
+              <span class="pdf-date">Printed: {{ formatCurrentDate() }}</span>
+            </div>
+          </div>
+
+          <!-- Status Banner -->
+          <div class="modal-status-banner avoid-break">
             <span>{{ t('modalStatus') }}:</span>
             <span :class="['status-badge', getStatusBadge(selectedWO.status).class]">
               {{ getStatusBadge(selectedWO.status).label }}
             </span>
           </div>
 
-          <div class="info-grid">
-            <div>
-              <span class="label">{{ t('modalLocation') }}</span>
-              <p class="value">{{ selectedWO.locationName }}</p>
+          <!-- Informasi Umum -->
+          <div class="info-grid avoid-break">
+            <div class="text-left">
+              <span class="label text-left">{{ t('modalLocation') }}</span>
+              <p class="value text-left">{{ selectedWO.locationName }}</p>
             </div>
-            <div>
-              <span class="label">{{ t('modalDate') }}</span>
-              <p class="value">{{ formatDate(selectedWO.executionDate) }}</p>
+            <div class="text-left">
+              <span class="label text-left">{{ t('modalDate') }}</span>
+              <p class="value text-left">{{ formatDate(selectedWO.executionDate) }}</p>
             </div>
           </div>
 
-          <div>
-            <span class="label">{{ t('modalDesc') }}</span>
-            <div class="desc-box">{{ selectedWO.introduction || '-' }}</div>
+          <!-- Deskripsi / Pendahuluan (Align Left) -->
+          <div class="avoid-break text-left">
+            <span class="label text-left block mb-1">{{ t('modalDesc') }}</span>
+            <div class="desc-box text-left">{{ selectedWO.introduction || '-' }}</div>
           </div>
 
-          <div>
-            <span class="label uppercase">{{ t('modalTech') }}</span>
+          <!-- Teknisi Lapangan -->
+          <div class="avoid-break text-left">
+            <span class="label uppercase text-left block mb-1">{{ t('modalTech') }}</span>
             <div class="tech-list">
               <div v-for="(tech, idx) in selectedWO.technicians" :key="idx" class="tech-item">
-                <div>
-                  <strong>{{ tech.name }}</strong>
-                  <span class="block text-sub font-xs">{{ tech.email || tech.phone || '-' }}</span>
+                <div class="text-left">
+                  <strong class="block text-left">{{ tech.name }}</strong>
+                  <span class="block text-sub font-xs text-left">{{ tech.email || tech.phone || '-' }}</span>
                 </div>
-                <span>{{ formatCurrency(tech.fee) }}</span>
+                <span class="font-bold text-main">{{ formatCurrency(tech.fee) }}</span>
+              </div>
+              <div v-if="!selectedWO.technicians || selectedWO.technicians.length === 0" class="text-muted font-xs italic text-left">
+                {{ t('unassigned') }}
               </div>
             </div>
           </div>
 
-          <div>
-            <span class="label uppercase">{{ t('modalMaterial') }}</span>
+          <!-- Rincian Material & Biaya -->
+          <div class="avoid-break text-left">
+            <span class="label uppercase text-left block mb-1">{{ t('modalMaterial') }}</span>
             <table class="mini-table">
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
+                  <th class="text-left">Item</th>
+                  <th class="text-left">Qty</th>
                   <th class="text-right">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(item, idx) in selectedWO.resources" :key="idx">
-                  <td>{{ item.name }}</td>
-                  <td>{{ item.quantity }} {{ item.unit }}</td>
+                  <td class="text-left font-medium">{{ item.name }}</td>
+                  <td class="text-left">{{ item.quantity }} {{ item.unit }}</td>
                   <td class="text-right font-medium">{{ formatCurrency(item.subtotal) }}</td>
+                </tr>
+                <tr v-if="!selectedWO.resources || selectedWO.resources.length === 0">
+                  <td colspan="3" class="text-center text-muted font-xs py-2">Tidak ada rincian material</td>
                 </tr>
               </tbody>
             </table>
@@ -300,21 +346,32 @@
             </div>
           </div>
 
-          <div>
-            <span class="label uppercase">
+          <!-- Galeri Foto Bukti Perbaikan (Display Rapi untuk PDF & Screen) -->
+          <div class="avoid-break text-left">
+            <span class="label uppercase text-left block mb-1">
               📷 {{ t('modalPhotos') }} ({{ selectedWO.progressImages?.length || 0 }})
             </span>
             <div v-if="selectedWO.progressImages && selectedWO.progressImages.length > 0" class="image-grid">
-              <a v-for="(imgUrl, idx) in selectedWO.progressImages" :key="idx" :href="imgUrl" target="_blank" class="img-wrapper">
-                <img :src="imgUrl" alt="Bukti Perbaikan" />
-              </a>
+              <div 
+                v-for="(imgUrl, idx) in selectedWO.progressImages" 
+                :key="idx" 
+                class="img-wrapper"
+              >
+                <img 
+                  :src="imgUrl" 
+                  alt="Bukti Perbaikan" 
+                  crossorigin="anonymous"
+                  loading="eager"
+                />
+              </div>
             </div>
-            <div v-else class="no-images">
+            <div v-else class="no-images text-left">
               {{ t('noPhotos') }}
             </div>
           </div>
         </div>
 
+        <!-- Modal Footer -->
         <div class="modal-footer">
           <button @click="closeDetailModal" class="btn-secondary">{{ t('close') }}</button>
         </div>
@@ -330,10 +387,12 @@ import axios from 'axios';
 // STATE
 const workOrders = ref([]);
 const loading = ref(true);
+const isGeneratingPdf = ref(false);
 const searchQuery = ref('');
 const selectedStatus = ref('ALL');
 const selectedWO = ref(null);
 const user = ref(null);
+const modalPdfRef = ref(null);
 
 const activeTheme = ref('light');
 const currentLang = ref('id');
@@ -366,6 +425,8 @@ const translations = {
     modalMaterial: 'Rincian Material & Biaya',
     modalPhotos: 'Foto Bukti Perbaikan',
     noPhotos: 'Belum ada foto bukti perbaikan yang diunggah oleh teknisi.',
+    downloadPdf: 'Download PDF',
+    generatingPdf: 'Proses PDF...',
     close: 'Tutup'
   },
   en: {
@@ -392,6 +453,8 @@ const translations = {
     modalMaterial: 'Material & Cost Breakdown',
     modalPhotos: 'Proof Photos',
     noPhotos: 'No repair proof photos uploaded by technician yet.',
+    downloadPdf: 'Download PDF',
+    generatingPdf: 'Generating PDF...',
     close: 'Close'
   }
 };
@@ -443,6 +506,48 @@ const fetchWorkOrders = async () => {
     console.error('Error fetching work orders:', error);
   } finally {
     loading.value = false;
+  }
+};
+
+// DOWNLOAD PDF FUNCTION
+const downloadPDF = async () => {
+  if (!modalPdfRef.value || isGeneratingPdf.value || !selectedWO.value) return;
+
+  try {
+    isGeneratingPdf.value = true;
+
+    let html2pdfModule;
+    try {
+      html2pdfModule = (await import('html2pdf.js')).default;
+    } catch (e) {
+      console.warn('html2pdf.js belum terinstall via npm, menggunakan fallback print dialog.');
+    }
+
+    if (html2pdfModule) {
+      const element = modalPdfRef.value;
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `WO_${selectedWO.value.woCode || 'Detail'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          allowTaint: true,
+          logging: false 
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      await html2pdfModule().set(opt).from(element).save();
+    } else {
+      window.print();
+    }
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    window.print();
+  } finally {
+    isGeneratingPdf.value = false;
   }
 };
 
@@ -498,6 +603,17 @@ const formatDate = (dateStr) => {
     day: 'numeric',
     month: 'short',
     year: 'numeric'
+  });
+};
+
+const formatCurrentDate = () => {
+  const locale = currentLang.value === 'id' ? 'id-ID' : 'en-US';
+  return new Date().toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 };
 
@@ -872,7 +988,7 @@ h1 {
   color: var(--text-main);
   border: 1px solid var(--border-color);
   width: 100%;
-  max-width: 600px;
+  max-width: 620px;
   border-radius: 16px;
   overflow: hidden;
   max-height: 90vh;
@@ -880,9 +996,40 @@ h1 {
   flex-direction: column;
 }
 
-.modal-header { padding: 16px 20px; background-color: var(--bg-main); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.modal-header { 
+  padding: 16px 20px; 
+  background-color: var(--bg-main); 
+  border-bottom: 1px solid var(--border-color); 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+}
 .modal-header h3 { margin: 0; font-size: 18px; color: var(--text-main); }
-.btn-close { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; }
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-download-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-download-pdf:hover:not(:disabled) { background-color: var(--primary-hover); }
+.btn-download-pdf:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-close { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; padding: 0 4px; }
 
 .modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 .modal-status-banner { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; }
@@ -890,22 +1037,61 @@ h1 {
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .label { font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px; }
 .value { font-size: 13px; font-weight: 600; color: var(--text-main); margin: 0; }
-.desc-box { background: var(--bg-main); padding: 10px; border-radius: 6px; font-size: 12px; color: var(--text-main); border: 1px solid var(--border-color); }
+
+.desc-box { 
+  background: var(--bg-main); 
+  padding: 12px; 
+  border-radius: 6px; 
+  font-size: 12.5px; 
+  line-height: 1.5;
+  color: var(--text-main); 
+  border: 1px solid var(--border-color); 
+  text-align: left !important;
+  white-space: pre-line;
+  word-break: break-word;
+}
 
 .tech-list { display: flex; flex-direction: column; gap: 6px; }
-.tech-item { display: flex; justify-content: space-between; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 12px; }
+.tech-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 12px; }
 
 .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
-.mini-table th, .mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: left; }
+.mini-table th, .mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); }
 .grand-total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-top: 8px; }
 
+/* Image Grid Rapi */
 .image-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
-.img-wrapper { aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
-.img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-.no-images { font-size: 12px; color: var(--text-muted); font-style: italic; text-align: center; padding: 12px; background: var(--bg-main); border-radius: 6px; border: 1px solid var(--border-color); }
+.img-wrapper { 
+  aspect-ratio: 1; 
+  border-radius: 8px; 
+  overflow: hidden; 
+  border: 1px solid var(--border-color); 
+  background-color: var(--bg-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.no-images { font-size: 12px; color: var(--text-muted); font-style: italic; padding: 12px; background: var(--bg-main); border-radius: 6px; border: 1px solid var(--border-color); }
 
 .modal-footer { padding: 12px 20px; background: var(--bg-main); border-top: 1px solid var(--border-color); text-align: right; }
 .btn-secondary { background: var(--border-color); color: var(--text-main); border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* Kop Header khusus Dokumen/PDF */
+.pdf-doc-header {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
+}
+.pdf-brand { display: flex; align-items: center; gap: 10px; }
+.pdf-logo { width: 32px; height: 32px; border-radius: 6px; }
+.pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: var(--primary-color); letter-spacing: 0.5px; }
+.pdf-brand-sub { font-size: 10px; color: var(--text-muted); margin: 2px 0 0 0; }
+.pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
+.pdf-code { font-size: 15px; font-weight: 800; color: var(--text-main); }
+.pdf-date { font-size: 10px; color: var(--text-muted); }
 
 /* Skeleton Loading Animation */
 .skeleton-wrapper { display: flex; flex-direction: column; gap: 12px; width: 100%; }
@@ -931,7 +1117,9 @@ h1 {
   .wo-dashboard-wrapper { padding: 16px; }
 }
 
-.text-right { text-align: right; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
 .font-bold { font-weight: 700; }
 .font-medium { font-weight: 500; }
 .font-xs { font-size: 11px; }
@@ -941,5 +1129,17 @@ h1 {
 .text-indigo { color: var(--primary-color); }
 .block { display: block; }
 .uppercase { text-transform: uppercase; }
+.mb-1 { margin-bottom: 4px; }
+.py-2 { padding-top: 8px; padding-bottom: 8px; }
 .empty-state { text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-muted); width: 100%; box-sizing: border-box; }
+
+/* Media Print Optimization */
+@media print {
+  .no-print { display: none !important; }
+  .pdf-doc-header { display: flex !important; }
+  .modal-backdrop { position: static !important; background: none !important; padding: 0 !important; }
+  .modal-content { max-width: 100% !important; border: none !important; box-shadow: none !important; }
+  .modal-header, .modal-footer { display: none !important; }
+  .avoid-break { page-break-inside: avoid !important; }
+}
 </style>
