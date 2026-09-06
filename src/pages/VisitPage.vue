@@ -121,22 +121,8 @@
             </div>
           </div>
 
-          <!-- Tombol Aksi (Tampilan Baru Tombol Download Manager Style) -->
+          <!-- Tombol Aksi (Hanya Lihat Detail) -->
           <div class="card-action-bar">
-            <button 
-              @click="generateAndDownloadPDF(wo)" 
-              class="btn-doc-download" 
-              :disabled="generatingPdfId === (wo._id || wo.id || wo.woCode)"
-              title="Download Dokumen Bukti (PDF)"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{ 'spin-anim': generatingPdfId === (wo._id || wo.id || wo.woCode) }">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>{{ generatingPdfId === (wo._id || wo.id || wo.woCode) ? 'Proses...' : t('btnDocument') }}</span>
-            </button>
-
             <button @click="navigateToDetail(wo)" class="btn-detail">
               <span>{{ t('btnViewDetail') }}</span>
               <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -148,99 +134,11 @@
         </article>
       </div>
     </main>
-
-    <!-- Offscreen Container untuk Render PDF -->
-    <div class="pdf-offscreen-container">
-      <div v-if="activePdfItem" id="dynamic-pdf-area-visit" class="pdf-document">
-        <div class="pdf-header">
-          <h2>SURAT TUGAS WORK ORDER</h2>
-          <h3>{{ activePdfItem.companyName || 'Infrastructure_Report' }}</h3>
-          <p><strong>Kode WO:</strong> {{ activePdfItem.woCode }}</p>
-        </div>
-        <hr class="pdf-divider" />
-        <div class="pdf-meta">
-          <div>
-            <strong>Penerbit:</strong> {{ activePdfItem.createdBy || 'Manager Field System' }}
-            <span v-if="activePdfItem.createdByEmail"> ({{ activePdfItem.createdByEmail }})</span>
-          </div>
-          <div>
-            <strong>Tanggal Pelaksanaan:</strong> {{ formatDate(activePdfItem.executionDate || activePdfItem.createdAt) }}
-          </div>
-        </div>
-
-        <div class="pdf-section">
-          <h4>1. Pendahuluan & Deskripsi Tugas</h4>
-          <p class="pdf-desc">{{ activePdfItem.introduction || '-' }}</p>
-        </div>
-
-        <div class="pdf-section">
-          <h4>2. Lokasi Perbaikan</h4>
-          <p><strong>Nama Tempat:</strong> {{ activePdfItem.locationName || '-' }}</p>
-          <p v-if="activePdfItem.mapsUrl"><strong>Google Maps:</strong> {{ activePdfItem.mapsUrl }}</p>
-        </div>
-
-        <div class="pdf-section">
-          <h4>3. Daftar Teknisi</h4>
-          <table class="pdf-table">
-            <thead>
-              <tr>
-                <th>Nama Teknisi</th>
-                <th>Email / Kontak</th>
-                <th class="text-right">Biaya / Fee</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(tItem, idx) in (activePdfItem.technicians || [])" :key="idx">
-                <td>{{ tItem.name }}</td>
-                <td>{{ tItem.email || tItem.phone || '-' }}</td>
-                <td class="text-right">{{ formatCurrency(tItem.fee) }}</td>
-              </tr>
-              <tr v-if="!activePdfItem.technicians || activePdfItem.technicians.length === 0">
-                <td colspan="3" class="text-center italic">Belum ada teknisi ditugaskan.</td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="pdf-subtotal">Total Fee Teknisi: <strong>{{ formatCurrency(getTechTotal(activePdfItem)) }}</strong></p>
-        </div>
-
-        <div class="pdf-section">
-          <h4>4. Daftar Material & Resource</h4>
-          <table class="pdf-table">
-            <thead>
-              <tr>
-                <th>Nama Material</th>
-                <th>Jumlah</th>
-                <th>Satuan</th>
-                <th class="text-right">Harga Satuan</th>
-                <th class="text-right">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, idx) in (activePdfItem.resources || [])" :key="idx">
-                <td>{{ r.name }}</td>
-                <td>{{ r.quantity }}</td>
-                <td>{{ r.unit }}</td>
-                <td class="text-right">{{ formatCurrency(r.price) }}</td>
-                <td class="text-right">{{ formatCurrency(r.subtotal || (r.quantity * r.price)) }}</td>
-              </tr>
-              <tr v-if="!activePdfItem.resources || activePdfItem.resources.length === 0">
-                <td colspan="5" class="text-center italic">Tidak ada rincian material.</td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="pdf-subtotal">Total Material: <strong>{{ formatCurrency(getResourceTotal(activePdfItem)) }}</strong></p>
-        </div>
-
-        <div class="pdf-footer-summary">
-          GRAND TOTAL BIAYA: {{ formatCurrency(getGrandTotal(activePdfItem)) }}
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 
@@ -248,8 +146,6 @@ const router = useRouter();
 const workOrders = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
-const activePdfItem = ref(null);
-const generatingPdfId = ref(null);
 const currentTheme = ref('light');
 const currentLang = ref('id');
 
@@ -263,7 +159,6 @@ const translations = {
     btnRetry: 'Coba Lagi',
     emptyData: 'Belum ada data work order terdaftar.',
     colExecDate: 'Tanggal Eksekusi',
-    btnDocument: 'Download PDF',
     btnViewDetail: 'Lihat Detail'
   },
   en: {
@@ -273,7 +168,6 @@ const translations = {
     btnRetry: 'Try Again',
     emptyData: 'No work orders registered yet.',
     colExecDate: 'Execution Date',
-    btnDocument: 'Download PDF',
     btnViewDetail: 'View Detail'
   }
 };
@@ -283,70 +177,10 @@ const t = (key) => translations[currentLang.value]?.[key] || key;
 const goToHome = () => router.push('/');
 const goToWorkflow = () => router.push('/workflow');
 
-// NAVIGASI AMAN DENGAN MULTI-FIELD ID
 const navigateToDetail = (wo) => {
   const targetId = wo._id || wo.id || wo.woCode;
   if (targetId) {
     router.push(`/work-orders/${targetId}`);
-  }
-};
-
-const getTechTotal = (wo) => {
-  if (!wo || !wo.technicians) return 0;
-  return wo.technicians.reduce((sum, t) => sum + (Number(t.fee) || 0), 0);
-};
-
-const getResourceTotal = (wo) => {
-  if (!wo || !wo.resources) return 0;
-  return wo.resources.reduce((sum, r) => sum + (Number(r.subtotal) || (Number(r.quantity || 1) * Number(r.price || 0))), 0);
-};
-
-const getGrandTotal = (wo) => {
-  if (!wo) return 0;
-  if (typeof wo.grandTotal === 'number' && wo.grandTotal > 0) return wo.grandTotal;
-  return getTechTotal(wo) + getResourceTotal(wo);
-};
-
-const generateAndDownloadPDF = async (item) => {
-  const itemId = item._id || item.id || item.woCode;
-  generatingPdfId.value = itemId;
-  activePdfItem.value = item;
-  await nextTick();
-
-  const element = document.getElementById('dynamic-pdf-area-visit');
-  if (!element) {
-    generatingPdfId.value = null;
-    return;
-  }
-
-  const pdfName = `WorkOrder_${item.woCode || itemId}.pdf`;
-
-  const opt = {
-    margin: [10, 10, 10, 10],
-    filename: pdfName,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  try {
-    let html2pdfModule;
-    try {
-      html2pdfModule = (await import('html2pdf.js')).default;
-    } catch (e) {
-      console.warn('html2pdf.js tidak dapat diimpor, fallback print.');
-    }
-
-    if (html2pdfModule) {
-      await html2pdfModule().set(opt).from(element).save();
-    } else {
-      window.print();
-    }
-  } catch (error) {
-    console.error('Gagal merender PDF:', error);
-  } finally {
-    activePdfItem.value = null;
-    generatingPdfId.value = null;
   }
 };
 
@@ -401,11 +235,6 @@ const fetchWorkOrders = async () => {
   }
 };
 
-const formatCurrency = (val) => {
-  if (typeof val !== 'number') val = Number(val) || 0;
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
-};
-
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
@@ -425,6 +254,8 @@ onMounted(() => {
 
 <style scoped>
 :global(:root),
+:global(html),
+:global(body),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
@@ -443,7 +274,8 @@ onMounted(() => {
   --lang-text-active: #2563eb;
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --text-main: #ffffff;
@@ -461,14 +293,24 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
+:global(html),
+:global(body) {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Container Full Width Presisi */
 .page-container {
   width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
-  padding: 24px;
+  padding: 24px 32px;
   box-sizing: border-box;
   transition: background-color 0.4s ease, color 0.4s ease;
 }
@@ -486,7 +328,7 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
@@ -644,11 +486,13 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  padding: 20px 24px;
+  padding: 18px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   transition: background-color 0.3s ease, border-color 0.3s ease;
   flex-wrap: wrap;
@@ -670,7 +514,7 @@ onMounted(() => {
 
 .location-title {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text-main);
   display: flex;
@@ -709,53 +553,27 @@ onMounted(() => {
   gap: 10px;
 }
 
-/* Tombol Download Dokumen Berdaya Tarik Tinggi (Manager Style) */
-.btn-doc-download {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--primary);
-  color: #ffffff;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
-}
-
-.btn-doc-download:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
-}
-
-.btn-doc-download:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .btn-detail {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
-  background-color: var(--bg-card);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
+  padding: 8px 18px;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
   font-size: 13px;
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
 
 .btn-detail:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }
 
 /* Status Badges */
@@ -799,44 +617,11 @@ onMounted(() => {
 .skeleton-title { height: 20px; width: 50%; }
 .skeleton-box { height: 16px; width: 30%; }
 
-/* PDF Offscreen Container */
-.pdf-offscreen-container {
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-  width: 210mm;
-  background: #ffffff;
-}
-
-.pdf-document {
-  padding: 24px;
-  background: #ffffff !important;
-  color: #0f172a !important;
-  font-family: Arial, sans-serif;
-  text-align: left;
-}
-.pdf-header { text-align: center; }
-.pdf-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
-.pdf-header h3 { margin: 4px 0; font-size: 14px; color: #334155; }
-.pdf-divider { margin: 16px 0; border: 0; border-top: 2px solid #334155; }
-.pdf-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: #0f172a; }
-.pdf-section { margin-bottom: 16px; color: #0f172a; text-align: left; }
-.pdf-section h4 { margin-bottom: 6px; font-size: 13px; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-.pdf-desc { font-size: 12px; white-space: pre-line; line-height: 1.5; color: #334155; }
-.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.pdf-table th, .pdf-table td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 11px; text-align: left; color: #0f172a; }
-.pdf-table th { background-color: #f1f5f9; font-weight: 700; }
-.pdf-subtotal { text-align: right; margin-top: 6px; font-size: 12px; color: #0f172a; }
-.pdf-footer-summary { text-align: right; font-size: 14px; font-weight: bold; padding: 10px 14px; background: #e2e8f0; margin-top: 20px; color: #0f172a; border-radius: 6px; }
-
 .text-left { text-align: left !important; }
 .text-right { text-align: right !important; }
 .text-center { text-align: center !important; }
 .font-bold { font-weight: 700; }
 .text-main { color: var(--text-main); }
-
-.spin-anim { animation: spin 1s linear infinite; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
 
 @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
