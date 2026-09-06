@@ -51,7 +51,7 @@
             <div class="entity-badge">
               <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                <path d="M23 21v-2a4 4 0 0 1 0 7.75"/>
               </svg>
               <span>Manager & Teknisi</span>
             </div>
@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <!-- DROPDOWN 2: SECTION B (USECASE FLOW) -->
+    <!-- DROPDOWN 2: SECTION B (USECASE FLOW SEQUENTIAL ANIMATED) -->
     <div class="explainer-dropdown" :class="{ 'is-open': isFlowDropdownOpen }">
       <button class="dropdown-header" @click="isFlowDropdownOpen = !isFlowDropdownOpen">
         <div class="title-group">
@@ -87,7 +87,8 @@
 
       <div v-show="isFlowDropdownOpen" class="dropdown-content">
         <div ref="diagramRef" class="diagram-wrapper" :class="{ 'is-animated': isDiagramVisible }">
-          <div class="flow-node shadow-glow">
+          <!-- Entity 1 -->
+          <div class="flow-node shadow-glow node-1">
             <div class="node-header">
               <div class="node-icon user-icon">
                 <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,18 +100,22 @@
             <p>Mengirimkan laporan kerusakan fasilitas infrastruktur & kendala operasional melalui form.</p>
           </div>
 
-          <div class="flow-connector">
+          <!-- Connector 1 -->
+          <div class="flow-connector connector-1">
             <svg class="connector-svg desktop-only" viewBox="0 0 100 24">
-              <path d="M 0 12 L 100 12" stroke="currentColor" stroke-width="3" stroke-dasharray="6,6" />
-              <polygon points="92,6 100,12 92,18" fill="currentColor" />
+              <path class="connector-line-bg" d="M 0 12 L 92 12" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4,4" />
+              <path class="connector-line" d="M 0 12 L 92 12" stroke="var(--connector-color)" stroke-width="3" />
+              <polygon class="connector-arrowhead" points="92,6 100,12 92,18" fill="var(--connector-color)" />
             </svg>
             <svg class="connector-svg mobile-only" viewBox="0 0 24 60">
-              <path d="M 12 0 L 12 60" stroke="currentColor" stroke-width="3" stroke-dasharray="6,6" />
-              <polygon points="6,52 12,60 18,52" fill="currentColor" />
+              <path class="connector-line-bg" d="M 12 0 L 12 52" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4,4" />
+              <path class="connector-line" d="M 12 0 L 12 52" stroke="var(--connector-color)" stroke-width="3" />
+              <polygon class="connector-arrowhead" points="6,52 12,60 18,52" fill="var(--connector-color)" />
             </svg>
           </div>
 
-          <div class="flow-node shadow-glow">
+          <!-- Entity 2 -->
+          <div class="flow-node shadow-glow node-2">
             <div class="node-header">
               <div class="node-icon manager-icon">
                 <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -122,18 +127,22 @@
             <p>Memeriksa laporan, menyetujui, serta menerbitkan Work Order yang merinci alokasi resource & biaya.</p>
           </div>
 
-          <div class="flow-connector">
+          <!-- Connector 2 -->
+          <div class="flow-connector connector-2">
             <svg class="connector-svg desktop-only" viewBox="0 0 100 24">
-              <path d="M 0 12 L 100 12" stroke="currentColor" stroke-width="3" stroke-dasharray="6,6" />
-              <polygon points="92,6 100,12 92,18" fill="currentColor" />
+              <path class="connector-line-bg" d="M 0 12 L 92 12" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4,4" />
+              <path class="connector-line" d="M 0 12 L 92 12" stroke="var(--connector-color)" stroke-width="3" />
+              <polygon class="connector-arrowhead" points="92,6 100,12 92,18" fill="var(--connector-color)" />
             </svg>
             <svg class="connector-svg mobile-only" viewBox="0 0 24 60">
-              <path d="M 12 0 L 12 60" stroke="currentColor" stroke-width="3" stroke-dasharray="6,6" />
-              <polygon points="6,52 12,60 18,52" fill="currentColor" />
+              <path class="connector-line-bg" d="M 12 0 L 12 52" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4,4" />
+              <path class="connector-line" d="M 12 0 L 12 52" stroke="var(--connector-color)" stroke-width="3" />
+              <polygon class="connector-arrowhead" points="6,52 12,60 18,52" fill="var(--connector-color)" />
             </svg>
           </div>
 
-          <div class="flow-node shadow-glow">
+          <!-- Entity 3 -->
+          <div class="flow-node shadow-glow node-3">
             <div class="node-header">
               <div class="node-icon tech-icon">
                 <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,39 +163,53 @@
         <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
         </svg>
-        <h3>Arsitektur Perangkat Lunak & Tech Stack</h3>
+        <h3>Arsitektur Perangkat Lunak & Kegunaan Tech Stack</h3>
       </div>
       <p class="tech-description">
-        Sistem Informasi Pelaporan dan Pemeliharaan Infrastruktur ini dirancang menggunakan arsitektur <strong>Microservice</strong> yang modern dan terintegrasi secara penuh. Sisi antarmuka web dikembangkan menggunakan <strong>Vue 3</strong> untuk menyajikan pengalaman pengguna yang dinamis dan responsif, terhubung ke backend microservice untuk pengelolaan alur kerja operasional, otentikasi peran, serta pencetakan Work Order PDF. Sistem ini juga didukung oleh ekosistem aplikasi mobile lapangan untuk pelapor dan teknisi.
+        Sistem Informasi Pelaporan dan Pemeliharaan Infrastruktur ini dirancang dengan arsitektur modern berbasis ekosistem <strong>Node.js, Express, MongoDB, Vue 3, dan React Native</strong>. Integrasi teknologi ini memastikan performa tinggi, skala sistem yang fleksibel, serta sinkronisasi data secara real-time antara aplikasi web manajemen dan aplikasi mobile di lapangan.
       </p>
 
       <div class="tech-grid">
-        <div class="tech-badge">
-          <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-          <span>Vue 3 Frontend</span>
+        <div class="tech-badge-card">
+          <div class="tech-badge-header">
+            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <span>Vue 3 (Frontend Web)</span>
+          </div>
+          <p>Digunakan untuk membangun antarmuka dashboard Web SPA yang interaktif, tempat Admin mengelola akun & Manager menyetujui laporan serta menerbitkan Work Order.</p>
         </div>
 
-        <div class="tech-badge">
-          <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
-          </svg>
-          <span>Go REST API (Gin)</span>
+        <div class="tech-badge-card">
+          <div class="tech-badge-header">
+            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+            </svg>
+            <span>Node.js & Express.js</span>
+          </div>
+          <p>Bertindak sebagai runtime & framework REST API backend yang mengani otentikasi JWT, validasi data, logika alur kerja operasional, serta layanan generasi dokumen Work Order.</p>
         </div>
 
-        <div class="tech-badge">
-          <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-          </svg>
-          <span>Vercel Microservices</span>
+        <div class="tech-badge-card">
+          <div class="tech-badge-header">
+            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            </svg>
+            <span>MongoDB (Database)</span>
+          </div>
+          <p>Database NoSQL berkinerja tinggi berbasis dokumen untuk menyimpan data fleksibel seperti profil pengguna, status pelaporan infrastruktur, rincian resource, dan riwayat tugas.</p>
         </div>
 
-        <div class="tech-badge">
-          <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
-          </svg>
-          <span>Mobile App (Android/iOS)</span>
+        <div class="tech-badge-card">
+          <div class="tech-badge-header">
+            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+            <span>React Native (Mobile App)</span>
+          </div>
+          <p>Framework cross-platform untuk aplikasi mobile (Android/iOS) yang digunakan oleh masyarakat untuk mengirim laporan serta oleh Teknisi untuk menerima & mengeksekusi tugas di lapangan.</p>
         </div>
       </div>
     </div>
@@ -252,7 +275,7 @@ onMounted(() => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
 
-  // Setup IntersectionObserver for scroll-triggered flow animations
+  // IntersectionObserver untuk memicu animasi beruntun saat di-scroll ke diagram
   observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -261,7 +284,7 @@ onMounted(() => {
         }
       });
     },
-    { threshold: 0.25 }
+    { threshold: 0.2 }
   );
 
   if (diagramRef.value) {
@@ -277,6 +300,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* RESET UNTUK MENCEGAH BUG GAP/SCROLLBAR HORISONTAL */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :global(:root),
 :global([data-theme="light"]) {
   --bg-main: #f8fafc;
@@ -287,7 +315,7 @@ onUnmounted(() => {
   --primary-color: #2563eb;
   --primary-glow: rgba(37, 99, 235, 0.15);
   --border-color: rgba(148, 163, 184, 0.25);
-  --connector-color: #3b82f6;
+  --connector-color: #2563eb;
   --disabled-bg: #e2e8f0;
   --disabled-text: #94a3b8;
 }
@@ -315,6 +343,7 @@ onUnmounted(() => {
   padding: 24px 32px;
   max-width: 1100px;
   margin: 0 auto;
+  overflow-x: hidden; /* Mencegah bug celah kosong di kanan/kiri saat refresh */
 }
 
 .header-bar h2 {
@@ -431,13 +460,14 @@ onUnmounted(() => {
   text-decoration: underline;
 }
 
-/* --- ANIMATED USECASE FLOW DIAGRAM --- */
+/* --- SEQUENTIAL ANIMATED USECASE FLOW DIAGRAM --- */
 .diagram-wrapper {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 0;
+  padding: 16px 0;
+  width: 100%;
 }
 
 .flow-node {
@@ -446,19 +476,10 @@ onUnmounted(() => {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 16px;
-  transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
-  opacity: 0.6;
-  transform: translateY(12px);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
-
-.diagram-wrapper.is-animated .flow-node {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.diagram-wrapper.is-animated .flow-node:nth-child(1) { transition-delay: 0.1s; }
-.diagram-wrapper.is-animated .flow-node:nth-child(3) { transition-delay: 0.3s; }
-.diagram-wrapper.is-animated .flow-node:nth-child(5) { transition-delay: 0.5s; }
 
 .flow-node:hover {
   border-color: var(--primary-color);
@@ -498,11 +519,11 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 
+/* CONNECTORS & ANIMATED ARROW DRAWING */
 .flow-connector {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--connector-color);
   width: 70px;
   flex-shrink: 0;
 }
@@ -510,18 +531,60 @@ onUnmounted(() => {
 .connector-svg {
   width: 100%;
   height: auto;
+  overflow: visible;
+}
+
+.connector-line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 0.8s ease-in-out;
+}
+
+.connector-arrowhead {
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .mobile-only { display: none; }
 .desktop-only { display: block; }
 
-.diagram-wrapper.is-animated .connector-svg path {
-  animation: dashFlow 1.2s linear infinite;
+/* ANIMATION TIMINGS (APPEAR ONE BY ONE) */
+.diagram-wrapper.is-animated .node-1 {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
 }
 
-@keyframes dashFlow {
-  from { stroke-dashoffset: 12; }
-  to { stroke-dashoffset: 0; }
+.diagram-wrapper.is-animated .connector-1 .connector-line {
+  stroke-dashoffset: 0;
+  transition-delay: 0.5s;
+}
+
+.diagram-wrapper.is-animated .connector-1 .connector-arrowhead {
+  opacity: 1;
+  transition-delay: 1.2s;
+}
+
+.diagram-wrapper.is-animated .node-2 {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 1.4s;
+}
+
+.diagram-wrapper.is-animated .connector-2 .connector-line {
+  stroke-dashoffset: 0;
+  transition-delay: 1.8s;
+}
+
+.diagram-wrapper.is-animated .connector-2 .connector-arrowhead {
+  opacity: 1;
+  transition-delay: 2.5s;
+}
+
+.diagram-wrapper.is-animated .node-3 {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 2.7s;
 }
 
 /* --- INFO CARD BASE --- */
@@ -559,28 +622,39 @@ onUnmounted(() => {
 
 .tech-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
 }
 
-.tech-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.tech-badge-card {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.tech-badge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--text-main);
+  margin-bottom: 6px;
 }
 
 .tech-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   color: var(--primary-color);
   flex-shrink: 0;
+}
+
+.tech-badge-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
 }
 
 /* --- DOWNLOADS SECTION --- */
