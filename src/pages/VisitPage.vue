@@ -121,7 +121,7 @@
             </div>
           </div>
 
-          <!-- Tombol Aksi (Hanya Lihat Detail) -->
+          <!-- Tombol Aksi -->
           <div class="card-action-bar">
             <button @click="navigateToDetail(wo)" class="btn-detail">
               <span>{{ t('btnViewDetail') }}</span>
@@ -293,20 +293,25 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
+/* OVERRIDE CSS GLOBAL UNTUK MENGELIMINASI GAP KANAN-KIRI SAAT REFRESH */
 :global(html),
-:global(body) {
-  margin: 0;
-  padding: 0;
-  width: 100%;
+:global(body),
+:global(#app) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
   min-height: 100vh;
+  background-color: var(--bg-main) !important;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
-/* Container Full Width Presisi */
+/* Container Pembungkus Halaman Utuh */
 .page-container {
   width: 100%;
   max-width: 100%;
-  margin: 0;
+  margin: 0 auto;
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
