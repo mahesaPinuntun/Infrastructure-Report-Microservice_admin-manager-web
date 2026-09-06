@@ -11,9 +11,13 @@
           <span>{{ t('backToList') }}</span>
         </button>
 
-        <!-- Brand Badge Menggunakan Icon dari Folder /public -->
+        <!-- Brand Badge Menggunakan Icon SVG Data URI -->
         <div class="brand-badge mt-1">
-          <img src="/logo.png" alt="Logo" class="brand-logo-icon" @error="$event.target.src='/favicon.ico'" />
+          <img 
+            src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='62' font-weight='bold' fill='%23ffffff' font-family='sans-serif'>築</text></svg>" 
+            alt="Logo" 
+            class="brand-logo-icon" 
+          />
           <span>Manager Field System</span>
         </div>
         <h1>{{ workOrder?.woCode || t('loadingTitle') }}</h1>
@@ -99,10 +103,14 @@
 
     <!-- Printable & Exportable Content Area -->
     <div v-else-if="workOrder" ref="pdfContentRef" class="pdf-printable-container">
-      <!-- PDF Document Header (Icon publik digunakan di sini) -->
+      <!-- PDF Document Header (SVG Data URI digunakan di sini) -->
       <div class="pdf-doc-header">
         <div class="pdf-brand">
-          <img src="/logo.png" alt="Logo" class="pdf-logo-icon" @error="$event.target.src='/favicon.ico'" />
+          <img 
+            src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='62' font-weight='bold' fill='%23ffffff' font-family='sans-serif'>築</text></svg>" 
+            alt="Logo PDF" 
+            class="pdf-logo-icon" 
+          />
           <div class="pdf-brand-text text-left">
             <h2 class="pdf-brand-title">MANAGER FIELD SYSTEM</h2>
             <p class="pdf-brand-sub">Official Work Order Document Report</p>
@@ -558,7 +566,7 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
-/* FIX PERUBAHAN TAMPILAN SAAT REFRESH & MEMASTIKAN BISA DI-SCROLL */
+/* OVERRIDE CSS GLOBAL: MENGELIMINASI GAP KANAN/KIRIN DAN MEMASTIKAN BISA DI-SCROLL */
 :global(html),
 :global(body),
 :global(#app) {
@@ -654,19 +662,18 @@ onMounted(() => {
   margin-bottom: 2px;
 }
 
-/* CSS ICON LOGO DARI FOLDER PUBLIC */
 .brand-logo-icon {
   width: 22px;
   height: 22px;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 5px;
 }
 
 .pdf-logo-icon {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
-  border-radius: 5px;
+  border-radius: 6px;
 }
 
 h1 {
@@ -908,7 +915,31 @@ h1 {
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* DOKUMEN HASIL EKSPOR PDF & PRINT */
+/* OPTIMISASI PERANGKAT MOBIL / ANDROID */
+@media (max-width: 600px) {
+  .wo-detail-wrapper {
+    padding: 12px 10px !important;
+  }
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .info-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+/* DOKUMEN HASIL EKSPOR PDF & PRINT (RAPI DAN TEPAT FORMAT A4) */
 .pdf-printable-container.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
@@ -932,6 +963,10 @@ h1 {
 .pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
 .pdf-code { font-size: 14px; font-weight: 800; color: #0f172a !important; }
 .pdf-date { font-size: 10px; color: #64748b !important; margin-top: 1px; }
+
+.pdf-printable-container.is-exporting-pdf .image-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
 
 .pdf-printable-container.is-exporting-pdf * {
   color: #0f172a !important;
