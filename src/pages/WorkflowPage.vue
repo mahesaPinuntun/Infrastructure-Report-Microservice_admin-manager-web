@@ -166,30 +166,44 @@
         <h3>Arsitektur Perangkat Lunak & Kegunaan Tech Stack</h3>
       </div>
       <p class="tech-description">
-        Sistem Informasi Pelaporan dan Pemeliharaan Infrastruktur ini dirancang dengan arsitektur modern berbasis ekosistem <strong>Node.js, Express, MongoDB, Vue 3, dan React Native</strong>. Integrasi teknologi ini memastikan performa tinggi, skala sistem yang fleksibel, serta sinkronisasi data secara real-time antara aplikasi web manajemen dan aplikasi mobile di lapangan.
+        Sistem Informasi Pelaporan dan Pemeliharaan Infrastruktur ini dirancang menggunakan arsitektur *decoupled* yang memisahkan aplikasi Frontend Web, Service API Backend, dan Mobile App Lapangan secara independen.
       </p>
 
       <div class="tech-grid">
+        <!-- Vue 3 -->
         <div class="tech-badge-card">
           <div class="tech-badge-header">
             <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
-            <span>Vue 3 (Frontend Web)</span>
+            <span>Vue 3 (Frontend Web Dashboard)</span>
           </div>
-          <p>Digunakan untuk membangun antarmuka dashboard Web SPA yang interaktif, tempat Admin mengelola akun & Manager menyetujui laporan serta menerbitkan Work Order.</p>
+          <p>Membangun antarmuka Web SPA interaktif untuk Admin dalam mengelola akun & Manager dalam menyetujui laporan serta menerbitkan Work Order.</p>
         </div>
 
+        <!-- Express.js -->
+        <div class="tech-badge-card">
+          <div class="tech-badge-header">
+            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>
+            </svg>
+            <span>Express.js (Backend REST API Framework)</span>
+          </div>
+          <p>Framework backend untuk menangani *routing* API, verifikasi JWT, enkripsi data, validasi skema, dan alur pembuatan dokumen Work Order PDF.</p>
+        </div>
+
+        <!-- Node.js -->
         <div class="tech-badge-card">
           <div class="tech-badge-header">
             <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
             </svg>
-            <span>Node.js & Express.js</span>
+            <span>Node.js (Backend Server Runtime)</span>
           </div>
-          <p>Bertindak sebagai runtime & framework REST API backend yang mengani otentikasi JWT, validasi data, logika alur kerja operasional, serta layanan generasi dokumen Work Order.</p>
+          <p>Lingkungan eksekusi JavaScript sisi server yang menangani *asynchronous I/O*, manajemen layanan *microservice*, dan performa tinggi secara kontinyu.</p>
         </div>
 
+        <!-- MongoDB -->
         <div class="tech-badge-card">
           <div class="tech-badge-header">
             <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -197,19 +211,20 @@
               <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
               <ellipse cx="12" cy="5" rx="9" ry="3"/>
             </svg>
-            <span>MongoDB (Database)</span>
+            <span>MongoDB (NoSQL Database)</span>
           </div>
-          <p>Database NoSQL berkinerja tinggi berbasis dokumen untuk menyimpan data fleksibel seperti profil pengguna, status pelaporan infrastruktur, rincian resource, dan riwayat tugas.</p>
+          <p>Basis data dokumen untuk menyimpan informasi fleksibel seperti profil akun, status laporan, alokasi material perbaikan, dan riwayat tugas.</p>
         </div>
 
+        <!-- React Native -->
         <div class="tech-badge-card">
           <div class="tech-badge-header">
             <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
             </svg>
-            <span>React Native (Mobile App)</span>
+            <span>React Native (Mobile Application)</span>
           </div>
-          <p>Framework cross-platform untuk aplikasi mobile (Android/iOS) yang digunakan oleh masyarakat untuk mengirim laporan serta oleh Teknisi untuk menerima & mengeksekusi tugas di lapangan.</p>
+          <p>Framework *cross-platform* (Android/iOS) bagi masyarakat untuk mengirimkan laporan serta bagi Teknisi dalam memproses eksekusi tugas di lapangan.</p>
         </div>
       </div>
     </div>
@@ -262,11 +277,9 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-// Independent dropdown states
 const isAccountDropdownOpen = ref(true);
 const isFlowDropdownOpen = ref(true);
 
-// Scroll animation state via Intersection Observer
 const diagramRef = ref(null);
 const isDiagramVisible = ref(false);
 let observer = null;
@@ -275,7 +288,6 @@ onMounted(() => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
 
-  // IntersectionObserver untuk memicu animasi beruntun saat di-scroll ke diagram
   observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -300,7 +312,22 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* RESET UNTUK MENCEGAH BUG GAP/SCROLLBAR HORISONTAL */
+/* RESET & OVERRIDE UNTUK MEMASTIKAN TAMPILAN FULL KANAN-KIRI TANPA GAP */
+:global(html),
+:global(body),
+:global(#app) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  height: auto !important;
+  background-color: var(--bg-main) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -340,16 +367,17 @@ onUnmounted(() => {
   box-sizing: border-box;
   background-color: var(--bg-main);
   color: var(--text-main);
-  padding: 24px 32px;
+  padding: 24px 20px;
   max-width: 1100px;
   margin: 0 auto;
-  overflow-x: hidden; /* Mencegah bug celah kosong di kanan/kiri saat refresh */
+  overflow-x: hidden;
 }
 
 .header-bar h2 {
   margin: 8px 0 20px 0;
   font-size: 24px;
   font-weight: 800;
+  text-align: left;
 }
 
 .btn-back {
@@ -370,7 +398,7 @@ onUnmounted(() => {
   opacity: 0.8;
 }
 
-/* --- DROPDOWN COMPONENTS --- */
+/* DROPDOWN COMPONENTS */
 .explainer-dropdown {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -400,6 +428,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   color: var(--primary-color);
+  text-align: left;
 }
 
 .chevron {
@@ -418,7 +447,7 @@ onUnmounted(() => {
 /* ACCOUNT CREATION GRID */
 .account-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
   padding-top: 8px;
 }
@@ -428,6 +457,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 16px;
+  text-align: left;
 }
 
 .entity-badge {
@@ -460,7 +490,7 @@ onUnmounted(() => {
   text-decoration: underline;
 }
 
-/* --- SEQUENTIAL ANIMATED USECASE FLOW DIAGRAM --- */
+/* SEQUENTIAL ANIMATED USECASE FLOW DIAGRAM */
 .diagram-wrapper {
   display: flex;
   align-items: center;
@@ -479,6 +509,7 @@ onUnmounted(() => {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  text-align: left;
 }
 
 .flow-node:hover {
@@ -548,7 +579,6 @@ onUnmounted(() => {
 .mobile-only { display: none; }
 .desktop-only { display: block; }
 
-/* ANIMATION TIMINGS (APPEAR ONE BY ONE) */
 .diagram-wrapper.is-animated .node-1 {
   opacity: 1;
   transform: translateY(0);
@@ -587,7 +617,7 @@ onUnmounted(() => {
   transition-delay: 2.7s;
 }
 
-/* --- INFO CARD BASE --- */
+/* INFO CARD BASE */
 .info-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -610,19 +640,21 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
+  text-align: left;
 }
 
-/* --- TECH STACK SECTION --- */
+/* TECH STACK SECTION */
 .tech-description {
   font-size: 13.5px;
   line-height: 1.6;
   color: var(--text-muted);
   margin: 0 0 20px 0;
+  text-align: left;
 }
 
 .tech-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
@@ -631,6 +663,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 14px;
+  text-align: left;
 }
 
 .tech-badge-header {
@@ -657,7 +690,7 @@ onUnmounted(() => {
   line-height: 1.45;
 }
 
-/* --- DOWNLOADS SECTION --- */
+/* DOWNLOADS SECTION */
 .downloads-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -674,6 +707,7 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: space-between;
   gap: 16px;
+  text-align: left;
 }
 
 .app-role {
@@ -720,7 +754,11 @@ onUnmounted(() => {
 /* RESPONSIVE BREAKPOINTS */
 @media (max-width: 768px) {
   .page-wrapper {
-    padding: 16px;
+    padding: 16px 12px;
+  }
+
+  .dropdown-content {
+    padding: 0 12px 16px 12px;
   }
 
   .diagram-wrapper {
