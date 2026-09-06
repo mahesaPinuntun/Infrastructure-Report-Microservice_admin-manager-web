@@ -1,13 +1,58 @@
 <template>
   <div class="page-wrapper">
-    <header class="header-bar">
-      <button @click="router.push('/')" class="btn-back">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-        </svg>
-        <span>Kembali ke Halaman Utama</span>
-      </button>
-      <h2>Sistem Workflow & Alur Kerja Operasional</h2>
+    <!-- Header Bar dengan Back Button & Action Switchers -->
+    <header class="header-container">
+      <div class="header-title text-left">
+        <button @click="router.push('/')" class="btn-back">
+          <div class="brand-logo-badge">築</div>
+          <span>{{ t('backToDashboard') }}</span>
+        </button>
+        <h2>{{ t('pageTitle') }}</h2>
+      </div>
+
+      <!-- Controls & Switchers -->
+      <div class="header-actions">
+        <!-- Switch Language -->
+        <div class="lang-switch-wrapper">
+          <button 
+            @click="toggleLanguage" 
+            class="lang-toggle-switch"
+            :class="{ 'is-en': currentLang === 'en' }"
+            aria-label="Toggle Language"
+          >
+            <span class="lang-option" :class="{ active: currentLang === 'id' }">ID</span>
+            <span class="lang-option" :class="{ active: currentLang === 'en' }">EN</span>
+            <span class="lang-slider"></span>
+          </button>
+        </div>
+
+        <!-- Switch Theme -->
+        <div class="theme-switch-wrapper">
+          <button 
+            @click="toggleTheme" 
+            class="theme-toggle-switch" 
+            :class="{ 'is-dark': activeTheme === 'dark' }"
+            aria-label="Toggle Theme"
+          >
+            <span class="switch-handle">
+              <svg v-if="activeTheme === 'light'" class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="4"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              <svg v-else class="switch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
     </header>
 
     <!-- DROPDOWN 1: SECTION A (ACCOUNT CREATION) -->
@@ -17,7 +62,7 @@
           <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
-          <span>A. Ketentuan Pembuatan Akun (Account Creation)</span>
+          <span>{{ t('secA') }}</span>
         </div>
         <svg class="icon-sm chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"/>
@@ -34,16 +79,16 @@
               <span>Admin</span>
             </div>
             <p>
-              Akun Admin dibuat melalui tautan khusus:
+              {{ t('adminDesc1') }}
               <a 
                 href="https://infrastructure-report-microservice-admin-manager.vercel.app/register-admin" 
                 target="_blank" 
                 rel="noopener"
                 class="link-highlight"
               >
-                Registrasi Admin
+                {{ t('adminRegLink') }}
               </a> 
-              dengan memasukkan <code>Secret Key</code> yang terkonfigurasi di file <code>.env</code>.
+              {{ t('adminDesc2') }} <code>Secret Key</code> {{ t('adminDesc3') }} <code>.env</code>.
             </p>
           </div>
 
@@ -55,7 +100,7 @@
               </svg>
               <span>Manager & Teknisi</span>
             </div>
-            <p>Akun peran Manager dan Teknisi <strong>hanya dapat dibuat oleh Admin</strong> melalui panel pengelolaan pengguna.</p>
+            <p>{{ t('internalDesc') }}</p>
           </div>
 
           <div class="account-card user">
@@ -65,7 +110,7 @@
               </svg>
               <span>User / Pelapor</span>
             </div>
-            <p>Masyarakat/User dapat membuat akun secara mandiri. Wajib melakukan <strong>konfirmasi aktivasi via Email</strong> sebelum dapat login.</p>
+            <p>{{ t('userDesc') }}</p>
           </div>
         </div>
       </div>
@@ -78,7 +123,7 @@
           <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
           </svg>
-          <span>B. Visualisasi Usecase Flow</span>
+          <span>{{ t('secB') }}</span>
         </div>
         <svg class="icon-sm chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"/>
@@ -97,7 +142,7 @@
               </div>
               <h5>User / Pelapor</h5>
             </div>
-            <p>Mengirimkan laporan kerusakan fasilitas infrastruktur & kendala operasional melalui form.</p>
+            <p>{{ t('flowUserDesc') }}</p>
           </div>
 
           <!-- Connector 1 -->
@@ -124,7 +169,7 @@
               </div>
               <h5>Infrastructure Manager</h5>
             </div>
-            <p>Memeriksa laporan, menyetujui, serta menerbitkan Work Order yang merinci alokasi resource & biaya.</p>
+            <p>{{ t('flowManagerDesc') }}</p>
           </div>
 
           <!-- Connector 2 -->
@@ -151,7 +196,7 @@
               </div>
               <h5>Teknisi Lapangan</h5>
             </div>
-            <p>Menerima surat tugas PDF, mengeksekusi perbaikan fisik, dan mengunggah laporan hasil pengerjaan.</p>
+            <p>{{ t('flowTechDesc') }}</p>
           </div>
         </div>
       </div>
@@ -163,10 +208,10 @@
         <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
         </svg>
-        <h3>Arsitektur Perangkat Lunak & Kegunaan Tech Stack</h3>
+        <h3>{{ t('techStackTitle') }}</h3>
       </div>
       <p class="tech-description">
-        Sistem <strong>Micro-Services</strong> ini dibangun dengan mengombinasikan ekosistem <strong>MERN Stack</strong> untuk fondasi basis data, server API, serta aplikasi mobile, dipadukan dengan <strong>Vue 3</strong> untuk antarmuka web dashboard interaktif.
+        {{ t('techStackDesc') }}
       </p>
 
       <!-- MERN STACK SECTION (GRID 4 KARTU) -->
@@ -185,7 +230,7 @@
               </svg>
               <span>MongoDB</span>
             </div>
-            <p>Database NoSQL untuk menyimpan dokumen data fleksibel seperti profil akun, laporan infrastruktur, dan Work Order.</p>
+            <p>{{ t('mongoDesc') }}</p>
           </div>
 
           <!-- E: Express.js -->
@@ -196,7 +241,7 @@
               </svg>
               <span>Express.js</span>
             </div>
-            <p>Framework REST API backend untuk verifikasi JWT, validasi data, logika bisnis microservices, dan ekspor PDF.</p>
+            <p>{{ t('expressDesc') }}</p>
           </div>
 
           <!-- R: React Native -->
@@ -212,7 +257,7 @@
               </svg>
               <span>React Native</span>
             </div>
-            <p>Framework mobile cross-platform (Android/iOS) untuk aplikasi pelaporan warga dan aplikasi eksekusi tugas teknisi.</p>
+            <p>{{ t('reactDesc') }}</p>
           </div>
 
           <!-- N: Node.js -->
@@ -223,7 +268,7 @@
               </svg>
               <span>Node.js</span>
             </div>
-            <p>Runtime environment JavaScript server-side berkinerja tinggi untuk mengeksekusi service backend secara asinkron.</p>
+            <p>{{ t('nodeDesc') }}</p>
           </div>
         </div>
       </div>
@@ -238,9 +283,7 @@
             </svg>
             <span>Vue 3 (Frontend Web Dashboard)</span>
           </div>
-          <p>
-            Digunakan khusus membangun antarmuka <strong>Web Single Page Application (SPA)</strong> yang interaktif bagi Admin dalam mengelola sistem serta Manager dalam memverifikasi laporan & menerbitkan Work Order.
-          </p>
+          <p>{{ t('vueDesc') }}</p>
         </div>
       </div>
     </div>
@@ -251,15 +294,15 @@
         <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        <h3>Unduh Aplikasi Mobile Lapangan</h3>
+        <h3>{{ t('downloadTitle') }}</h3>
       </div>
       
       <div class="downloads-grid">
         <div class="download-box">
           <div class="download-meta">
-            <span class="app-role">Pelapor / User</span>
+            <span class="app-role">{{ t('roleUser') }}</span>
             <h4>Aplikasi Pelaporan Infrastruktur</h4>
-            <p>Digunakan oleh masyarakat umum dan staf untuk menyampaikan keluhan kerusakan fasilitas.</p>
+            <p>{{ t('appUserDesc') }}</p>
           </div>
           <button class="btn-download" disabled>
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -271,9 +314,9 @@
 
         <div class="download-box">
           <div class="download-meta">
-            <span class="app-role">Teknisi Lapangan</span>
+            <span class="app-role">{{ t('roleTech') }}</span>
             <h4>Aplikasi Eksekusi Work Order</h4>
-            <p>Khusus teknisi untuk menerima Work Order, memperbarui progres perbaikan, dan laporan akhir.</p>
+            <p>{{ t('appTechDesc') }}</p>
           </div>
           <button class="btn-download" disabled>
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -293,6 +336,9 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
+const activeTheme = ref('light');
+const currentLang = ref('id');
+
 const isAccountDropdownOpen = ref(true);
 const isFlowDropdownOpen = ref(true);
 
@@ -300,9 +346,94 @@ const diagramRef = ref(null);
 const isDiagramVisible = ref(false);
 let observer = null;
 
-onMounted(() => {
+const translations = {
+  id: {
+    backToDashboard: 'Kembali ke Dashboard Utama',
+    pageTitle: 'Sistem Workflow & Alur Kerja Operasional',
+    secA: 'A. Ketentuan Pembuatan Akun (Account Creation)',
+    secB: 'B. Visualisasi Usecase Flow',
+    adminDesc1: 'Akun Admin dibuat melalui tautan khusus:',
+    adminRegLink: 'Registrasi Admin',
+    adminDesc2: 'dengan memasukkan',
+    adminDesc3: 'yang terkonfigurasi di file',
+    internalDesc: 'Akun peran Manager dan Teknisi hanya dapat dibuat oleh Admin melalui panel pengelolaan pengguna.',
+    userDesc: 'Masyarakat/User dapat membuat akun secara mandiri. Wajib melakukan konfirmasi aktivasi via Email sebelum dapat login.',
+    flowUserDesc: 'Mengirimkan laporan kerusakan fasilitas infrastruktur & kendala operasional melalui form.',
+    flowManagerDesc: 'Memeriksa laporan, menyetujui, serta menerbitkan Work Order yang merinci alokasi resource & biaya.',
+    flowTechDesc: 'Menerima surat tugas PDF, mengeksekusi perbaikan fisik, dan mengunggah laporan hasil pengerjaan.',
+    techStackTitle: 'Arsitektur Perangkat Lunak & Kegunaan Tech Stack',
+    techStackDesc: 'Sistem Micro-Services ini dibangun dengan mengombinasikan ekosistem MERN Stack untuk fondasi basis data, server API, serta aplikasi mobile, dipadukan dengan Vue 3 untuk antarmuka web dashboard interaktif.',
+    mongoDesc: 'Database NoSQL untuk menyimpan dokumen data fleksibel seperti profil akun, laporan infrastruktur, dan Work Order.',
+    expressDesc: 'Framework REST API backend untuk verifikasi JWT, validasi data, logika bisnis microservices, dan ekspor PDF.',
+    reactDesc: 'Framework mobile cross-platform (Android/iOS) untuk aplikasi pelaporan warga dan aplikasi eksekusi tugas teknisi.',
+    nodeDesc: 'Runtime environment JavaScript server-side berkinerja tinggi untuk mengeksekusi service backend secara asinkron.',
+    vueDesc: 'Digunakan khusus membangun antarmuka Web Single Page Application (SPA) yang interaktif bagi Admin dalam mengelola sistem serta Manager dalam memverifikasi laporan & menerbitkan Work Order.',
+    downloadTitle: 'Unduh Aplikasi Mobile Lapangan',
+    roleUser: 'Pelapor / User',
+    roleTech: 'Teknisi Lapangan',
+    appUserDesc: 'Digunakan oleh masyarakat umum dan staf untuk menyampaikan keluhan kerusakan fasilitas.',
+    appTechDesc: 'Khusus teknisi untuk menerima Work Order, memperbarui progres perbaikan, dan laporan akhir.'
+  },
+  en: {
+    backToDashboard: 'Back to Main Dashboard',
+    pageTitle: 'Operational Workflow & System Architecture',
+    secA: 'A. Account Creation Rules',
+    secB: 'B. Usecase Flow Visualization',
+    adminDesc1: 'Admin accounts are created via dedicated link:',
+    adminRegLink: 'Admin Registration',
+    adminDesc2: 'by providing the configured',
+    adminDesc3: 'from the environment file',
+    internalDesc: 'Manager and Technician role accounts can ONLY be created by Admins via the user management panel.',
+    userDesc: 'Public/Users can register independently. Email activation confirmation is required before logging in.',
+    flowUserDesc: 'Submits reports regarding damaged infrastructure facilities & operational issues via form.',
+    flowManagerDesc: 'Reviews reports, grants approvals, and issues Work Orders detailing resource & cost allocations.',
+    flowTechDesc: 'Receives PDF task assignments, executes physical repairs, and uploads completion reports.',
+    techStackTitle: 'Software Architecture & Tech Stack Details',
+    techStackDesc: 'This Micro-Services system is engineered by combining the MERN Stack ecosystem for the database, API server, and mobile apps, integrated with Vue 3 for the interactive web dashboard.',
+    mongoDesc: 'NoSQL document database storing flexible structures like user profiles, infrastructure reports, and Work Orders.',
+    expressDesc: 'Backend REST API framework handling JWT authentication, data validation, microservice logic, and PDF generation.',
+    reactDesc: 'Cross-platform mobile framework (Android/iOS) for citizens reporting issues and field technicians executing tasks.',
+    nodeDesc: 'High-performance server-side JavaScript runtime environment executing backend services asynchronously.',
+    vueDesc: 'Specifically used to build the interactive Single Page Application (SPA) web interface for Admins and Managers.',
+    downloadTitle: 'Download Field Mobile Applications',
+    roleUser: 'Reporter / User',
+    roleTech: 'Field Technician',
+    appUserDesc: 'Used by the general public and staff to submit facility damage complaints.',
+    appTechDesc: 'Dedicated for technicians to receive Work Orders, update progress, and submit final reports.'
+  }
+};
+
+const t = (key) => translations[currentLang.value]?.[key] || key;
+
+const applyTheme = (theme) => {
+  activeTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+};
+
+const toggleTheme = () => {
+  const nextTheme = activeTheme.value === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('user-theme', nextTheme);
+  applyTheme(nextTheme);
+};
+
+const initTheme = () => {
   const savedTheme = localStorage.getItem('user-theme') || 'light';
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  applyTheme(savedTheme);
+};
+
+const initLanguage = () => {
+  currentLang.value = localStorage.getItem('user-lang') || 'id';
+};
+
+const toggleLanguage = () => {
+  currentLang.value = currentLang.value === 'id' ? 'en' : 'id';
+  localStorage.setItem('user-lang', currentLang.value);
+};
+
+onMounted(() => {
+  initTheme();
+  initLanguage();
 
   observer = new IntersectionObserver(
     (entries) => {
@@ -328,7 +459,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* OVERRIDE CSS GLOBAL UNTUK MENGELIMINASI GAP BROWSER */
+/* OVERRIDE CSS GLOBAL UNTUK MENGELIMINASI GAP DAN MEMASTIKAN TAMPILAN TIDAK BOLONG */
 :global(html),
 :global(body),
 :global(#app) {
@@ -349,32 +480,48 @@ onUnmounted(() => {
 }
 
 :global(:root),
-:global([data-theme="light"]) {
+:global([data-theme="light"]),
+:global(body[data-theme="light"]) {
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
   --bg-secondary: #f1f5f9;
   --text-main: #0f172a;
   --text-muted: #64748b;
   --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
   --primary-glow: rgba(37, 99, 235, 0.15);
   --border-color: rgba(148, 163, 184, 0.25);
   --connector-color: #2563eb;
   --disabled-bg: #e2e8f0;
   --disabled-text: #94a3b8;
+  --switch-bg: #2d3748;
+  --switch-handle-bg: #ffffff;
+  --switch-icon-color: #0f172a;
+  --lang-btn-bg: #e2e8f0;
+  --lang-btn-active: #ffffff;
+  --lang-text-active: #2563eb;
 }
 
-:global([data-theme="dark"]) {
+:global([data-theme="dark"]),
+:global(body[data-theme="dark"]) {
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --bg-secondary: #334155;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
   --primary-glow: rgba(59, 130, 246, 0.25);
   --border-color: rgba(255, 255, 255, 0.1);
   --connector-color: #60a5fa;
   --disabled-bg: #334155;
   --disabled-text: #64748b;
+  --switch-bg: #020617;
+  --switch-handle-bg: #1e293b;
+  --switch-icon-color: #f8fafc;
+  --lang-btn-bg: #334155;
+  --lang-btn-active: #1e293b;
+  --lang-text-active: #3b82f6;
 }
 
 .page-wrapper {
@@ -389,29 +536,154 @@ onUnmounted(() => {
   overflow-x: hidden;
 }
 
-.header-bar h2 {
-  margin: 8px 0 20px 0;
+/* HEADER BAR & CONTROLS */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-title {
+  text-align: left;
+  flex: 1;
+}
+
+.header-title h2 {
+  margin: 8px 0 0 0;
   font-size: 24px;
   font-weight: 800;
-  text-align: left;
+  color: var(--text-main);
 }
 
 .btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: transparent;
-  border: none;
-  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 14px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  transition: opacity 0.2s;
+  margin-bottom: 4px;
+  transition: all 0.2s;
 }
 
 .btn-back:hover {
-  opacity: 0.8;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.brand-logo-badge {
+  width: 22px;
+  height: 22px;
+  background-color: var(--primary-color, #2563eb);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-family: sans-serif;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lang-switch-wrapper, .theme-switch-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.lang-toggle-switch {
+  position: relative;
+  width: 68px;
+  height: 32px;
+  background-color: var(--lang-btn-bg);
+  border-radius: 50px;
+  border: 1px solid var(--border-color);
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lang-option {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 800;
+  width: 28px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.lang-option.active {
+  color: var(--lang-text-active);
+}
+
+.lang-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 24px;
+  background-color: var(--lang-btn-active);
+  border-radius: 50px;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+.lang-toggle-switch.is-en .lang-slider {
+  transform: translateX(32px);
+}
+
+.theme-toggle-switch {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background-color: var(--switch-bg);
+  border-radius: 50px;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.switch-handle {
+  width: 26px;
+  height: 26px;
+  background-color: var(--switch-handle-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateX(0);
+}
+
+.theme-toggle-switch.is-dark .switch-handle {
+  transform: translateX(28px);
+}
+
+.switch-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--switch-icon-color);
 }
 
 /* DROPDOWN COMPONENTS */
@@ -834,6 +1106,17 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .page-wrapper {
     padding: 16px 12px;
+  }
+
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .dropdown-content {
