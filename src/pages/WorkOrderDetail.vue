@@ -11,13 +11,9 @@
           <span>{{ t('backToList') }}</span>
         </button>
 
-        <!-- Brand Badge Menggunakan Icon SVG Data URI -->
+        <!-- Brand Badge Menggunakan CSS Badge Native -->
         <div class="brand-badge mt-1">
-          <img 
-            src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='62' font-weight='bold' fill='%23ffffff' font-family='sans-serif'>築</text></svg>" 
-            alt="Logo" 
-            class="brand-logo-icon" 
-          />
+          <div class="brand-logo-badge">築</div>
           <span>Manager Field System</span>
         </div>
         <h1>{{ workOrder?.woCode || t('loadingTitle') }}</h1>
@@ -103,14 +99,10 @@
 
     <!-- Printable & Exportable Content Area -->
     <div v-else-if="workOrder" ref="pdfContentRef" class="pdf-printable-container">
-      <!-- PDF Document Header (SVG Data URI digunakan di sini) -->
+      <!-- PDF Document Header -->
       <div class="pdf-doc-header">
         <div class="pdf-brand">
-          <img 
-            src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='62' font-weight='bold' fill='%23ffffff' font-family='sans-serif'>築</text></svg>" 
-            alt="Logo PDF" 
-            class="pdf-logo-icon" 
-          />
+          <div class="pdf-logo-badge">築</div>
           <div class="pdf-brand-text text-left">
             <h2 class="pdf-brand-title">MANAGER FIELD SYSTEM</h2>
             <p class="pdf-brand-sub">Official Work Order Document Report</p>
@@ -566,7 +558,6 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
-/* OVERRIDE CSS GLOBAL: MENGELIMINASI GAP KANAN/KIRIN DAN MEMASTIKAN BISA DI-SCROLL */
 :global(html),
 :global(body),
 :global(#app) {
@@ -662,18 +653,40 @@ onMounted(() => {
   margin-bottom: 2px;
 }
 
-.brand-logo-icon {
+/* LOGO CSS BADGE WEB */
+.brand-logo-badge {
   width: 22px;
   height: 22px;
-  object-fit: contain;
+  background-color: var(--primary-color, #2563eb);
   border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-family: sans-serif;
 }
 
-.pdf-logo-icon {
+/* LOGO CSS BADGE PDF */
+.pdf-logo-badge {
   width: 32px;
   height: 32px;
-  object-fit: contain;
+  background-color: #2563eb !important;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-family: sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 h1 {
@@ -716,7 +729,6 @@ h1 {
 .theme-toggle-switch.is-dark .switch-handle { transform: translateX(28px); }
 .switch-icon { width: 15px; height: 15px; color: var(--switch-icon-color); }
 
-/* Area Utama Tampilan Web */
 .pdf-printable-container {
   width: 100%;
   background: var(--bg-card);
@@ -726,12 +738,10 @@ h1 {
   box-sizing: border-box;
 }
 
-/* Sembunyikan Header PDF di Layar Web */
 .pdf-doc-header {
   display: none;
 }
 
-/* Grid Konten Web View */
 .detail-content-grid {
   display: flex;
   flex-direction: column;
@@ -915,7 +925,6 @@ h1 {
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* OPTIMISASI PERANGKAT MOBIL / ANDROID */
 @media (max-width: 600px) {
   .wo-detail-wrapper {
     padding: 12px 10px !important;
@@ -939,7 +948,7 @@ h1 {
   }
 }
 
-/* DOKUMEN HASIL EKSPOR PDF & PRINT (RAPI DAN TEPAT FORMAT A4) */
+/* DOKUMEN HASIL EKSPOR PDF & PRINT */
 .pdf-printable-container.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
@@ -968,12 +977,18 @@ h1 {
   grid-template-columns: repeat(3, 1fr) !important;
 }
 
+/* KECUALIKAN BADGE LOGO AGAR WARNA LATAR & TEKS KANJI TETAP BIRU/PUTIH DENGAN UTUH */
 .pdf-printable-container.is-exporting-pdf * {
   color: #0f172a !important;
   background-color: transparent !important;
   border-color: #e2e8f0 !important;
   text-shadow: none !important;
   box-shadow: none !important;
+}
+
+.pdf-printable-container.is-exporting-pdf .pdf-logo-badge {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
 }
 
 .pdf-printable-container.is-exporting-pdf .desc-box,
