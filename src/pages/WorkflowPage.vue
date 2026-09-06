@@ -166,7 +166,7 @@
         <h3>Arsitektur Perangkat Lunak & Kegunaan Tech Stack</h3>
       </div>
       <p class="tech-description">
-        Sistem ini dibangun dengan mengombinasikan ekosistem <strong>MERN Stack</strong> untuk fondasi basis data, server API, serta aplikasi mobile, dipadukan dengan <strong>Vue 3</strong> untuk antarmuka web dashboard interaktif.
+        Sistem <strong>Micro-Services</strong> ini dibangun dengan mengombinasikan ekosistem <strong>MERN Stack</strong> untuk fondasi basis data, server API, serta aplikasi mobile, dipadukan dengan <strong>Vue 3</strong> untuk antarmuka web dashboard interaktif.
       </p>
 
       <!-- MERN STACK SECTION (GRID 4 KARTU) -->
