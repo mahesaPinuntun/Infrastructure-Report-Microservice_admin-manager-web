@@ -11,10 +11,9 @@
           <span>{{ t('backToList') }}</span>
         </button>
 
+        <!-- Brand Badge Menggunakan Icon dari Folder /public -->
         <div class="brand-badge mt-1">
-          <div class="kanji-logo-badge">
-            <span class="kanji-badge-text">築</span>
-          </div>
+          <img src="/logo.png" alt="Logo" class="brand-logo-icon" @error="$event.target.src='/favicon.ico'" />
           <span>Manager Field System</span>
         </div>
         <h1>{{ workOrder?.woCode || t('loadingTitle') }}</h1>
@@ -100,12 +99,10 @@
 
     <!-- Printable & Exportable Content Area -->
     <div v-else-if="workOrder" ref="pdfContentRef" class="pdf-printable-container">
-      <!-- PDF Document Header (HANYA MUNCUL SAAT DOWNLOAD PDF / PRINT) -->
+      <!-- PDF Document Header (Icon publik digunakan di sini) -->
       <div class="pdf-doc-header">
         <div class="pdf-brand">
-          <div class="kanji-logo-badge pdf-logo">
-            <span class="kanji-badge-text">築</span>
-          </div>
+          <img src="/logo.png" alt="Logo" class="pdf-logo-icon" @error="$event.target.src='/favicon.ico'" />
           <div class="pdf-brand-text text-left">
             <h2 class="pdf-brand-title">MANAGER FIELD SYSTEM</h2>
             <p class="pdf-brand-sub">Official Work Order Document Report</p>
@@ -310,8 +307,6 @@ const calculatedGrandTotal = computed(() => {
 const resetScrollPosition = () => {
   if (typeof window !== 'undefined') {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    document.body.style.overflow = '';
-    document.body.style.position = '';
   }
 };
 
@@ -563,19 +558,25 @@ onMounted(() => {
   --lang-text-active: #3b82f6;
 }
 
+/* FIX PERUBAHAN TAMPILAN SAAT REFRESH & MEMASTIKAN BISA DI-SCROLL */
 :global(html),
-:global(body) {
-  overflow-x: hidden;
-  overflow-y: auto !important;
+:global(body),
+:global(#app) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
   height: auto !important;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+  background-color: var(--bg-main) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box;
 }
 
 .wo-detail-wrapper {
   min-height: 100vh;
-  height: auto;
+  height: auto !important;
   width: 100%;
   max-width: 860px;
   margin: 0 auto;
@@ -585,7 +586,7 @@ onMounted(() => {
   padding: 20px 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
-  overflow-y: visible;
+  overflow-y: visible !important;
 }
 
 .header-container {
@@ -653,22 +654,19 @@ onMounted(() => {
   margin-bottom: 2px;
 }
 
-.kanji-logo-badge {
+/* CSS ICON LOGO DARI FOLDER PUBLIC */
+.brand-logo-icon {
   width: 22px;
   height: 22px;
-  background-color: #2563eb;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
-.kanji-badge-text {
-  font-family: 'sans-serif', 'Noto Sans JP';
-  font-size: 12px;
-  font-weight: 800;
-  color: #ffffff;
+.pdf-logo-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 5px;
 }
 
 h1 {
@@ -721,7 +719,7 @@ h1 {
   box-sizing: border-box;
 }
 
-/* SEMBUNYIKAN HEADER DOKUMEN PDF DARI TAMPILAN LAYAR WEB */
+/* Sembunyikan Header PDF di Layar Web */
 .pdf-doc-header {
   display: none;
 }
@@ -910,7 +908,7 @@ h1 {
 .w-40 { width: 160px; } .w-full { width: 100%; } .h-12 { height: 24px; } .h-24 { height: 32px; } .h-32 { height: 120px; }
 @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* KHUSUS DOKUMEN HASIL EKSPOR PDF & PRINT */
+/* DOKUMEN HASIL EKSPOR PDF & PRINT */
 .pdf-printable-container.is-exporting-pdf {
   background-color: #ffffff !important;
   color: #0f172a !important;
@@ -929,7 +927,6 @@ h1 {
 }
 
 .pdf-brand { display: flex; align-items: center; gap: 10px; }
-.pdf-logo { width: 30px; height: 30px; border-radius: 5px; background-color: #2563eb !important; }
 .pdf-brand-title { font-size: 15px; font-weight: 800; margin: 0; color: #2563eb !important; letter-spacing: 0.5px; }
 .pdf-brand-sub { font-size: 10px; color: #64748b !important; margin: 1px 0 0 0; }
 .pdf-doc-meta { text-align: right; display: flex; flex-direction: column; }
