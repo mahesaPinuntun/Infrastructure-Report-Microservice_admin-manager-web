@@ -157,7 +157,7 @@
       </div>
     </div>
 
-    <!-- TECH STACK EXPLANATION SECTION -->
+    <!-- TECH STACK EXPLANATION SECTION (MERN + VUE LAYOUT) -->
     <div class="info-card tech-stack-card">
       <div class="card-header">
         <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -166,65 +166,81 @@
         <h3>Arsitektur Perangkat Lunak & Kegunaan Tech Stack</h3>
       </div>
       <p class="tech-description">
-        Sistem Informasi Pelaporan dan Pemeliharaan Infrastruktur ini dirancang menggunakan arsitektur *decoupled* yang memisahkan aplikasi Frontend Web, Service API Backend, dan Mobile App Lapangan secara independen.
+        Sistem ini dibangun dengan mengombinasikan ekosistem <strong>MERN Stack</strong> untuk fondasi basis data, server API, serta aplikasi mobile, dipadukan dengan <strong>Vue 3</strong> untuk antarmuka web dashboard interaktif.
       </p>
 
-      <div class="tech-grid">
-        <!-- Vue 3 -->
-        <div class="tech-badge-card">
-          <div class="tech-badge-header">
-            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      <!-- MERN STACK SECTION (GRID 4 KARTU) -->
+      <div class="mern-section">
+        <div class="stack-badge-title">
+          <span class="badge-tag">MERN STACK</span>
+          <span class="badge-sub">Database, Backend Microservices & Mobile App</span>
+        </div>
+        
+        <div class="mern-grid">
+          <!-- M: MongoDB -->
+          <div class="tech-badge-card">
+            <div class="tech-badge-header">
+              <svg class="official-logo" viewBox="0 0 24 24">
+                <path fill="#47A248" d="M12 1.5c-.3 0-.6.2-.7.5C10.5 3.8 5 10.2 5 15c0 3.9 3.1 7 7 7s7-3.1 7-7c0-4.8-5.5-11.2-6.3-13-.1-.3-.4-.5-.7-.5zm0 18.5c-2.8 0-5-2.2-5-5 0-2.8 3.2-7.2 5-9.4 1.8 2.2 5 6.6 5 9.4 0 2.8-2.2 5-5 5z"/>
+              </svg>
+              <span>MongoDB</span>
+            </div>
+            <p>Database NoSQL untuk menyimpan dokumen data fleksibel seperti profil akun, laporan infrastruktur, dan Work Order.</p>
+          </div>
+
+          <!-- E: Express.js -->
+          <div class="tech-badge-card">
+            <div class="tech-badge-header">
+              <svg class="official-logo express-icon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+              </svg>
+              <span>Express.js</span>
+            </div>
+            <p>Framework REST API backend untuk verifikasi JWT, validasi data, logika bisnis microservices, dan ekspor PDF.</p>
+          </div>
+
+          <!-- R: React Native -->
+          <div class="tech-badge-card">
+            <div class="tech-badge-header">
+              <svg class="official-logo" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="2" fill="#61DAFB"/>
+                <g stroke="#61DAFB" stroke-width="1.2" fill="none">
+                  <ellipse cx="12" cy="12" rx="9" ry="3.5"/>
+                  <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(60 12 12)"/>
+                  <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(120 12 12)"/>
+                </g>
+              </svg>
+              <span>React Native</span>
+            </div>
+            <p>Framework mobile cross-platform (Android/iOS) untuk aplikasi pelaporan warga dan aplikasi eksekusi tugas teknisi.</p>
+          </div>
+
+          <!-- N: Node.js -->
+          <div class="tech-badge-card">
+            <div class="tech-badge-header">
+              <svg class="official-logo" viewBox="0 0 24 24">
+                <path fill="#339933" d="M12 2L2.5 7.5v9L12 22l9.5-5.5v-9L12 2zm7.5 13.5L12 19.8l-7.5-4.3V8.5L12 4.2l7.5 4.3v7z"/>
+              </svg>
+              <span>Node.js</span>
+            </div>
+            <p>Runtime environment JavaScript server-side berkinerja tinggi untuk mengeksekusi service backend secara asinkron.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VUE 3 EXTENSION (POSISI DIBAWAH TENGAH) -->
+      <div class="vue-center-container">
+        <div class="vue-card">
+          <div class="tech-badge-header justify-center">
+            <svg class="official-logo vue-logo" viewBox="0 0 24 24">
+              <path fill="#41B883" d="M2 3h3.5L12 15 18.5 3H22L12 21 2 3z"/>
+              <path fill="#34495E" d="M6.5 3h3L12 8.5 14.5 3h3L12 13 6.5 3z"/>
             </svg>
             <span>Vue 3 (Frontend Web Dashboard)</span>
           </div>
-          <p>Membangun antarmuka Web SPA interaktif untuk Admin dalam mengelola akun & Manager dalam menyetujui laporan serta menerbitkan Work Order.</p>
-        </div>
-
-        <!-- Express.js -->
-        <div class="tech-badge-card">
-          <div class="tech-badge-header">
-            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>
-            </svg>
-            <span>Express.js (Backend REST API Framework)</span>
-          </div>
-          <p>Framework backend untuk menangani *routing* API, verifikasi JWT, enkripsi data, validasi skema, dan alur pembuatan dokumen Work Order PDF.</p>
-        </div>
-
-        <!-- Node.js -->
-        <div class="tech-badge-card">
-          <div class="tech-badge-header">
-            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
-            </svg>
-            <span>Node.js (Backend Server Runtime)</span>
-          </div>
-          <p>Lingkungan eksekusi JavaScript sisi server yang menangani *asynchronous I/O*, manajemen layanan *microservice*, dan performa tinggi secara kontinyu.</p>
-        </div>
-
-        <!-- MongoDB -->
-        <div class="tech-badge-card">
-          <div class="tech-badge-header">
-            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-              <ellipse cx="12" cy="5" rx="9" ry="3"/>
-            </svg>
-            <span>MongoDB (NoSQL Database)</span>
-          </div>
-          <p>Basis data dokumen untuk menyimpan informasi fleksibel seperti profil akun, status laporan, alokasi material perbaikan, dan riwayat tugas.</p>
-        </div>
-
-        <!-- React Native -->
-        <div class="tech-badge-card">
-          <div class="tech-badge-header">
-            <svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
-            </svg>
-            <span>React Native (Mobile Application)</span>
-          </div>
-          <p>Framework *cross-platform* (Android/iOS) bagi masyarakat untuk mengirimkan laporan serta bagi Teknisi dalam memproses eksekusi tugas di lapangan.</p>
+          <p>
+            Digunakan khusus membangun antarmuka <strong>Web Single Page Application (SPA)</strong> yang interaktif bagi Admin dalam mengelola sistem serta Manager dalam memverifikasi laporan & menerbitkan Work Order.
+          </p>
         </div>
       </div>
     </div>
@@ -312,7 +328,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* RESET & OVERRIDE UNTUK MEMASTIKAN TAMPILAN FULL KANAN-KIRI TANPA GAP */
+/* OVERRIDE CSS GLOBAL UNTUK MENGELIMINASI GAP BROWSER */
 :global(html),
 :global(body),
 :global(#app) {
@@ -643,7 +659,7 @@ onUnmounted(() => {
   text-align: left;
 }
 
-/* TECH STACK SECTION */
+/* TECH STACK STYLING (MERN + VUE) */
 .tech-description {
   font-size: 13.5px;
   line-height: 1.6;
@@ -652,17 +668,49 @@ onUnmounted(() => {
   text-align: left;
 }
 
-.tech-grid {
+.mern-section {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.stack-badge-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.badge-tag {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.badge-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mern-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .tech-badge-card {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px;
   text-align: left;
 }
 
@@ -676,18 +724,49 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
-.tech-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--primary-color);
+.official-logo {
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+}
+
+.express-icon {
+  color: var(--text-main);
 }
 
 .tech-badge-card p {
   margin: 0;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-muted);
   line-height: 1.45;
+}
+
+/* VUE 3 CENTERED CONTAINER */
+.vue-center-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.vue-card {
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.vue-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.justify-center {
+  justify-content: center;
 }
 
 /* DOWNLOADS SECTION */
@@ -774,5 +853,9 @@ onUnmounted(() => {
 
   .desktop-only { display: none; }
   .mobile-only { display: block; height: 100%; }
+
+  .mern-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
