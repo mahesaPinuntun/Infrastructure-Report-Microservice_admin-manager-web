@@ -318,12 +318,18 @@
             <h4>Aplikasi Eksekusi Work Order</h4>
             <p>{{ t('appTechDesc') }}</p>
           </div>
-          <button class="btn-download" disabled>
+          <!-- Tombol Download Aktif untuk Teknisi -->
+          <a 
+            href="https://expo.dev/artifacts/eas/fcmgqV_Wc6Oya0s4cpnVRi3cunJaUmq9yAbfWkYrQpE.apk" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="btn-download active"
+          >
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            <span>Download For Technician (Under Development)</span>
-          </button>
+            <span>{{ t('btnDownloadTech') }}</span>
+          </a>
         </div>
       </div>
     </div>
@@ -372,7 +378,8 @@ const translations = {
     roleUser: 'Pelapor / User',
     roleTech: 'Teknisi Lapangan',
     appUserDesc: 'Digunakan oleh masyarakat umum dan staf untuk menyampaikan keluhan kerusakan fasilitas.',
-    appTechDesc: 'Khusus teknisi untuk menerima Work Order, memperbarui progres perbaikan, dan laporan akhir.'
+    appTechDesc: 'Khusus teknisi untuk menerima Work Order, memperbarui progres perbaikan, dan laporan akhir.',
+    btnDownloadTech: 'Unduh APK Teknisi (Android)'
   },
   en: {
     backToDashboard: 'Back to Main Dashboard',
@@ -399,7 +406,8 @@ const translations = {
     roleUser: 'Reporter / User',
     roleTech: 'Field Technician',
     appUserDesc: 'Used by the general public and staff to submit facility damage complaints.',
-    appTechDesc: 'Dedicated for technicians to receive Work Orders, update progress, and submit final reports.'
+    appTechDesc: 'Dedicated for technicians to receive Work Orders, update progress, and submit final reports.',
+    btnDownloadTech: 'Download APK For Technician'
   }
 };
 
@@ -1097,6 +1105,21 @@ onUnmounted(() => {
   gap: 8px;
   cursor: not-allowed;
   opacity: 0.8;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.btn-download.active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 1;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-download.active:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 .icon-sm { width: 16px; height: 16px; flex-shrink: 0; }
